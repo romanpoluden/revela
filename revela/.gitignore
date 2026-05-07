@@ -1,0 +1,25 @@
+# Mac system files
+.DS_Store
+**/.DS_Store
+
+# Virtual environments
+venv/
+.venv/
+FitzPatrick/venv/
+
+# Image datasets
+FitzPatrick/data/finalfitz17k/
+
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Model weights
+*.pt
+*.pth
+*.h5
+*.pkl

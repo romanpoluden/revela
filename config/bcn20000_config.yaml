@@ -1,0 +1,30 @@
+dataset:
+  metadata_csv: data/raw/bcn20000/bcn20000_metadata_2026-05-07.csv
+  image_root: data/raw/bcn20000/images
+  output_dir: data/processed/bcn20000
+  summary_path: docs/data/bcn20000_processed_summary.md
+  image_extension: .jpg
+
+columns:
+  image_id: isic_id
+  lesion_id: lesion_id
+  diagnosis: diagnosis_3
+
+class_mapping:
+  melanoma_contains: Melanoma
+  nevus_exact: Nevus
+  melanoma_label: Melanoma
+  nevus_label: Benign nevus
+  other_label: Other lesion
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  seed: 42
+
+files:
+  master_metadata: master_metadata.csv
+  train: train.csv
+  val: val.csv
+  test: test.csv

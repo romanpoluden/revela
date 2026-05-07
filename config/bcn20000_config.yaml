@@ -17,11 +17,26 @@ class_mapping:
   nevus_label: Benign nevus
   other_label: Other lesion
 
+class_names:
+  - Melanoma
+  - Benign nevus
+  - Other lesion
+
 split:
   train: 0.70
   val: 0.15
   test: 0.15
   seed: 42
+
+training:
+  image_size: 224
+  batch_size: 16
+  num_workers: 0
+  learning_rate: 0.0003
+  weight_decay: 0.01
+  epochs: 10
+  use_class_weights: true
+  output_dir: models/bcn20000_effnet_b0
 
 files:
   master_metadata: master_metadata.csv

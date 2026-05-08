@@ -1,0 +1,22 @@
+# data
+data/raw/bcn20000/images/
+data/raw/**/*.zip
+
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Python environment and cache
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Raw datasets and large local files
+data/raw/
+*.zip
+
+# Model artifacts and generated outputs
+models/
+outputs/

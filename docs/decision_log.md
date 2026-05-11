@@ -104,14 +104,14 @@ After model improvement/error-analysis sprint.
 ## DEC-003 — Scope CNN v1 as a 3-class dermoscopic lesion classifier
 
 **Date:** 2026-05-08  
-**Status:** Accepted  
+**Status:** Accepted, now superseded for future retraining by DEC-008  
 **Owner:** Roman  
 **Category:** Model / Scope  
-**Linked issues:** #26, #36, #38, #42
+**Linked issues:** #26, #36, #38, #42, #116
 
 ### Decision
 
-CNN v1 uses three classes:
+CNN v1 used three classes:
 
 - Melanoma
 - Benign nevus
@@ -129,17 +129,18 @@ The original planning included a 4-class classifier with eczema/dermatitis. Afte
 
 ### Rationale
 
-A 3-class dermoscopic taxonomy is better aligned with available data and reduces domain mismatch. It also keeps the MVP trainable and explainable.
+A 3-class dermoscopic taxonomy was better aligned with the first available data and enabled a working baseline.
 
 ### Consequences
 
+- CNN v1 is now treated as a baseline, not the final product model.
 - Top-3 accuracy is not meaningful for CNN v1 because the model has exactly three classes.
-- Evaluation should focus on top-1 accuracy, macro-F1, balanced accuracy, class-wise precision/recall/F1, and confusion matrix.
-- Future clinical-image model v2 may use a different taxonomy, but that must be treated as a separate module.
+- The old `Other lesion` class includes non-melanoma cancer cases, so it is insufficient for the updated product goal.
+- Future retraining should use the cancer-risk taxonomy described in DEC-008.
 
 ### Review date
 
-After clinical-image model v2 planning.
+Superseded by DEC-008 for future dermoscopic model work.
 
 ---
 
@@ -225,7 +226,7 @@ After SCIN/Fitzpatrick17k image availability and label-count analysis.
 **Status:** Accepted  
 **Owner:** Roman  
 **Category:** Evaluation / Safety  
-**Linked issues:** #109, #110
+**Linked issues:** #109, #110, #116, #120
 
 ### Decision
 
@@ -300,3 +301,66 @@ Macro-F1 and balanced accuracy are more appropriate than simple accuracy for cla
 ### Review date
 
 Before final presentation.
+
+---
+
+## DEC-008 — Redefine dermoscopic model as cancer-risk classification
+
+**Date:** 2026-05-11  
+**Status:** Accepted  
+**Owner:** Roman  
+**Category:** Product / Model / Safety  
+**Linked issues:** #116, #117, #118, #119, #120, #123
+
+### Decision
+
+The next dermoscopic model iteration should be retrained around **cancer-risk classification**, not the old 3-class `Melanoma / Benign nevus / Other lesion` taxonomy.
+
+The model should primarily help distinguish cancer/malignant dermoscopic cases from non-cancer cases, while still preserving useful educational categories such as melanoma, non-melanoma skin cancer, benign nevus, and other benign/non-cancer lesions.
+
+### Context
+
+BCN20000 contains clearly malignant/cancer cases:
+
+- Melanoma, NOS: 4,003 rows
+- Melanoma metastasis: 633 rows
+- Basal cell carcinoma: 3,676 rows
+- Squamous cell carcinoma, NOS: 559 rows
+
+Total clearly malignant/cancer rows: 8,871.
+
+BCN20000 also contains solar or actinic keratosis: 1,088 rows. This is clinically important as pre-cancer / indeterminate risk and must be handled explicitly.
+
+The old `Other lesion` class contains basal cell carcinoma, squamous cell carcinoma, actinic keratosis, and benign lesions. Therefore, `Other lesion` is too broad and cannot be communicated as low-risk or non-cancer.
+
+### Options considered
+
+1. Keep old 3-class taxonomy.
+2. Binary cancer vs non-cancer model.
+3. 3-way risk model: cancer / pre-cancer-indeterminate / benign.
+4. 4-class educational taxonomy: melanoma / non-melanoma skin cancer / benign nevus / other benign-non-cancer lesion.
+5. 5-class taxonomy: melanoma / basal cell carcinoma / squamous cell carcinoma / benign nevus / other lesion.
+
+### Rationale
+
+The product goal is better served by cancer-risk classification. The old 3-class model is useful as a technical baseline, but the taxonomy is not aligned with practitioner value because many cancer cases are hidden inside `Other lesion`.
+
+The preferred next candidate is either:
+
+- 4-class educational taxonomy: melanoma / non-melanoma skin cancer / benign nevus / other benign-non-cancer lesion; or
+- 3-way risk taxonomy: cancer / pre-cancer-indeterminate / benign.
+
+Final taxonomy must be selected after #117 mapping analysis.
+
+### Consequences
+
+- The old CNN v1 is baseline-only.
+- Inference and app schema must not be finalized around the old 3-class output.
+- The model must be retrained after the new taxonomy is approved.
+- Evaluation must include cancer/malignant recall and false-negative rate, not only top-1 accuracy and macro-F1.
+- Actinic keratosis handling must be decided before retraining.
+- Supplemental dermoscopic data may be needed after a new BCN20000 baseline is trained.
+
+### Review date
+
+After #117 taxonomy mapping and #120 evaluation of the retrained model.

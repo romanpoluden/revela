@@ -14,7 +14,7 @@ That taxonomy is no longer sufficient for the product goal because the `Other le
 
 The revised product goal is:
 
-> Use the dermoscopic model to support cancer-risk classification while still providing educational lesion categories such as melanoma, non-melanoma skin cancer, benign nevus, and other benign/non-cancer lesions.
+> Use the dermoscopic model to support cancer-risk classification while still providing educational lesion categories such as melanoma, non-melanoma skin cancer, benign nevus, and other non-cancer / indeterminate lesions.
 
 This remains an educational prototype, not a diagnostic product.
 
@@ -119,21 +119,26 @@ Recommended next taxonomy for retraining:
 
 1. **Melanoma**
 2. **Non-melanoma skin cancer**
-3. **Pre-cancer / indeterminate risk**
-4. **Benign nevus**
-5. **Other benign / non-cancer lesion**
+3. **Benign nevus**
+4. **Other non-cancer / indeterminate lesion**
 
-This is a 5-class taxonomy. It preserves educational value and makes the cancer-risk structure explicit.
+This is a 4-class taxonomy. It preserves the most important educational and safety distinctions while avoiding very small classes.
 
-Alternative simplified taxonomy:
+The previous 5-class proposal separated:
 
-1. **Cancer / malignant**
-2. **Pre-cancer / indeterminate risk**
-3. **Benign / non-cancer**
+- Pre-cancer / indeterminate risk
+- Other benign / non-cancer lesion
 
-The 3-way version is simpler for risk triage, but loses useful educational distinctions between melanoma, non-melanoma skin cancer, nevus, and other benign lesions.
+The team decided to combine these because both classes were relatively small:
 
-For the current Revela educational product, the 5-class taxonomy is recommended as the next experiment.
+- Pre-cancer / indeterminate risk: 1,088 rows
+- Other benign / non-cancer lesion: 2,033 rows
+
+Combined class:
+
+- Other non-cancer / indeterminate lesion: 3,121 rows
+
+This is more stable for the next training experiment.
 
 ---
 
@@ -145,12 +150,12 @@ For the current Revela educational product, the 5-class taxonomy is recommended 
 | Melanoma metastasis | 633 | Melanoma | Cancer / malignant |
 | Basal cell carcinoma | 3,676 | Non-melanoma skin cancer | Cancer / malignant |
 | Squamous cell carcinoma, NOS | 559 | Non-melanoma skin cancer | Cancer / malignant |
-| Solar or actinic keratosis | 1,088 | Pre-cancer / indeterminate risk | Pre-cancer / indeterminate risk |
 | Nevus | 5,647 | Benign nevus | Non-cancer / benign |
-| Seborrheic keratosis | 1,268 | Other benign / non-cancer lesion | Non-cancer / benign |
-| Solar lentigo | 283 | Other benign / non-cancer lesion | Non-cancer / benign |
-| Scar | 314 | Other benign / non-cancer lesion | Non-cancer / benign |
-| Dermatofibroma | 168 | Other benign / non-cancer lesion | Non-cancer / benign |
+| Solar or actinic keratosis | 1,088 | Other non-cancer / indeterminate lesion | Non-cancer / indeterminate |
+| Seborrheic keratosis | 1,268 | Other non-cancer / indeterminate lesion | Non-cancer / indeterminate |
+| Solar lentigo | 283 | Other non-cancer / indeterminate lesion | Non-cancer / indeterminate |
+| Scar | 314 | Other non-cancer / indeterminate lesion | Non-cancer / indeterminate |
+| Dermatofibroma | 168 | Other non-cancer / indeterminate lesion | Non-cancer / indeterminate |
 | Missing / NaN | 1,307 | Exclude / unknown | Unknown / excluded |
 
 Mapping CSV:
@@ -166,8 +171,7 @@ Mapping CSV:
 | Benign nevus | 5,647 |
 | Melanoma | 4,636 |
 | Non-melanoma skin cancer | 4,235 |
-| Other benign / non-cancer lesion | 2,033 |
-| Pre-cancer / indeterminate risk | 1,088 |
+| Other non-cancer / indeterminate lesion | 3,121 |
 | Exclude / unknown | 1,307 |
 
 If unknown rows are excluded, usable mapped rows:
@@ -181,8 +185,8 @@ If unknown rows are excluded, usable mapped rows:
 | Risk group | Rows |
 |---|---:|
 | Cancer / malignant | 8,871 |
-| Non-cancer / benign | 7,680 |
-| Pre-cancer / indeterminate risk | 1,088 |
+| Non-cancer / benign | 5,647 |
+| Non-cancer / indeterminate | 3,121 |
 | Unknown / excluded | 1,307 |
 
 If unknown rows are excluded, usable mapped rows:
@@ -195,16 +199,20 @@ If unknown rows are excluded, usable mapped rows:
 
 Decision for next experiment:
 
-> Treat `Solar or actinic keratosis` as **Pre-cancer / indeterminate risk**, not as benign and not as invasive cancer.
+> Treat `Solar or actinic keratosis` as part of **Other non-cancer / indeterminate lesion**.
 
 Rationale:
 
 - It is not usually classified as invasive cancer.
 - It is clinically relevant and risk-associated.
-- Putting it into `Other benign` would hide risk.
-- Putting it into `Cancer / malignant` would overstate the label.
+- The separate pre-cancer class had only 1,088 rows.
+- Combining it with other non-cancer / indeterminate lesions creates a more stable class for the next training experiment.
 
-This creates a smaller class with 1,088 rows. That class may require class weighting or careful evaluation.
+Important communication rule:
+
+> The combined class must not be described as simply “benign” or “safe,” because it includes actinic keratosis.
+
+Use the label `Other non-cancer / indeterminate lesion`, not `Other benign lesion`.
 
 ---
 
@@ -226,20 +234,20 @@ Count excluded:
 
 ## Training implications
 
-The next training dataset should use the mapped 5-class taxonomy:
+The next training dataset should use the mapped 4-class taxonomy:
 
 - Melanoma
 - Non-melanoma skin cancer
-- Pre-cancer / indeterminate risk
 - Benign nevus
-- Other benign / non-cancer lesion
+- Other non-cancer / indeterminate lesion
 
 Important implications:
 
-- Class imbalance exists.
-- `Pre-cancer / indeterminate risk` and `Other benign / non-cancer lesion` are smaller classes.
-- Class weighting should be considered.
+- Class balance is better than the 5-class version.
+- The smallest retained class has 3,121 rows.
+- Class weighting may still be useful.
 - Evaluation must include cancer/malignant recall and false-negative rate.
+- Evaluation should also report melanoma recall and non-melanoma skin cancer recall separately.
 - The new model should be compared against the old 3-class baseline only as a baseline, not as equivalent product models.
 
 ---
@@ -254,7 +262,6 @@ For the retrained cancer-risk model, report:
 - class-wise precision, recall, F1;
 - melanoma recall;
 - non-melanoma skin cancer recall;
-- pre-cancer recall;
 - cancer / malignant recall after grouping melanoma + non-melanoma skin cancer;
 - cancer / malignant false-negative rate;
 - confusion matrix.
@@ -266,7 +273,7 @@ Do not claim all cancers can be detected.
 
 ## Recommendation
 
-Proceed with the 5-class cancer-risk educational taxonomy for the next dermoscopic model experiment.
+Proceed with the 4-class cancer-risk educational taxonomy for the next dermoscopic model experiment.
 
 Recommended next issue:
 

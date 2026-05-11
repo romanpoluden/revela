@@ -16,26 +16,28 @@ The product helps users practice structured dermatology image review by showing 
 
 ## Current MVP scope
 
-Current MVP focuses on a dermoscopic lesion training module.
+Current MVP focuses on a dermoscopic cancer-risk training module.
 
-Core flow:
+Revised product logic:
 
 1. User uploads a dermoscopic lesion image.
-2. CNN v1 returns top-3 class probabilities.
-3. App shows confidence, uncertainty, and educational safety warning.
+2. Model predicts cancer-risk oriented class output.
+3. App shows class prediction, cancer-risk interpretation, confidence, uncertainty, and educational safety warning.
 4. Explanation / quiz / LLM layer may be added later.
 
 Current MVP is not a general skin-disease classifier and not a patient-facing diagnostic system.
 
 ---
 
-## Current CNN v1
+## Current baseline CNN v1
+
+CNN v1 is now considered a baseline, not the final product model.
 
 Dataset: BCN20000  
 Image type: Dermoscopic lesion images  
 Model: EfficientNet-B0  
 Training approach: Transfer learning  
-Classes:
+Old classes:
 
 - Melanoma
 - Benign nevus
@@ -62,27 +64,59 @@ Class-wise metrics:
 - Benign nevus: precision 76.56%, recall 80.00%, F1 78.24%
 - Other lesion: precision 88.79%, recall 76.30%, F1 82.07%
 
-Current weakest class:
+Important limitation:
 
-- Melanoma
+The old `Other lesion` class contains non-melanoma cancer and pre-cancer / indeterminate-risk cases. Therefore, this old taxonomy is insufficient for the revised product goal.
 
-Main improvement target:
+---
 
-- Improve melanoma precision and recall, especially reducing false negatives, without destroying overall macro-F1.
+## Revised dermoscopic model direction
+
+The next dermoscopic model should be retrained around cancer-risk classification.
+
+BCN20000 contains clearly malignant/cancer cases:
+
+- Melanoma, NOS: 4,003 rows
+- Melanoma metastasis: 633 rows
+- Basal cell carcinoma: 3,676 rows
+- Squamous cell carcinoma, NOS: 559 rows
+
+Total clearly malignant/cancer rows: 8,871.
+
+BCN20000 also contains:
+
+- Solar or actinic keratosis: 1,088 rows
+
+This must be handled explicitly as pre-cancer / indeterminate risk / separate class / excluded, depending on the final taxonomy decision.
+
+Candidate taxonomies:
+
+1. Binary: Cancer / malignant vs Non-cancer / benign.
+2. 3-way: Cancer / malignant vs Pre-cancer / indeterminate risk vs Benign / non-cancer.
+3. 4-class educational: Melanoma vs Non-melanoma skin cancer vs Benign nevus vs Other benign / non-cancer lesion.
+4. 5-class: Melanoma vs Basal cell carcinoma vs Squamous cell carcinoma vs Benign nevus vs Other lesion.
+
+Current preferred direction for planning:
+
+- 4-class educational taxonomy, or
+- 3-way risk taxonomy.
+
+Final taxonomy must be selected before retraining.
 
 ---
 
 ## Important current decisions
 
 1. Revela is an educational training aid, not a diagnostic product.
-2. CNN v1 uses BCN20000 and is dermoscopic-only.
-3. CNN v1 uses 3 classes: Melanoma, Benign nevus, Other lesion.
-4. Do not mix dermoscopic and clinical-photo datasets in CNN v1.
-5. SCIN and Fitzpatrick17k are candidates for future clinical-photo model planning, not current CNN v1 training.
-6. Future clinical-image model v2 should be explored as melanoma-risk triage, not broad skin-disease classification.
-7. For melanoma-related models, prioritize sensitivity / false-negative reduction, but never claim all melanoma cases can be detected.
-8. Evaluation should emphasize top-1 accuracy, macro-F1, balanced accuracy, class-wise metrics, and confusion matrix.
-9. Top-3 accuracy should not be used as a success claim for CNN v1 because it is trivial with 3 classes.
+2. BCN20000 remains the core dataset for the dermoscopic model.
+3. The old 3-class CNN v1 is baseline-only.
+4. The next dermoscopic model objective is cancer-risk classification.
+5. Do not mix dermoscopic and clinical-photo datasets in the dermoscopic model.
+6. SCIN and Fitzpatrick17k are candidates for future clinical-photo model planning, not dermoscopic retraining.
+7. Future clinical-image model v2 should be explored as melanoma-risk triage, not broad skin-disease classification.
+8. For melanoma/cancer-related models, prioritize sensitivity / false-negative reduction, but never claim all melanoma or all cancer cases can be detected.
+9. Evaluation should include cancer/malignant recall, false-negative rate, melanoma recall, macro-F1, balanced accuracy, class-wise metrics, and confusion matrix.
+10. Top-3 accuracy should not be used as a success claim for old CNN v1 because it is trivial with 3 classes.
 
 ---
 
@@ -101,7 +135,7 @@ Potential workflow:
 1. Practitioner uploads clinical image.
 2. Clinical-image model estimates melanoma-risk signal.
 3. If high-risk or uncertain, system asks for dermoscopic image.
-4. Dermoscopic CNN provides a more specialized lesion differential.
+4. Dermoscopic model provides a more specialized lesion/cancer-risk review.
 5. App shows educational explanation and safety warning.
 
 Do not call this diagnosis. Use language like:
@@ -116,18 +150,19 @@ Do not call this diagnosis. Use language like:
 
 ### BCN20000
 
-Used for CNN v1.
+Used for dermoscopic model development.
 
 Strengths:
 
 - Dermoscopic images.
-- Suitable for melanoma / nevus / other lesion classification.
+- Contains melanoma, non-melanoma skin cancer, nevus, and other lesion categories.
 - Supports lesion-level split.
 
 Limitations:
 
 - Dermoscopic-only.
 - No reliable skin-tone metadata.
+- Old 3-class mapping hid BCC/SCC inside `Other lesion`.
 - Not suitable for clinical-photo inflammatory/rash classification.
 
 ### SCIN
@@ -175,11 +210,12 @@ Do not:
 
 - Claim diagnosis.
 - Claim clinical validation.
-- Claim the model detects all melanoma cases.
+- Claim the model detects all melanoma or all cancer cases.
 - Claim fairness or skin-tone robustness without slice evaluation.
-- Mix SCIN/Fitzpatrick17k clinical photos into CNN v1.
-- Present CNN v1 as working on normal phone/clinical skin photos.
-- Present top-3 accuracy as meaningful for the current 3-class model.
+- Mix SCIN/Fitzpatrick17k clinical photos into the dermoscopic CNN.
+- Present the dermoscopic model as working on normal phone/clinical skin photos.
+- Present top-3 accuracy as meaningful for the old 3-class CNN v1.
+- Treat `Other lesion` as benign/safe.
 - Add treatment advice.
 - Let an LLM invent medical certainty from CNN output.
 
@@ -189,19 +225,19 @@ Do not:
 
 High-priority / near-term:
 
-- Implement inference function for CNN v1.
-- Define inference response schema.
-- Add uncertainty bucket logic.
-- Build local inference endpoint/adapter.
-- Write model evaluation report.
-- Write model card.
-- Prepare end-of-day progress update.
-- Create demo image set.
+- Redefine dermoscopic CNN target as cancer-risk classification.
+- Create cancer-risk label mapping for BCN20000.
+- Rebuild BCN20000 processed splits for the new taxonomy.
+- Retrain dermoscopic CNN with the new cancer-risk taxonomy.
+- Evaluate cancer-risk CNN with cancer/malignant recall and false-negative rate.
+- Update inference and app schema for cancer-risk output.
+- Write revised model evaluation report.
+- Write revised model card.
+- Update presentation/demo narrative.
 
 Model improvement / research:
 
-- Run error analysis for current model.
-- Assess need for additional dermoscopic data.
+- Assess whether supplemental dermoscopic datasets should be added.
 - Evaluate whether HAM10000 / ISIC can supplement BCN20000.
 - Plan clinical-image model v2.
 - Prepare benchmark plan vs ChatGPT / Claude.
@@ -211,7 +247,7 @@ Future:
 - Clinical-photo melanoma-risk triage model.
 - LLM explanation layer.
 - Skin-tone slice evaluation if metadata and sample size allow.
-- Improved melanoma recall/precision through longer training, augmentation, focal loss, or data expansion.
+- Improved cancer/melanoma recall through longer training, augmentation, focal loss, or data expansion.
 
 ---
 
@@ -236,4 +272,4 @@ After finishing work:
 
 ## Current concise status for stakeholders
 
-Revela has a working first CNN baseline for dermoscopic lesion training. It uses BCN20000 and classifies images into melanoma, benign nevus, and other lesion. The model achieved 76.16% top-1 accuracy and 0.7443 macro-F1 on the held-out test set. It is suitable for an educational MVP demo but not clinical use. Melanoma remains the weakest class and is the main target for improvement. Future work may explore a separate clinical-photo melanoma-risk triage module.
+Revela has a working first CNN baseline for dermoscopic lesion training, but the team discovered that the old `Other lesion` class contains non-melanoma skin cancers such as basal cell carcinoma and squamous cell carcinoma. Therefore, the baseline model is not aligned with the revised product goal. The next dermoscopic model iteration should be retrained around cancer-risk classification, while keeping the product educational and non-diagnostic.

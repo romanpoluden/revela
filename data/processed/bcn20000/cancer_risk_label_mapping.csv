@@ -3,10 +3,10 @@ Nevus,5647,Benign,Benign melanocytic proliferations,Benign nevus,Non-cancer / be
 "Melanoma, NOS",4003,Malignant,Malignant melanocytic proliferations (Melanoma),Melanoma,Cancer / malignant
 Basal cell carcinoma,3676,Malignant,Malignant adnexal epithelial proliferations - Follicular,Non-melanoma skin cancer,Cancer / malignant
 Missing / NaN,1307,Benign,Benign soft tissue proliferations - Vascular,Exclude / unknown,Unknown / excluded
-Seborrheic keratosis,1268,Benign,Benign epidermal proliferations,Other benign / non-cancer lesion,Non-cancer / benign
-Solar or actinic keratosis,1088,Indeterminate,Indeterminate epidermal proliferations,Pre-cancer / indeterminate risk,Pre-cancer / indeterminate risk
+Seborrheic keratosis,1268,Benign,Benign epidermal proliferations,Other non-cancer / indeterminate lesion,Non-cancer / indeterminate
+Solar or actinic keratosis,1088,Indeterminate,Indeterminate epidermal proliferations,Other non-cancer / indeterminate lesion,Non-cancer / indeterminate
 Melanoma metastasis,633,Malignant,Malignant melanocytic proliferations (Melanoma),Melanoma,Cancer / malignant
 "Squamous cell carcinoma, NOS",559,Malignant,Malignant epidermal proliferations,Non-melanoma skin cancer,Cancer / malignant
-Scar,314,Benign,Benign soft tissue proliferations - Fibro-histiocytic,Other benign / non-cancer lesion,Non-cancer / benign
-Solar lentigo,283,Benign,Benign epidermal proliferations,Other benign / non-cancer lesion,Non-cancer / benign
-Dermatofibroma,168,Benign,Benign soft tissue proliferations - Fibro-histiocytic,Other benign / non-cancer lesion,Non-cancer / benign
+Scar,314,Benign,Benign soft tissue proliferations - Fibro-histiocytic,Other non-cancer / indeterminate lesion,Non-cancer / indeterminate
+Solar lentigo,283,Benign,Benign epidermal proliferations,Other non-cancer / indeterminate lesion,Non-cancer / indeterminate
+Dermatofibroma,168,Benign,Benign soft tissue proliferations - Fibro-histiocytic,Other non-cancer / indeterminate lesion,Non-cancer / indeterminate

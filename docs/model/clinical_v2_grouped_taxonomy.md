@@ -6,9 +6,9 @@ This document defines the agreed grouped-label taxonomy for the future **clinica
 
 The clinical-image model is separate from the dermoscopic cancer-risk model.
 
-The clinical-image model should support common clinical skin-condition learning from clinical/photo-style images. It should not be responsible for cancer-risk detection.
+The clinical-image model should support common clinical skin-condition learning from clinical/photo-style images. It should also include a routing class for lesion-type cases where dermoscopic review is more appropriate.
 
-Cancer-risk / lesion-risk learning is handled by the dermoscopic model.
+Cancer-risk / lesion-risk classification is handled by the dermoscopic model.
 
 ---
 
@@ -16,21 +16,32 @@ Cancer-risk / lesion-risk learning is handled by the dermoscopic model.
 
 Clinical model v2 should be positioned as:
 
-> A clinical skin-condition learning module for common clinical-photo presentations.
+> A clinical skin-condition learning module for common clinical-photo presentations, with a lesion-routing output that recommends dermoscopic review when the image appears lesion-like.
 
 It should not be positioned as:
 
 - a diagnostic model;
-- a cancer-risk model;
+- a clinical cancer classifier;
 - a melanoma detector;
 - an all-disease dermatology classifier;
 - a replacement for clinician judgment.
 
 Recommended product routing:
 
-1. User chooses image type / module.
+1. User chooses image type / module, or the app routes based on the model output.
 2. Clinical skin photo → clinical skin-condition learning module.
-3. Dermoscopic lesion image → dermoscopic cancer-risk learning module.
+3. If the clinical model predicts `Lesion — dermoscopic review recommended`, the app asks the user to upload a dermoscopic image.
+4. Dermoscopic lesion image → dermoscopic cancer-risk learning module.
+
+Recommended user-facing wording for the lesion-routing class:
+
+> This appears to be a lesion-type case where dermoscopic review is more appropriate. Upload a dermoscopic image for additional educational review.
+
+Avoid wording such as:
+
+- Cancer detected
+- This is melanoma
+- Diagnosis confirmed
 
 ---
 
@@ -38,7 +49,7 @@ Recommended product routing:
 
 ### Primary dataset
 
-Use **SCIN** as the primary dataset for the first clinical-image baseline.
+Use **SCIN** as the primary dataset for common clinical inflammatory/rash-style classes.
 
 Reasons:
 
@@ -51,42 +62,33 @@ Reasons:
 
 ### Supplemental dataset
 
-Use **Fitzpatrick17k** only as optional supplementation after SCIN-only baseline and feasibility checks.
+Use **Fitzpatrick17k** as supplementation for overlapping common clinical labels and for the lesion-routing class, because all Fitzpatrick17k images have now been downloaded locally.
 
 Reasons for caution:
 
 - no clear `case_id`, `patient_id`, or `lesion_id`;
-- URL/image availability must be validated;
 - label quality and confirmation method are weaker;
 - source-bias risk is high if mixed blindly with SCIN.
 
-### Do not include cancer labels in clinical model v2
+If SCIN and Fitzpatrick17k are combined, evaluate source-specific performance:
 
-Cancer/lesion-risk labels should be excluded from clinical model v2 and handled by the dermoscopic model.
+- SCIN test performance;
+- Fitzpatrick17k test performance;
+- combined test performance.
 
-Examples to exclude from clinical model v2:
-
-- Melanoma
-- Nevus / melanocytic nevus
-- Basal cell carcinoma
-- Squamous cell carcinoma
-- Actinic keratosis
-- Seborrheic keratosis
-- Solar lentigo
-
-These labels may be useful for other research, but they are not part of the clinical-photo MVP module.
+Do not report only combined accuracy.
 
 ---
 
 ## Agreed MVP taxonomy
 
-Start with a **5-class clinical-image taxonomy**:
+Use a **5-class clinical-image taxonomy**:
 
 1. Eczema / dermatitis
 2. Urticaria / allergic reaction
 3. Folliculitis / acne-like
 4. Psoriasis / papulosquamous
-5. Tinea / fungal-like
+5. Lesion — dermoscopic review recommended
 
 The app can still show:
 
@@ -96,13 +98,14 @@ but this should be implemented through confidence/uncertainty thresholds, not tr
 
 ---
 
-## Optional 6th class
+## Excluded first-baseline classes
 
-Optional after count and image-quality review:
+The following previously considered groups are excluded from the first baseline because the counts are weak or the groups are heterogeneous:
 
-6. Viral / bacterial infection
+- Tinea / fungal-like
+- Viral / bacterial infection
 
-This class may be useful, but it is broader and more visually heterogeneous. Add it only if grouped counts and image quality are acceptable.
+They may be reconsidered later if more compatible data is found.
 
 ---
 
@@ -132,7 +135,7 @@ This class may be useful, but it is broader and more visually heterogeneous. Add
 
 ### Notes
 
-This is expected to be the largest and most stable class. It may need downsampling or class balancing if it dominates the dataset.
+This is expected to be a large and stable class. It may need downsampling or class balancing if it dominates the dataset.
 
 ---
 
@@ -206,62 +209,51 @@ If the grouped class becomes too noisy, a later version can narrow it to psorias
 
 ---
 
-## 5. Tinea / fungal-like
+## 5. Lesion — dermoscopic review recommended
+
+### Purpose
+
+This is a routing class, not a diagnosis class.
+
+Its role is to identify clinical-photo cases that appear lesion-like and should be reviewed through the dermoscopic module rather than classified as a common inflammatory/rash-style condition.
 
 ### SCIN labels to map
 
-- Tinea
-- Tinea corporis
-- Tinea pedis
-- Tinea cruris
-- Onychomycosis
-- Candidiasis
-- Intertrigo
+- Melanoma
+- Basal Cell Carcinoma
+- SCC/SCCIS
+- Melanocytic Nevus
+- Atypical Nevus
+- Epidermal nevus
+- Nevus anemicus
+- Vascular nevus of skin
+- Actinic Keratosis
 
 ### Fitzpatrick17k labels to map
 
-- tinea
-- tinea corporis
-- tinea pedis
-- tinea cruris
-- onychomycosis
-- candidiasis
-- intertrigo
+- melanoma
+- superficial spreading melanoma ssm
+- malignant melanoma
+- lentigo maligna
+- basal cell carcinoma
+- basal cell carcinoma morpheiform
+- solid cystic basal cell carcinoma
+- squamous cell carcinoma
+- nevocytic nevus
+- congenital nevus
+- halo nevus
+- becker nevus
+- epidermal nevus
+- nevus sebaceous of jadassohn
+- actinic keratosis
 
 ### Notes
 
-If many images are nail-only, consider excluding nail-only images or documenting that the model includes some nail/fungal presentations.
+This class intentionally combines malignant, pre-cancer/indeterminate, and benign lesion labels. That is acceptable because the purpose is routing to dermoscopic review, not diagnosis.
 
----
+Do not call this class `Cancer`.
 
-## Optional 6. Viral / bacterial infection
-
-### SCIN labels to map
-
-- Herpes Zoster
-- Herpes Simplex
-- Viral Exanthem
-- Impetigo
-- Cellulitis
-- Bacterial infection
-- Molluscum contagiosum
-- Warts
-- Verruca
-
-### Fitzpatrick17k labels to map
-
-- herpes zoster
-- herpes simplex
-- viral exanthem
-- impetigo
-- molluscum contagiosum
-- warts
-- verruca vulgaris
-- cellulitis
-
-### Notes
-
-This class is clinically useful but broad. Add only after grouped label counts and image-quality checks.
+Do not use this output to claim cancer detection.
 
 ---
 
@@ -272,7 +264,7 @@ Use **single-label classification** for MVP.
 Recommended label source:
 
 - SCIN: use `weighted_skin_condition_label` as the primary label.
-- Fitzpatrick17k: use `label` only after image availability and label mapping are validated.
+- Fitzpatrick17k: use `label` after local image path availability is confirmed.
 
 Do not train multi-label for MVP.
 
@@ -322,12 +314,13 @@ Instead:
 
 Recommended sequence:
 
-1. Build SCIN-only baseline first.
-2. Evaluate SCIN-only performance.
-3. Validate Fitzpatrick17k image availability.
-4. Map Fitzpatrick17k labels to the same taxonomy.
-5. Compare class balance before and after adding Fitzpatrick17k.
-6. If combined, evaluate separately by source:
+1. Build mapping for both datasets.
+2. Validate local image paths for both datasets.
+3. Build combined dataset with source labels preserved.
+4. Balance classes and source contribution where possible.
+5. Split SCIN by `case_id`.
+6. Split Fitzpatrick17k carefully and document lack of patient/case IDs.
+7. Evaluate separately by source:
    - SCIN test performance;
    - Fitzpatrick17k test performance;
    - combined test performance.
@@ -357,10 +350,10 @@ If one class dominates, use one or more of:
 
 Related tasks:
 
-- V2.4 — Define grouped clinical-image taxonomy
-- V2.5 — Count grouped labels across SCIN and Fitzpatrick17k
-- V2.6 — Build SCIN-only clinical baseline dataset
-- V2.7 — Evaluate whether Fitzpatrick17k supplementation is worth adding
+- V2.4 — Count grouped clinical labels across SCIN and Fitzpatrick17k
+- V2.5 — Build clinical-image dataset with 5 approved classes
+- V2.6 — Train clinical-image CNN baseline
+- V2.7 — Evaluate clinical-image CNN baseline, including source-specific performance
 
 ---
 
@@ -368,9 +361,9 @@ Related tasks:
 
 Approved for planning:
 
-- Start with the 5-class clinical-image taxonomy.
-- Treat viral / bacterial infection as optional 6th class after count check.
-- Use SCIN as primary dataset.
-- Use Fitzpatrick17k only as optional supplementation.
-- Keep cancer-risk labels out of the clinical model.
-- Use the dermoscopic model for cancer-risk learning.
+- Use the 5-class clinical-image taxonomy.
+- Add `Lesion — dermoscopic review recommended` as the 5th class.
+- Drop `Tinea / fungal-like` and `Viral / bacterial infection` from the first baseline.
+- Use SCIN + Fitzpatrick17k where labels and image paths are available.
+- Preserve source labels and evaluate source-specific performance.
+- Use the dermoscopic model for cancer-risk classification after lesion routing.

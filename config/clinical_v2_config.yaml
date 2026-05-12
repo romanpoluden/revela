@@ -1,0 +1,33 @@
+dataset:
+  name: clinical_v2
+  task: clinical_image_classification_with_lesion_routing
+  processed_dir: data/processed/clinical_v2
+  train_csv: data/processed/clinical_v2/train.csv
+  val_csv: data/processed/clinical_v2/val.csv
+  test_csv: data/processed/clinical_v2/test.csv
+  image_size: 224
+  num_classes: 5
+  class_names:
+  - Eczema / dermatitis
+  - Urticaria / allergic reaction
+  - Folliculitis / acne-like
+  - Psoriasis / papulosquamous
+  - Lesion — dermoscopic review recommended
+
+model:
+  architecture: efficientnet_b0
+  pretrained: true
+
+training:
+  batch_size: 16
+  epochs: 5
+  learning_rate: 0.0001
+  use_class_weights: true
+  random_seed: 42
+
+notes:
+  - Clinical model is not diagnostic.
+  - Lesion class is a routing output, not cancer detection.
+  - SCIN uses official google/scin export with case_id preserved.
+  - Fitzpatrick17k lacks case_id/patient_id/lesion_id; split limitation must be documented.
+  - Preserve source_dataset and report source-specific performance during evaluation.

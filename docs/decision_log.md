@@ -364,3 +364,20 @@ Final taxonomy must be selected after #117 mapping analysis.
 ### Review date
 
 After #117 taxonomy mapping and #120 evaluation of the retrained model.
+
+### Update — 2026-05-12 — Taxonomy finalized
+
+Final 4-class taxonomy approved in #117 (D3.2):
+
+| Class | BCN20000 rows |
+|---|---|
+| Melanoma | 4,636 |
+| Non-melanoma skin cancer | 4,235 |
+| Benign nevus | 5,647 |
+| Other non-cancer / indeterminate lesion | 3,121 |
+| Excluded (unknown / missing diagnosis_3) | 1,307 |
+| **Usable total** | **17,639** |
+
+Wording rule: the 4th class must be called `Other non-cancer / indeterminate lesion`. Do not use `Other benign lesion`, `Safe lesion`, or omit the word `lesion`. This class includes actinic keratosis (pre-malignant) alongside other benign lesions.
+
+Status: Accepted and finalized.

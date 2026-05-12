@@ -1,10 +1,10 @@
-# Revela — Clinical Model Setup Guide for Issa
+# Revela — Clinical Model Setup Guide
 
 ## Purpose
 
 This guide explains how to set up the local data, model artifacts, and repo context needed to work on clinical model improvement tasks for Revela.
 
-The immediate goal is to let Issa work on clinical model error analysis and metric improvement using GitHub issues, ChatGPT, and Codex.
+The immediate goal is to let  work on clinical model error analysis and metric improvement using GitHub issues, ChatGPT, and Codex.
 
 Relevant project context:
 

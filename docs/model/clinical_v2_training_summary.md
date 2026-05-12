@@ -76,3 +76,58 @@ Smoke-test result:
 - Validation balanced accuracy: 0.1667
 
 These smoke-test metrics are not model-quality metrics because only two train batches and two validation batches were used. The smoke test only confirms that the training pipeline runs end-to-end and saves artifacts.
+
+
+## Full Training Run
+
+Full clinical-image baseline training completed locally on MPS.
+
+Command:
+
+`python3 -m src.model.train --config config/clinical_v2_config.yaml`
+
+Training setup:
+
+- Model: EfficientNet-B0
+- Pretrained weights: ImageNet
+- Epochs: 5
+- Train examples: 6,986
+- Validation examples: 1,518
+- Output directory: `models/clinical_v2_effnet_b0/`
+
+Final epoch result:
+
+- Train loss: 0.6072
+- Train accuracy: 0.7635
+- Validation loss: 0.8829
+- Validation accuracy: 0.6845
+- Validation macro-F1: 0.6738
+- Validation balanced accuracy: 0.6864
+
+Best validation macro-F1:
+
+- 0.6738
+
+Saved local artifacts:
+
+- `models/clinical_v2_effnet_b0/best_model.pth`
+- `models/clinical_v2_effnet_b0/class_to_idx.json`
+- `models/clinical_v2_effnet_b0/training_history.csv`
+
+Training history:
+
+| Epoch | Train loss | Train acc | Val loss | Val acc | Val macro-F1 | Val balanced acc |
+|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 1.2329 | 0.5092 | 0.9859 | 0.6219 | 0.6071 | 0.6207 |
+| 2 | 0.9300 | 0.6363 | 0.8883 | 0.6515 | 0.6398 | 0.6599 |
+| 3 | 0.7983 | 0.6930 | 0.8475 | 0.6779 | 0.6686 | 0.6869 |
+| 4 | 0.6947 | 0.7335 | 0.8479 | 0.6845 | 0.6731 | 0.6934 |
+| 5 | 0.6072 | 0.7635 | 0.8829 | 0.6845 | 0.6738 | 0.6864 |
+
+Interpretation:
+
+This is a valid first clinical-image CNN baseline. Validation macro-F1 improved from 0.6071 to 0.6738 across five epochs. Validation loss started increasing slightly after epoch 3, while macro-F1 continued improving, so the next step should be formal test-set evaluation rather than more training immediately.
+
+Important limitation:
+
+These are validation metrics only. Final model quality should be assessed on the held-out test split with class-wise metrics, source-specific metrics for `google_scin` and `fitzpatrick17k`, and a confusion matrix.

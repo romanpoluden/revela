@@ -11,13 +11,13 @@ from torch import nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
-from src.data.dataset import BCN20000Dataset
+from src.data.dataset import ImageClassificationDataset
 from src.data.transforms import get_eval_transforms, get_train_transforms
 from src.model.model import count_trainable_parameters, create_model
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Train EfficientNet-B0 on BCN20000.")
+    parser = argparse.ArgumentParser(description="Train an EfficientNet-B0 image classifier.")
     parser.add_argument(
         "--config",
         default="config/bcn20000_config.yaml",
@@ -90,25 +90,82 @@ def build_class_to_idx(class_names: list[str]) -> dict[str, int]:
     return {class_name: index for index, class_name in enumerate(class_names)}
 
 
-def create_dataloaders(config: dict, class_to_idx: dict[str, int], args: argparse.Namespace):
+def get_class_names(config: dict) -> list[str]:
+    if "class_names" in config:
+        return config["class_names"]
+    return config["dataset"]["class_names"]
+
+
+def get_image_size(config: dict) -> int:
+    return config["training"].get("image_size") or config["dataset"]["image_size"]
+
+
+def get_train_csv_path(config: dict) -> Path:
     dataset_config = config["dataset"]
+    if "train_csv" in dataset_config:
+        return Path(dataset_config["train_csv"])
+    return Path(dataset_config["output_dir"]) / config["files"]["train"]
+
+
+def get_val_csv_path(config: dict) -> Path:
+    dataset_config = config["dataset"]
+    if "val_csv" in dataset_config:
+        return Path(dataset_config["val_csv"])
+    return Path(dataset_config["output_dir"]) / config["files"]["val"]
+
+
+def get_output_dir(config: dict) -> Path:
+    configured_output_dir = config["training"].get("output_dir")
+    if configured_output_dir:
+        return Path(configured_output_dir)
+    if config["dataset"].get("name") == "clinical_v2":
+        return Path("models/clinical_v2_effnet_b0")
+    return Path("models/effnet_b0")
+
+
+def get_weight_decay(config: dict) -> float:
+    return config["training"].get("weight_decay", 0.0)
+
+
+def get_num_workers(config: dict, args: argparse.Namespace) -> int:
+    if args.num_workers is not None:
+        return args.num_workers
+    return config["training"].get("num_workers", 0)
+
+
+def get_label_columns(config: dict) -> tuple[str, str | None]:
+    dataset_config = config["dataset"]
+    label_column = dataset_config.get("label_column", "target_label")
+    class_idx_column = dataset_config.get("class_idx_column", "class_idx")
+
+    if "files" in config and "class_names" in config:
+        label_column = dataset_config.get("label_column", "class_label")
+        class_idx_column = dataset_config.get("class_idx_column")
+
+    return label_column, class_idx_column
+
+
+def create_dataloaders(config: dict, class_to_idx: dict[str, int], args: argparse.Namespace):
     training_config = config["training"]
-    files_config = config["files"]
-    output_dir = Path(dataset_config["output_dir"])
 
     batch_size = args.batch_size or training_config["batch_size"]
-    num_workers = args.num_workers if args.num_workers is not None else training_config["num_workers"]
-    image_size = training_config["image_size"]
+    num_workers = get_num_workers(config, args)
+    image_size = get_image_size(config)
+    label_column, class_idx_column = get_label_columns(config)
 
-    train_dataset = BCN20000Dataset(
-        csv_path=output_dir / files_config["train"],
+    train_dataset = ImageClassificationDataset(
+        csv_path=get_train_csv_path(config),
         class_to_idx=class_to_idx,
         transform=get_train_transforms(image_size),
+        label_column=label_column,
+        class_idx_column=class_idx_column,
     )
-    val_dataset = BCN20000Dataset(
-        csv_path=output_dir / files_config["val"],
+    val_dataset = ImageClassificationDataset(
+        csv_path=get_val_csv_path(config),
         class_to_idx=class_to_idx,
         transform=get_eval_transforms(image_size),
+        label_column=label_column,
+        class_idx_column=class_idx_column,
     )
 
     device = select_device()
@@ -132,7 +189,7 @@ def create_dataloaders(config: dict, class_to_idx: dict[str, int], args: argpars
     return train_dataset, val_dataset, train_loader, val_loader
 
 
-def compute_class_weights(train_dataset: BCN20000Dataset, class_to_idx: dict[str, int]) -> torch.Tensor:
+def compute_class_weights(train_dataset: ImageClassificationDataset, class_to_idx: dict[str, int]) -> torch.Tensor:
     label_counts = {class_name: 0 for class_name in class_to_idx}
     for row in train_dataset.rows:
         label_counts[row["class_label"]] += 1
@@ -212,7 +269,8 @@ def evaluate(model, loader, criterion, device, num_classes, max_batches=None):
     average_loss = running_loss / max(total_examples, 1)
     accuracy = total_correct / max(total_examples, 1)
     macro_f1 = compute_macro_f1(all_labels, all_predictions, num_classes)
-    return average_loss, accuracy, macro_f1
+    balanced_accuracy = compute_balanced_accuracy(all_labels, all_predictions, num_classes)
+    return average_loss, accuracy, macro_f1, balanced_accuracy
 
 
 def compute_macro_f1(true_labels: list[int], predicted_labels: list[int], num_classes: int) -> float:
@@ -250,6 +308,26 @@ def compute_macro_f1(true_labels: list[int], predicted_labels: list[int], num_cl
     return sum(per_class_f1_scores) / num_classes
 
 
+def compute_balanced_accuracy(true_labels: list[int], predicted_labels: list[int], num_classes: int) -> float:
+    if len(true_labels) != len(predicted_labels):
+        raise ValueError("true_labels and predicted_labels must have the same length.")
+    if not true_labels:
+        return 0.0
+
+    recalls = []
+    for class_index in range(num_classes):
+        class_total = 0
+        class_correct = 0
+        for true_label, predicted_label in zip(true_labels, predicted_labels):
+            if true_label == class_index:
+                class_total += 1
+                if predicted_label == class_index:
+                    class_correct += 1
+        recalls.append(class_correct / class_total if class_total > 0 else 0.0)
+
+    return sum(recalls) / num_classes
+
+
 def save_class_to_idx(output_dir: Path, class_to_idx: dict[str, int]) -> None:
     path = output_dir / "class_to_idx.json"
     with path.open("w", encoding="utf-8") as handle:
@@ -265,6 +343,7 @@ def save_training_history(output_dir: Path, history_rows: list[dict[str, float]]
         "val_loss",
         "val_accuracy",
         "val_macro_f1",
+        "val_balanced_accuracy",
     ]
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -286,25 +365,19 @@ def main() -> None:
     args = parse_args()
     config = load_config(Path(args.config))
 
-    require_keys(config, ["dataset", "files", "class_names", "training"], "root")
-    require_keys(config["dataset"], ["output_dir"], "dataset")
-    require_keys(config["files"], ["train", "val"], "files")
+    require_keys(config, ["dataset", "training"], "root")
     require_keys(
         config["training"],
         [
-            "image_size",
             "batch_size",
-            "num_workers",
             "learning_rate",
-            "weight_decay",
             "epochs",
             "use_class_weights",
-            "output_dir",
         ],
         "training",
     )
 
-    class_to_idx = build_class_to_idx(config["class_names"])
+    class_to_idx = build_class_to_idx(get_class_names(config))
     device = select_device()
     num_classes = len(class_to_idx)
 
@@ -312,7 +385,8 @@ def main() -> None:
         config, class_to_idx, args
     )
 
-    model = create_model(num_classes=num_classes).to(device)
+    pretrained = config.get("model", {}).get("pretrained", True)
+    model = create_model(num_classes=num_classes, pretrained=pretrained).to(device)
 
     class_weights = None
     if config["training"]["use_class_weights"]:
@@ -323,11 +397,11 @@ def main() -> None:
     optimizer = AdamW(
         model.parameters(),
         lr=config["training"]["learning_rate"],
-        weight_decay=config["training"]["weight_decay"],
+        weight_decay=get_weight_decay(config),
     )
 
     epochs = args.epochs or config["training"]["epochs"]
-    output_dir = Path(config["training"]["output_dir"])
+    output_dir = get_output_dir(config)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     save_class_to_idx(output_dir, class_to_idx)
@@ -354,7 +428,7 @@ def main() -> None:
             device=device,
             max_batches=args.max_train_batches,
         )
-        val_loss, val_accuracy, val_macro_f1 = evaluate(
+        val_loss, val_accuracy, val_macro_f1, val_balanced_accuracy = evaluate(
             model=model,
             loader=val_loader,
             criterion=criterion,
@@ -370,6 +444,7 @@ def main() -> None:
             "val_loss": round(val_loss, 6),
             "val_accuracy": round(val_accuracy, 6),
             "val_macro_f1": round(val_macro_f1, 6),
+            "val_balanced_accuracy": round(val_balanced_accuracy, 6),
         }
         history_rows.append(history_row)
         save_training_history(output_dir, history_rows)
@@ -380,6 +455,7 @@ def main() -> None:
         print(f"  Val loss:        {val_loss:.4f}")
         print(f"  Val accuracy:    {val_accuracy:.4f}")
         print(f"  Val macro-F1:    {val_macro_f1:.4f}")
+        print(f"  Val balanced acc:{val_balanced_accuracy:.4f}")
 
         if val_macro_f1 > best_val_macro_f1:
             best_val_macro_f1 = val_macro_f1

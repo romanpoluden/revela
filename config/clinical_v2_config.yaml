@@ -5,6 +5,8 @@ dataset:
   train_csv: data/processed/clinical_v2/train.csv
   val_csv: data/processed/clinical_v2/val.csv
   test_csv: data/processed/clinical_v2/test.csv
+  label_column: target_label
+  class_idx_column: class_idx
   image_size: 224
   num_classes: 5
   class_names:
@@ -21,9 +23,12 @@ model:
 training:
   batch_size: 16
   epochs: 5
+  num_workers: 0
   learning_rate: 0.0001
+  weight_decay: 0.01
   use_class_weights: true
   random_seed: 42
+  output_dir: models/clinical_v2_effnet_b0
 
 notes:
   - Clinical model is not diagnostic.

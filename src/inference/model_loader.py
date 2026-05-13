@@ -65,6 +65,13 @@ def load_model_from_registry(
     Raises KeyError if model_id is not in the registry.
     """
     config = get_model_config(model_id)
+    architecture = config["architecture"]
+    if architecture != "efficientnet_b0":
+        raise NotImplementedError(
+            f"Model '{model_id}' declares architecture '{architecture}', but the "
+            "registry loader currently supports only 'efficientnet_b0'."
+        )
+
     root = project_root or Path(__file__).resolve().parents[2]
 
     checkpoint_path = root / config["checkpoint_path"]
@@ -107,7 +114,7 @@ def load_model_from_registry(
         device=device,
         model_id=model_id,
         input_type=config["input_type"],
-        architecture=config["architecture"],
+        architecture=architecture,
         num_classes=num_classes,
         checkpoint_path=str(checkpoint_path),
         class_to_idx_path=str(class_to_idx_path),

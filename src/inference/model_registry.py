@@ -29,9 +29,9 @@ REGISTRY: dict[str, dict] = {
         "input_type": "clinical",
         "architecture": "efficientnet_b0",
         "num_classes": None,  # taxonomy not yet finalized; inferred from class_to_idx at load time
-        "config_path": "config/clinical_v1_config.yaml",
-        "checkpoint_path": "models/clinical_skin_condition_v1/best_model.pth",
-        "class_to_idx_path": "models/clinical_skin_condition_v1/class_to_idx.json",
+        "config_path": "config/clinical_v2_config.yaml",
+        "checkpoint_path": "models/clinical_v2_effnet_b0/best_model.pth",
+        "class_to_idx_path": "models/clinical_v2_effnet_b0/class_to_idx.json",
         "image_size": 224,
     },
 }

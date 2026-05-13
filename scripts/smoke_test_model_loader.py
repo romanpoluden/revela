@@ -24,6 +24,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.inference.model_loader import LoadedModel, load_model_from_registry, select_device
 from src.inference.model_registry import REGISTRY
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Smoke-test the config-driven model loader.")
@@ -54,12 +56,15 @@ def _print_result(result: LoadedModel) -> None:
 def main() -> None:
     args = parse_args()
     model_id = args.model_id
+    checkpoint_path = PROJECT_ROOT / REGISTRY[model_id]["checkpoint_path"]
 
     print(f"Smoke test: loading '{model_id}' on {select_device()} ...")
 
     try:
-        result = load_model_from_registry(model_id)
+        result = load_model_from_registry(model_id, project_root=PROJECT_ROOT)
     except FileNotFoundError as exc:
+        if checkpoint_path.exists() or str(checkpoint_path) not in str(exc):
+            raise
         print(f"\nSKIPPED — checkpoint not found:")
         print(f"  {exc}")
         print("Train the model first, then re-run this smoke test.")

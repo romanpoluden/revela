@@ -93,10 +93,70 @@ D3.1 — Approve 4-class cancer-risk taxonomy            ✅ DONE (#116, #117)
 
 ### Split notes
 - Source metadata: `bcn20000_metadata_2026-05-11.csv` (root of repo)
-- Lesion-level column for split safety: check for a lesion/case ID column in the metadata
-- Suggested split ratio: 70/15/15 or 80/10/10 train/val/test — confirm with Roman
-- Random seed: fix and document (e.g. `random_state=42`)
+- Lesion-level split key: `lesion_id` column (confirmed present in existing splits)
+- Split ratio: 70/15/15 — matches existing baseline, use `seed: 42`
 - Out of scope: model training, evaluation
+
+---
+
+## What already exists — read before writing any code
+
+**Do not start from scratch.** The split-building pipeline is already implemented.
+
+### Existing pipeline script
+`src/data/prepare_bcn20000.py` — config-driven script that:
+1. Reads metadata CSV
+2. Drops rows with empty `diagnosis_3` (handles the 1,307 exclusions automatically)
+3. Drops rows where image file doesn't exist on disk
+4. Maps `diagnosis_3` → `class_label` via `map_class_label()`
+5. Assigns lesion-level splits (leakage-safe, seeded)
+6. Asserts no lesion overlap across splits
+7. Writes `master_metadata.csv`, `train.csv`, `val.csv`, `test.csv`
+8. Writes a markdown summary
+
+Run as: `python src/data/prepare_bcn20000.py --config config/bcn20000_config.yaml`
+
+### Existing 3-class config
+`config/bcn20000_config.yaml` — drives the old 3-class run. **Do not modify this file.**  
+It points to `data/processed/bcn20000/` output and the old 3-class `class_mapping`.
+
+### Existing approved label mapping
+`data/processed/bcn20000/cancer_risk_label_mapping.csv` — already created in #117.  
+All 11 `diagnosis_3` labels mapped to their target class. Use this as the source of truth.
+
+### The problem with reusing the script as-is
+`map_class_label()` in `prepare_bcn20000.py` (line 64) only handles 3 classes via config keys `melanoma_contains`, `nevus_exact`, `other_label`. It has no path to produce `Non-melanoma skin cancer` as a separate class — BCC/SCC currently fall through to `other_label`.
+
+### Recommended implementation approach
+
+**Option A (preferred): New script, same pattern**  
+Create `src/data/prepare_bcn20000_cancer_risk.py` by copying `prepare_bcn20000.py` and replacing `map_class_label()` with a 4-class version:
+
+```python
+def map_class_label(diagnosis_value: str) -> str | None:
+    d = diagnosis_value.lower()
+    if 'melanoma' in d:
+        return 'Melanoma'
+    if 'basal cell carcinoma' in d or 'squamous cell carcinoma' in d:
+        return 'Non-melanoma skin cancer'
+    if 'nevus' in d or 'nevi' in d:
+        return 'Benign nevus'
+    # actinic keratosis, seborrheic keratosis, scar, solar lentigo, dermatofibroma, etc.
+    return 'Other non-cancer / indeterminate lesion'
+```
+
+Empty `diagnosis_3` rows are already dropped before `map_class_label()` is called — no change needed there.
+
+**Option B: Extend the existing script**  
+Make `map_class_label()` config-driven for 4 classes by adding a `nmsc_contains` key. More flexible but more complex — only worth it if the team wants one generic script long-term.
+
+### New config file to create
+`config/bcn20000_cancer_risk_config.yaml` — same structure as the 3-class config but:
+- `metadata_csv`: `bcn20000_metadata_2026-05-11.csv` (updated metadata file in repo root)
+- `output_dir`: `data/processed/bcn20000_cancer_risk`
+- `summary_path`: `docs/model/bcn20000_cancer_risk_split_summary.md`
+- `class_names`: all 4 new class names
+- `split.seed`: `42` (same as baseline for reproducibility)
 
 ---
 
@@ -155,7 +215,11 @@ Reasoning template IDs: `melanoma` / `nmsc` / `benign_nevus` / `other`
 
 | File | Purpose |
 |---|---|
-| `bcn20000_metadata_2026-05-11.csv` | Source metadata for BCN20000 |
+| `bcn20000_metadata_2026-05-11.csv` | Source metadata for BCN20000 (repo root) |
+| `data/processed/bcn20000/cancer_risk_label_mapping.csv` | Approved 4-class label mapping (from #117) |
+| `src/data/prepare_bcn20000.py` | Existing split-building pipeline script (3-class) |
+| `config/bcn20000_config.yaml` | Existing 3-class config — do not modify |
+| `data/processed/bcn20000/train.csv` | Existing 3-class splits — do not overwrite |
 | `docs/llm_project_context.md` | Full project context (authoritative) |
 | `docs/decision_log.md` | All major decisions with rationale |
 | `revela/FitzPatrick/notebooks/03_benchmark_requirements_CNN.ipynb` | Benchmark requirements + label mapping logic |

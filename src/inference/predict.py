@@ -12,6 +12,7 @@ from PIL import Image, UnidentifiedImageError
 from src.data.transforms import get_eval_transforms
 from src.inference.model_loader import load_model_from_registry
 from src.inference.postprocess import get_top_k_predictions
+from src.inference.uncertainty import get_uncertainty_bucket
 
 
 class ImageInputError(ValueError):
@@ -142,6 +143,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optionally include top-k prediction entries in CLI JSON output.",
     )
+    parser.add_argument(
+        "--include-uncertainty",
+        action="store_true",
+        help="Optionally include a generic model-confidence uncertainty bucket.",
+    )
     return parser.parse_args()
 
 
@@ -159,6 +165,10 @@ def main() -> None:
                 probabilities=result["probabilities"],
                 class_names=result["class_names"],
                 top_k=args.top_k,
+            )
+        if args.include_uncertainty:
+            result["uncertainty"] = get_uncertainty_bucket(
+                confidence=result["predicted_confidence"]
             )
     except (ImageInputError, FileNotFoundError, KeyError, RuntimeError, ValueError, TypeError) as error:
         print(f"Prediction failed: {error}", file=sys.stderr)

@@ -89,19 +89,19 @@ BCN20000 also contains:
 
 This must be handled explicitly as pre-cancer / indeterminate risk / separate class / excluded, depending on the final taxonomy decision.
 
-Candidate taxonomies:
+Confirmed taxonomy — approved in #117, finalized 2026-05-12:
 
-1. Binary: Cancer / malignant vs Non-cancer / benign.
-2. 3-way: Cancer / malignant vs Pre-cancer / indeterminate risk vs Benign / non-cancer.
-3. 4-class educational: Melanoma vs Non-melanoma skin cancer vs Benign nevus vs Other benign / non-cancer lesion.
-4. 5-class: Melanoma vs Basal cell carcinoma vs Squamous cell carcinoma vs Benign nevus vs Other lesion.
+4-class dermoscopic cancer-risk taxonomy:
 
-Current preferred direction for planning:
+1. Melanoma — 4,636 rows
+2. Non-melanoma skin cancer — 4,235 rows
+3. Benign nevus — 5,647 rows
+4. Other non-cancer / indeterminate lesion — 3,121 rows
 
-- 4-class educational taxonomy, or
-- 3-way risk taxonomy.
+Unknown / missing diagnosis_3: 1,307 rows (excluded from training)
+Usable training rows: 17,639
 
-Final taxonomy must be selected before retraining.
+Wording rule: the 4th class must be called `Other non-cancer / indeterminate lesion`. Do not use `Other benign lesion` or `Safe lesion`. This class includes actinic keratosis (pre-malignant) alongside other benign lesions.
 
 ---
 

@@ -11,6 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from src.data.transforms import get_eval_transforms
 from src.inference.model_loader import load_model_from_registry
+from src.inference.postprocess import get_top_k_predictions
 
 
 class ImageInputError(ValueError):
@@ -135,6 +136,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional torch device override, for example cpu, cuda, or mps.",
     )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="Optionally include top-k prediction entries in CLI JSON output.",
+    )
     return parser.parse_args()
 
 
@@ -147,6 +154,12 @@ def main() -> None:
             project_root=args.project_root,
             device=args.device,
         )
+        if args.top_k is not None:
+            result["top_predictions"] = get_top_k_predictions(
+                probabilities=result["probabilities"],
+                class_names=result["class_names"],
+                top_k=args.top_k,
+            )
     except (ImageInputError, FileNotFoundError, KeyError, RuntimeError, ValueError, TypeError) as error:
         print(f"Prediction failed: {error}", file=sys.stderr)
         raise SystemExit(1) from error

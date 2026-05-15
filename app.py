@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
 
@@ -219,20 +220,41 @@ def render_analyze_tab() -> None:
     )
 
     left, right = st.columns([0.95, 1.05], gap="large")
-    with left:
-        uploaded_file = st.file_uploader(
-            "Upload an image",
-            type=["png", "jpg", "jpeg", "webp"],
-            disabled=input_mode == "Dermoscopic image",
-        )
+    uploaded_image = None
+    image_error = None
 
+    with left:
         if input_mode == "Clinical photo":
+            uploaded_file = st.file_uploader(
+                "Upload a clinical photo",
+                type=["jpg", "jpeg", "png", "webp"],
+                help="Accepted formats: JPG, JPEG, PNG, WEBP.",
+            )
             st.info(
                 "Clinical-photo mode is the first mode planned for app inference wiring. "
                 "This shell does not run a model yet."
             )
+
+            if uploaded_file is None:
+                render_empty_upload_state()
+            else:
+                try:
+                    uploaded_image = load_uploaded_image(uploaded_file)
+                    st.image(
+                        uploaded_image,
+                        caption="Clinical photo preview",
+                        use_container_width=True,
+                    )
+                    render_upload_metadata(uploaded_file, uploaded_image)
+                except (UnidentifiedImageError, OSError):
+                    image_error = (
+                        "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
+                    )
+                    st.error(image_error)
+
             st.button("Run educational review", disabled=True)
         else:
+            uploaded_file = None
             st.markdown(
                 """
                 <div class="disabled-panel">
@@ -247,7 +269,11 @@ def render_analyze_tab() -> None:
 
     with right:
         st.markdown("#### Result Preview")
-        render_result_placeholder(input_mode=input_mode, has_upload=uploaded_file is not None)
+        render_result_placeholder(
+            input_mode=input_mode,
+            has_upload=uploaded_file is not None,
+            image_error=image_error,
+        )
 
     # Future #58 integration point:
     # response = run_inference(model_id="clinical_skin_condition_v1", image_input=uploaded_file)
@@ -255,10 +281,67 @@ def render_analyze_tab() -> None:
     # safety_note, model_limitations, and recommended_next_step.
 
 
-def render_result_placeholder(input_mode: str, has_upload: bool) -> None:
+def render_empty_upload_state() -> None:
+    st.markdown(
+        """
+        <div class="card">
+          <h3>No image selected</h3>
+          <p>Upload a clinical photo to preview it here. Model inference is intentionally not connected in this UI task.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def load_uploaded_image(uploaded_file) -> Image.Image:
+    uploaded_file.seek(0)
+    with Image.open(uploaded_file) as image:
+        rgb_image = image.convert("RGB")
+    uploaded_file.seek(0)
+    return rgb_image
+
+
+def render_upload_metadata(uploaded_file, image: Image.Image) -> None:
+    st.markdown("##### Uploaded file")
+    name_col, type_col = st.columns(2)
+    with name_col:
+        st.metric("Filename", uploaded_file.name)
+    with type_col:
+        st.metric("File type", uploaded_file.type or "Unknown")
+
+    size_col, dimension_col = st.columns(2)
+    with size_col:
+        st.metric("File size", format_file_size(uploaded_file.size))
+    with dimension_col:
+        st.metric("Dimensions", f"{image.width} × {image.height}px")
+
+
+def format_file_size(num_bytes: int) -> str:
+    if num_bytes < 1024 * 1024:
+        return f"{num_bytes / 1024:.1f} KB"
+    return f"{num_bytes / (1024 * 1024):.2f} MB"
+
+
+def render_result_placeholder(
+    input_mode: str,
+    has_upload: bool,
+    image_error: str | None,
+) -> None:
     if input_mode == "Dermoscopic image":
         st.warning(
             "Dermoscopic mode is intentionally disabled until `dermoscopic_cancer_risk_v2` is ready."
+        )
+        return
+
+    if image_error is not None:
+        st.markdown(
+            """
+            <div class="card">
+              <h3>Preview unavailable</h3>
+              <p>Please choose a different supported image file. No model inference has been run.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
         )
         return
 
@@ -278,7 +361,7 @@ def render_result_placeholder(input_mode: str, has_upload: bool) -> None:
         """
         <div class="card">
           <h3>Image received</h3>
-          <p>Inference is not connected in this layout task. The next implementation step will call the local adapter and render the canonical response schema.</p>
+          <p>Inference is not connected yet. Issue #58 will call the local adapter and render the canonical response schema here.</p>
         </div>
         """,
         unsafe_allow_html=True,

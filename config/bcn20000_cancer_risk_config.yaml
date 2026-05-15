@@ -1,0 +1,39 @@
+dataset:
+  metadata_csv: revela/bcn20000_metadata_2026-05-11.csv
+  image_root: data/raw/bcn20000/images
+  output_dir: data/processed/bcn20000_cancer_risk
+  summary_path: docs/model/bcn20000_cancer_risk_split_summary.md
+  image_extension: .jpg
+
+columns:
+  image_id: isic_id
+  lesion_id: lesion_id
+  diagnosis: diagnosis_3
+
+class_names:
+  - Melanoma
+  - Non-melanoma skin cancer
+  - Benign nevus
+  - Other non-cancer / indeterminate lesion
+
+split:
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  seed: 42
+
+training:
+  image_size: 224
+  batch_size: 16
+  num_workers: 0
+  learning_rate: 0.0003
+  weight_decay: 0.01
+  epochs: 10
+  use_class_weights: true
+  output_dir: models/bcn20000_cancer_risk_effnet_b0
+
+files:
+  master_metadata: master_metadata.csv
+  train: train.csv
+  val: val.csv
+  test: test.csv

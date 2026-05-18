@@ -9,28 +9,30 @@ Revela is an AI-powered skin disease diagnostic tool. Primary users: dermatology
 ## Tech stack
 
 - Python 3.11
-- TensorFlow / Keras for the CNN
+- PyTorch / torchvision — EfficientNet-B0 for the dermoscopic CNN
 - FastAPI for the demo web app
 - Docker + Docker Compose for packaging
-- Jupyter notebooks for EDA only
+- Jupyter notebooks for EDA and results only
 - Anthropic API (Claude) for the LLM reasoning layer
 
 ## Datasets
 
-- **Primary training:** Fitzpatrick17k → `data/fitzpatrick17k/`
-- **Evaluation hold-out:** SCIN → `data/scin/`
-- **Backup (no approval needed):** HAM10000 → `data/ham10000/`, DDI → `data/ddi/`
+- **Dermoscopic (primary):** BCN20000 → `data/processed/bcn20000_cancer_risk/`
+- **Dermoscopic augmentation (active — D4.x):** Mel+Nevus Histo → `data/mel_nevus_histo/`; merging into BCN20000 train split only (test set frozen). See #137–#143.
+- **Clinical (future v2 model):** SCIN, Fitzpatrick17k — separate track, not mixed into dermoscopic CNN
+- **Supplemental (under assessment):** HAM10000, DDI, ISIC — see #121
 - **Awaiting access:** PASSION
 
-Always work from metadata CSVs / `metadata.json`, not from the raw image folders.
+Always work from metadata CSVs, not from the raw image folders.
 
-## CNN scoped classes
+## CNN scoped classes (4-class cancer-risk taxonomy — finalized #117)
 
 1. Melanoma
-2. Benign nevus
-3. Eczema / dermatitis
-4. Other / unclear
-5. (Candidate) BCC — basal cell carcinoma, from ISIC 2019
+2. Non-melanoma skin cancer
+3. Benign nevus
+4. Other non-cancer / indeterminate lesion
+
+Class name wording is fixed — do not rename or abbreviate. Actinic keratosis maps to class 4.
 
 ## Code conventions
 

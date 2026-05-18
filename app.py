@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
@@ -212,6 +214,7 @@ def render_overview_tab() -> None:
 def render_analyze_tab() -> None:
     st.subheader("Analyze Image")
     st.caption("Layout only. Inference will be connected in a later task.")
+    initialize_analysis_state()
 
     input_mode = st.radio(
         "Choose image type",
@@ -222,6 +225,7 @@ def render_analyze_tab() -> None:
     left, right = st.columns([0.95, 1.05], gap="large")
     uploaded_image = None
     image_error = None
+    valid_clinical_image_uploaded = False
 
     with left:
         if input_mode == "Clinical photo":
@@ -229,6 +233,7 @@ def render_analyze_tab() -> None:
                 "Upload a clinical photo",
                 type=["jpg", "jpeg", "png", "webp"],
                 help="Accepted formats: JPG, JPEG, PNG, WEBP.",
+                on_change=reset_analysis_state,
             )
             st.info(
                 "Clinical-photo mode is the first mode planned for app inference wiring. "
@@ -240,6 +245,7 @@ def render_analyze_tab() -> None:
             else:
                 try:
                     uploaded_image = load_uploaded_image(uploaded_file)
+                    valid_clinical_image_uploaded = True
                     st.image(
                         uploaded_image,
                         caption="Clinical photo preview",
@@ -252,7 +258,13 @@ def render_analyze_tab() -> None:
                     )
                     st.error(image_error)
 
-            st.button("Run educational review", disabled=True)
+            if st.button(
+                "Analyze case",
+                disabled=not valid_clinical_image_uploaded
+                or st.session_state.analysis_status == "running",
+            ):
+                start_placeholder_analysis()
+                st.rerun()
         else:
             uploaded_file = None
             st.markdown(
@@ -275,10 +287,55 @@ def render_analyze_tab() -> None:
             image_error=image_error,
         )
 
-    # Future #58 integration point:
+    # Issue #58 integration point:
+    # Replace the placeholder analysis with real inference.
     # response = run_inference(model_id="clinical_skin_condition_v1", image_input=uploaded_file)
     # Render the canonical response fields: predictions, top_prediction, uncertainty,
     # safety_note, model_limitations, and recommended_next_step.
+
+
+def initialize_analysis_state() -> None:
+    if "analysis_status" not in st.session_state:
+        st.session_state.analysis_status = "idle"
+    if "analysis_result" not in st.session_state:
+        st.session_state.analysis_result = None
+    if "analysis_error" not in st.session_state:
+        st.session_state.analysis_error = None
+
+
+def reset_analysis_state() -> None:
+    st.session_state.analysis_status = "idle"
+    st.session_state.analysis_result = None
+    st.session_state.analysis_error = None
+
+
+def start_placeholder_analysis() -> None:
+    st.session_state.analysis_status = "running"
+    st.session_state.analysis_result = None
+    st.session_state.analysis_error = None
+
+
+def complete_placeholder_analysis() -> None:
+    with st.spinner("Preparing educational image review..."):
+        try:
+            st.session_state.analysis_result = placeholder_analysis()
+            st.session_state.analysis_status = "complete"
+        except Exception:
+            st.session_state.analysis_error = (
+                "The educational review could not be prepared. Please try again with the uploaded image."
+            )
+            st.session_state.analysis_status = "error"
+
+    st.rerun()
+
+
+def placeholder_analysis() -> str:
+    # Issue #58 will replace this placeholder with real inference wiring.
+    time.sleep(1.0)
+    return (
+        "Placeholder educational review complete. Future model output will summarize "
+        "non-diagnostic observations, uncertainty context, and suggested next review steps."
+    )
 
 
 def render_empty_upload_state() -> None:
@@ -355,6 +412,18 @@ def render_result_placeholder(
             """,
             unsafe_allow_html=True,
         )
+        return
+
+    if st.session_state.analysis_status == "running":
+        complete_placeholder_analysis()
+        return
+
+    if st.session_state.analysis_status == "complete":
+        st.success(st.session_state.analysis_result)
+        return
+
+    if st.session_state.analysis_status == "error":
+        st.error(st.session_state.analysis_error)
         return
 
     st.markdown(

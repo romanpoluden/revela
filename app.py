@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import time
-
 from PIL import Image, UnidentifiedImageError
 import streamlit as st
+
+from src.inference.adapter import run_inference
 
 
 CLINICAL_CLASSES = [
@@ -213,7 +213,7 @@ def render_overview_tab() -> None:
 
 def render_analyze_tab() -> None:
     st.subheader("Analyze Image")
-    st.caption("Layout only. Inference will be connected in a later task.")
+    st.caption("Clinical-photo mode uses the local educational inference adapter.")
     initialize_analysis_state()
 
     input_mode = st.radio(
@@ -236,8 +236,7 @@ def render_analyze_tab() -> None:
                 on_change=reset_analysis_state,
             )
             st.info(
-                "Clinical-photo mode is the first mode planned for app inference wiring. "
-                "This shell does not run a model yet."
+                "Clinical-photo mode runs a local prototype model and displays structured educational output."
             )
 
             if uploaded_file is None:
@@ -263,7 +262,7 @@ def render_analyze_tab() -> None:
                 disabled=not valid_clinical_image_uploaded
                 or st.session_state.analysis_status == "running",
             ):
-                start_placeholder_analysis()
+                start_analysis()
                 st.rerun()
         else:
             uploaded_file = None
@@ -281,17 +280,12 @@ def render_analyze_tab() -> None:
 
     with right:
         st.markdown("#### Result Preview")
-        render_result_placeholder(
+        render_result_panel(
             input_mode=input_mode,
             has_upload=uploaded_file is not None,
             image_error=image_error,
+            uploaded_image=uploaded_image,
         )
-
-    # Issue #58 integration point:
-    # Replace the placeholder analysis with real inference.
-    # response = run_inference(model_id="clinical_skin_condition_v1", image_input=uploaded_file)
-    # Render the canonical response fields: predictions, top_prediction, uncertainty,
-    # safety_note, model_limitations, and recommended_next_step.
 
 
 def initialize_analysis_state() -> None:
@@ -309,33 +303,37 @@ def reset_analysis_state() -> None:
     st.session_state.analysis_error = None
 
 
-def start_placeholder_analysis() -> None:
+def start_analysis() -> None:
     st.session_state.analysis_status = "running"
     st.session_state.analysis_result = None
     st.session_state.analysis_error = None
 
 
-def complete_placeholder_analysis() -> None:
+def complete_analysis(image: Image.Image) -> None:
     with st.spinner("Preparing educational image review..."):
         try:
-            st.session_state.analysis_result = placeholder_analysis()
-            st.session_state.analysis_status = "complete"
-        except Exception:
-            st.session_state.analysis_error = (
-                "The educational review could not be prepared. Please try again with the uploaded image."
+            response = run_inference(
+                model_id="clinical_skin_condition_v1",
+                image_input=image,
+                top_k=3,
             )
+        except Exception as error:
+            response = {
+                "error": True,
+                "error_code": "frontend_inference_error",
+                "message": "The educational image review could not be prepared. Please try again.",
+                "details": str(error),
+            }
+
+        st.session_state.analysis_result = response
+
+        if response.get("error") is True:
+            st.session_state.analysis_error = response
             st.session_state.analysis_status = "error"
+        else:
+            st.session_state.analysis_status = "complete"
 
     st.rerun()
-
-
-def placeholder_analysis() -> str:
-    # Issue #58 will replace this placeholder with real inference wiring.
-    time.sleep(1.0)
-    return (
-        "Placeholder educational review complete. Future model output will summarize "
-        "non-diagnostic observations, uncertainty context, and suggested next review steps."
-    )
 
 
 def render_empty_upload_state() -> None:
@@ -379,10 +377,11 @@ def format_file_size(num_bytes: int) -> str:
     return f"{num_bytes / (1024 * 1024):.2f} MB"
 
 
-def render_result_placeholder(
+def render_result_panel(
     input_mode: str,
     has_upload: bool,
     image_error: str | None,
+    uploaded_image: Image.Image | None,
 ) -> None:
     if input_mode == "Dermoscopic image":
         st.warning(
@@ -407,7 +406,7 @@ def render_result_placeholder(
             """
             <div class="card">
               <h3>Waiting for image</h3>
-              <p>After inference is connected, this area will show the top prediction, top-k model outputs, uncertainty, and safety note.</p>
+              <p>Upload a supported clinical photo to prepare structured educational model output.</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -415,26 +414,97 @@ def render_result_placeholder(
         return
 
     if st.session_state.analysis_status == "running":
-        complete_placeholder_analysis()
+        if uploaded_image is None:
+            st.session_state.analysis_error = {
+                "message": "The uploaded image is unavailable. Please upload a supported image and try again."
+            }
+            st.session_state.analysis_status = "error"
+            st.rerun()
+            return
+        complete_analysis(uploaded_image)
         return
 
     if st.session_state.analysis_status == "complete":
-        st.success(st.session_state.analysis_result)
+        render_analysis_result(st.session_state.analysis_result)
         return
 
     if st.session_state.analysis_status == "error":
-        st.error(st.session_state.analysis_error)
+        render_analysis_error(st.session_state.analysis_error)
         return
 
     st.markdown(
         """
         <div class="card">
           <h3>Image received</h3>
-          <p>Inference is not connected yet. Issue #58 will call the local adapter and render the canonical response schema here.</p>
+          <p>Select Analyze case to prepare structured educational model output for this image.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_analysis_result(response: dict | None) -> None:
+    if not response:
+        render_analysis_error({"message": "No analysis result is available. Please try again."})
+        return
+
+    top_prediction = response.get("top_prediction") or {}
+    uncertainty = response.get("uncertainty") or {}
+    predictions = response.get("predictions") or []
+
+    st.markdown("##### Educational Model Output")
+    label_col, confidence_col = st.columns(2)
+    with label_col:
+        st.metric("Top output", top_prediction.get("label", "Unavailable"))
+    with confidence_col:
+        st.metric(
+            "Model confidence",
+            format_percent(top_prediction.get("confidence_percent")),
+        )
+
+    st.markdown("##### Uncertainty")
+    st.write(uncertainty.get("label", "Unavailable"))
+    st.caption(uncertainty.get("explanation", "No uncertainty explanation returned."))
+
+    st.markdown("##### Top-3 Outputs")
+    if predictions:
+        for index, prediction in enumerate(predictions[:3], start=1):
+            label = prediction.get("label", "Unavailable")
+            confidence = format_percent(prediction.get("confidence_percent"))
+            st.write(f"{index}. {label} - {confidence}")
+    else:
+        st.write("No ranked outputs were returned.")
+
+    st.markdown("##### Safety Note")
+    st.info(response.get("safety_note", "No safety note returned."))
+
+    st.markdown("##### Model Limitations")
+    limitations = response.get("model_limitations") or []
+    if limitations:
+        for limitation in limitations:
+            st.markdown(f"- {limitation}")
+    else:
+        st.write("No model limitations returned.")
+
+    st.markdown("##### Recommended Next Step")
+    st.write(response.get("recommended_next_step", "No next-step guidance returned."))
+
+
+def render_analysis_error(error_response: dict | None) -> None:
+    error_response = error_response or {}
+    message = error_response.get(
+        "message",
+        "The educational image review could not be prepared. Please try again.",
+    )
+    st.error(message)
+    if error_response.get("error_code"):
+        st.caption(f"Adapter error code: {error_response['error_code']}")
+
+
+def format_percent(value: object) -> str:
+    if isinstance(value, (int, float)):
+        return f"{value:.2f}%"
+    return "Unavailable"
 
 
 def render_transparency_tab() -> None:

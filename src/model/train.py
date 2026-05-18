@@ -308,12 +308,7 @@ def compute_macro_f1(true_labels: list[int], predicted_labels: list[int], num_cl
     return sum(per_class_f1_scores) / num_classes
 
 
-def compute_balanced_accuracy(true_labels: list[int], predicted_labels: list[int], num_classes: int) -> float:
-    if len(true_labels) != len(predicted_labels):
-        raise ValueError("true_labels and predicted_labels must have the same length.")
-    if not true_labels:
-        return 0.0
-
+def compute_per_class_recalls(true_labels: list[int], predicted_labels: list[int], num_classes: int) -> list[float]:
     recalls = []
     for class_index in range(num_classes):
         class_total = 0
@@ -324,8 +319,29 @@ def compute_balanced_accuracy(true_labels: list[int], predicted_labels: list[int
                 if predicted_label == class_index:
                     class_correct += 1
         recalls.append(class_correct / class_total if class_total > 0 else 0.0)
+    return recalls
 
-    return sum(recalls) / num_classes
+
+def compute_balanced_accuracy(true_labels: list[int], predicted_labels: list[int], num_classes: int) -> float:
+    if len(true_labels) != len(predicted_labels):
+        raise ValueError("true_labels and predicted_labels must have the same length.")
+    if not true_labels:
+        return 0.0
+    return sum(compute_per_class_recalls(true_labels, predicted_labels, num_classes)) / num_classes
+
+
+_CANCER_CLASS_NAMES = {"Melanoma", "Non-melanoma skin cancer"}
+
+
+def compute_cancer_recall(
+    true_labels: list[int], predicted_labels: list[int], class_to_idx: dict[str, int]
+) -> float | None:
+    cancer_indices = {idx for cls, idx in class_to_idx.items() if cls in _CANCER_CLASS_NAMES}
+    if len(cancer_indices) < 2:
+        return None
+    total = sum(1 for t in true_labels if t in cancer_indices)
+    correct = sum(1 for t, p in zip(true_labels, predicted_labels) if t in cancer_indices and p in cancer_indices)
+    return correct / total if total > 0 else 0.0
 
 
 def save_class_to_idx(output_dir: Path, class_to_idx: dict[str, int]) -> None:

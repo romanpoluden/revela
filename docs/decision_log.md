@@ -381,3 +381,61 @@ Final 4-class taxonomy approved in #117 (D3.2):
 Wording rule: the 4th class must be called `Other non-cancer / indeterminate lesion`. Do not use `Other benign lesion`, `Safe lesion`, or omit the word `lesion`. This class includes actinic keratosis (pre-malignant) alongside other benign lesions.
 
 Status: Accepted and finalized.
+
+### Update — 2026-05-15 — Issue #116 acceptance criteria met
+
+The following acceptance criteria from #116 are formally resolved by DEC-008 and #117:
+
+- **Why 3-class taxonomy fails:** documented in Context section above — `Other lesion` contained 4,235 NMSC cases (BCC + SCC) alongside benign lesions, making it impossible to communicate cancer risk.
+- **Actinic keratosis handling:** merged into `Other non-cancer / indeterminate lesion` (1,088 rows; insufficient for standalone class; "indeterminate" qualifier signals elevated risk without overstating certainty).
+- **Two candidate taxonomies considered:** Option B (3-way risk: cancer / pre-cancer indeterminate / benign) and Option C (4-class educational: melanoma / NMSC / nevus / other indeterminate) — see Options considered above.
+- **Recommended taxonomy:** Option C (4-class) — finalized in #117, confirmed by BCN20000 class balance, dermatology-resident user need, and Revela's educational scaffold framing.
+- **Affected open issues:** #119 (class name wording must match DEC-008 wording rule exactly), #120 (evaluation must use cancer/malignant recall as primary metric, not top-1 accuracy), #121 (supplemental datasets must be mappable to the same 4 classes; datasets that cannot cleanly map AK to "indeterminate" must be flagged as incompatible).
+
+Issue #116 can be closed.
+
+---
+
+## DEC-009 — Map Mel+Nevus Histo (MNH) labels to the 4-class cancer-risk taxonomy
+
+**Date:** 2026-05-17
+**Status:** Accepted
+**Owner:** Emma
+**Category:** Dataset / Taxonomy
+**Linked issues:** #137, #138, #139
+
+### Decision
+
+The 12,500 filtered MNH rows (post-BCN20000 dedup) are mapped to the same 4 cancer-risk classes used in BCN20000 (DEC-008): Melanoma | Non-melanoma skin cancer | Benign nevus | Other non-cancer / indeterminate. Full mapping table and per-label rationale live in `docs/mnh_taxonomy_mapping.md`.
+
+### Context
+
+MNH is histopathology-confirmed but melanoma/nevus-focused — it contains no BCC, SCC, or actinic keratosis, so the NMSC class receives zero MNH contribution. MNH also includes lesion subtypes not present in BCN20000 (indeterminate melanocytic proliferations, collision lesions, non-melanocytic benign pigmentations) that require explicit decisions before merge.
+
+### Ambiguous-label resolutions
+
+1. **Indeterminate melanocytic lesions** (Atypical melanocytic neoplasm ×70, Atypical intraepithelial melanocytic proliferation ×6, Atypical proliferative nodules in congenital melanocytic nevus ×4 — 80 rows) → `Other non-cancer / indeterminate`. Rationale: diagnosis_2 literally says "Indeterminate melanocytic proliferations"; honest representation is preferable to inflating the cancer or benign class with non-confirmed labels.
+2. **Non-melanocytic / non-nevus benign pigmentations** (Epidermal nevus ×6, Lentigo NOS ×3, Mucosal melanotic macule ×1 — 10 rows) → `Other non-cancer / indeterminate`. Rationale: these are not melanocytic nevi; mapping them as `Benign nevus` would dilute the class with semantically different lesion types.
+3. **Collision lesions** (diagnosis_3 NaN, 26 rows) → split by diagnosis_2: benign-only collisions (15) → `Other non-cancer / indeterminate`; collisions with at least one malignant proliferation (11) → `Melanoma`. Rationale: conservative on the malignant side so melanoma-containing collisions surface in cancer recall.
+
+### Final MNH class distribution
+
+| Class | Rows |
+|---|---:|
+| Benign nevus | 8,050 |
+| Melanoma | 4,345 |
+| Non-melanoma skin cancer | 0 |
+| Other non-cancer / indeterminate | 105 |
+| **Total** | **12,500** |
+
+Zero NaN in `cancer_risk_class` (asserted at runtime in `Rehma_Revela/Notebook/10_map_mnh_taxonomy.ipynb`).
+
+### Consequences
+
+- D4.4 merge (#140) can proceed: MNH contributes ~4,345 melanoma and 8,050 nevi to the training pool; NMSC remains entirely BCN20000-sourced.
+- Class imbalance shifts: post-merge melanoma share rises; this is the intended effect of the MNH augmentation track.
+- Future MNH refreshes must re-validate the mapping if new diagnosis_3 categories appear.
+
+### Review date
+
+After D4.6 evaluation (#142) — verify the mapping choices do not artifactually inflate melanoma recall on the BCN20000 frozen test set.

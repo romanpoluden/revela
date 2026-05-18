@@ -28,12 +28,12 @@ training:
   weight_decay: 0.01
   use_class_weights: true
   sampler:
-    mode: none
+    mode: source_class
     class_column: target_label
     source_column: source_dataset
     replacement: true
   random_seed: 42
-  output_dir: models/clinical_v2_effnet_b0
+  output_dir: models/clinical_v2_source_class_sampler_effnet_b0
 
 notes:
   - Clinical model is not diagnostic.
@@ -41,3 +41,4 @@ notes:
   - SCIN uses official google/scin export with case_id preserved.
   - Fitzpatrick17k lacks case_id/patient_id/lesion_id; split limitation must be documented.
   - Preserve source_dataset and report source-specific performance during evaluation.
+  - V2.9 source+class-aware sampler balances training draws by source_dataset and target_label.

@@ -69,13 +69,15 @@ class ImageClassificationDataset(Dataset):
             if not class_label:
                 class_label = self.idx_to_class[label_idx]
 
-            cleaned_rows.append(
+            cleaned_row = dict(row)
+            cleaned_row.update(
                 {
                     "image_path": image_path,
                     "class_label": class_label,
                     "label_idx": label_idx,
                 }
             )
+            cleaned_rows.append(cleaned_row)
 
         return cleaned_rows
 

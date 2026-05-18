@@ -34,6 +34,15 @@ Always work from metadata CSVs, not from the raw image folders.
 
 Class name wording is fixed — do not rename or abbreviate. Actinic keratosis maps to class 4.
 
+## Trained models on disk
+
+| Model | Train data | Best epoch | Val macro-F1 | Val acc | Checkpoint |
+|---|---|---:|---:|---:|---|
+| BCN-only (#119) | BCN20000 train 12,352 | 6 | 0.6924 | 70.09% | `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` |
+| **BCN+MNH (#141)** | merged train 21,233 | 6 | 0.6768 | 74.16% | `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` (mirror `models/bcn_mnh_cancer_risk_cnn_epoch6.pth`) |
+
+Both use EfficientNet-B0 / ImageNet / 224×224 / batch 16 / AdamW 3e-4 / 10 epochs / inverse-frequency class weights. The decisive comparison (melanoma recall on the frozen BCN test set) is in D4.6 (#142).
+
 ## Code conventions
 
 - Type hints on every function signature

@@ -1063,3 +1063,84 @@ When helping with this project, follow these rules:
 # 20. Short Summary for Quick Prompting
 
 Revela is a CNN-first dermatology education MVP for residents. It lets a trainee upload a skin image and receive a top-3 differential with confidence scores, uncertainty, structured visual-feature reasoning, and safety/fairness limitations. The product is a clinical reasoning scaffold, not a diagnostic tool. The first 3-week MVP should train and present a CNN classifier; LLM explanation is a Week 4 extension only. Dataset inspection so far shows HAM10000, ISIC Challenge 2019, DICM-17K, and MILK10k support melanoma/nevus/other lesion classification but do not reliably support eczema/dermatitis. The realistic first taxonomy is melanoma / benign nevus / other unclear. The team still needs to inspect darker-skin datasets such as DDI and SCIN for fairness evaluation. The core success metric is whether at least 70% of test users rate Revela useful for learning visual diagnostic reasoning.
+
+---
+
+# 21. Current Model & Pipeline Status (updated 2026-05-18)
+
+## Production taxonomy (replaces "3-class MVP" framing in earlier sections)
+
+Following #116 / #117 (D3.1–D3.2), the dermoscopic CNN now uses a **4-class cancer-risk taxonomy** — not the older melanoma/nevus/other framing:
+
+1. Melanoma
+2. Non-melanoma skin cancer (BCC + SCC)
+3. Benign nevus
+4. Other non-cancer / indeterminate lesion (incl. actinic keratosis)
+
+Reason: the old `Other lesion` class was hiding 4,235 NMSC cases (BCC + SCC) alongside benign lesions, making it impossible to communicate cancer risk. See DEC-008 in `docs/decision_log.md`.
+
+## Trained dermoscopic CNN models on disk
+
+| Model | Train data | Best epoch | Val macro-F1 | Val acc | Checkpoint |
+|---|---|---:|---:|---:|---|
+| BCN-only baseline (#119) | BCN20000 train 12,352 | 6 | 0.6924 | 70.09% | `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` |
+| **BCN+MNH augmented (#141)** | merged 21,233 (BCN train + filtered MNH) | 6 | 0.6768 | 74.16% | `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` |
+
+Both use EfficientNet-B0 / ImageNet pretrained / 224×224 / batch 16 / AdamW 3e-4 / 10 epochs / inverse-frequency class weights / best epoch by val_macro_f1.
+
+## MNH (Mel+Nevus Histo) augmentation track — D4.1–D4.7
+
+Histopathology-confirmed melanoma+nevus dataset from ISIC Archive (collection 294). Used to boost melanoma representation in the training pool while keeping the BCN20000 frozen test set untouched. Pipeline closed for D4.1–D4.5; D4.6 (evaluation on frozen test) and D4.7 (docs) remain.
+
+| Stage | Issue | Output | Key numbers |
+|---|---|---|---|
+| Download | #137 ✅ | `data/mel_nevus_histo/{metadata,images/}` | 18,133 images, 7,191 melanoma |
+| Filter BCN overlaps | #138 ✅ | `data/mel_nevus_histo/mnh_filtered.csv` | −5,633 dups → 12,500 rows |
+| Map to taxonomy | #139 ✅ | `data/mel_nevus_histo/mnh_mapped.csv` + DEC-009 | Mel 4,345 · Nevus 8,050 · Other 105 · NMSC 0 |
+| Merge + split | #140 ✅ | `splits/bcn_mnh_{train,val}.csv` | Train 21,233 · Val 3,619 |
+| Retrain | #141 ✅ | `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` | Val macro-F1 0.6768 (BCN-only baseline 0.6924) |
+| Evaluate | #142 ⏳ | `outputs/metrics/bcn_mnh_*` | Pending |
+| Update docs | #143 ⏳ | `docs/{decision_log,llm_project_context}.md` | Pending |
+
+## Effect of MNH augmentation on training distribution
+
+| Class | BCN-only train | BCN+MNH train | Δ |
+|---|---:|---:|---:|
+| Melanoma | 3,363 (27%) | 6,636 (31%) | **+97% rows** |
+| Non-melanoma skin cancer | 2,968 (24%) | 2,537 (12%) | proportional drop (MNH adds none) |
+| Benign nevus | 3,934 (32%) | 10,154 (48%) | +158% rows |
+| Other / indeterminate | 2,087 (17%) | 1,906 (9%) | proportional drop |
+
+## Decisions logged in `docs/decision_log.md`
+
+- DEC-001 educational positioning
+- DEC-002 BCN20000 for CNN v1
+- DEC-008 dermoscopic CNN target = cancer-risk classification (4-class)
+- DEC-009 MNH taxonomy mapping (collision lesions, indeterminate melanocytic, non-nevus pigmentations)
+
+## Safety guarantees (asserted in code, not just documented)
+
+- BCN20000 frozen test set (2,659 rows, md5 `a67861586e00812aadf46f2bdb4bc01b`) is **never** touched by training. Verified hash-stable across every D4.x notebook.
+- Train/val/test isic_id intersections all asserted to be empty.
+- Lesion-level no-leakage between train and val (`random.Random(seed=42).shuffle` of unique lesion_ids, then 70/15/15 slice — same logic as notebook 05).
+
+## Notebooks (chronological)
+
+| # | Purpose | Status |
+|---|---|---|
+| 05 | BCN20000 cancer-risk splits | done |
+| 06 | Train BCN-only cancer-risk CNN | done |
+| 07 | Evaluate BCN-only CNN (#120) | done |
+| 08 | Download MNH (D4.1) | done |
+| 09 | Filter BCN overlaps from MNH (D4.2) | done |
+| 10 | Map MNH to cancer-risk taxonomy (D4.3) | done |
+| 11 | Merge + lesion-grouped split (D4.4) | done |
+| 12 | Train BCN+MNH CNN (D4.5) | done — guarded against accidental re-runs |
+| 13 (TBD) | Evaluate BCN+MNH on frozen BCN test (D4.6) | pending |
+
+## What the team should know
+
+- The 4-class cancer-risk taxonomy is the current production target, not the older 3-class framing.
+- We now have two trained dermoscopic models. Both are EfficientNet-B0, same hyperparameters — only the training data differs. The BCN+MNH model is the one to use going forward *if* D4.6 confirms the expected melanoma-recall gain.
+- The frozen BCN test set is sacred. Any new training data must hash-assert it before merging.
+- Notebook 12 is hardened against accidental re-execution: training cells skip themselves if `training_history.csv` already has ≥10 epochs. This is a guardrail; if you want a true retrain, delete that file first.

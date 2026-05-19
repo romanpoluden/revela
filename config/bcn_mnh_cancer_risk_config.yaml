@@ -1,0 +1,34 @@
+# BCN20000 + MNH augmentation training config — D4.5 (#141)
+#
+# Mirrors `bcn20000_cancer_risk_config.yaml` exactly, with two differences:
+#   1. dataset.train_csv / val_csv point at the merged splits produced by D4.4
+#   2. dataset.label_column = "cancer_risk_class" (our merged column name)
+#
+# All training hyperparameters (architecture, image size, batch size, LR,
+# weight decay, epochs, class weighting, best-checkpoint criterion) are
+# identical to BCN-only #119 so the BCN+MNH vs BCN-only comparison in D4.6
+# is apples-to-apples.
+
+dataset:
+  train_csv: splits/bcn_mnh_train.csv
+  val_csv:   splits/bcn_mnh_val.csv
+  label_column: cancer_risk_class
+  class_idx_column: null   # we provide the label by name, not a precomputed index
+  # The test set is the unchanged BCN20000 frozen test set; used in D4.6, not here.
+  test_csv:  data/processed/bcn20000_cancer_risk/test.csv
+
+class_names:
+  - Melanoma
+  - Non-melanoma skin cancer
+  - Benign nevus
+  - Other non-cancer / indeterminate lesion
+
+training:
+  image_size: 224
+  batch_size: 16
+  num_workers: 0
+  learning_rate: 0.0003
+  weight_decay: 0.01
+  epochs: 10
+  use_class_weights: true
+  output_dir: models/bcn_mnh_cancer_risk_effnet_b0

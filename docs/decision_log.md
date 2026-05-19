@@ -439,3 +439,96 @@ Zero NaN in `cancer_risk_class` (asserted at runtime in `Rehma_Revela/Notebook/1
 ### Review date
 
 After D4.6 evaluation (#142) — verify the mapping choices do not artifactually inflate melanoma recall on the BCN20000 frozen test set.
+
+---
+
+## DEC-010 — D4 — Adopt MNH-augmented CNN as the production dermoscopic cancer-risk model
+
+**Date:** 2026-05-19
+**Status:** Closed
+**Owner:** Emma
+**Category:** Dataset / Model
+**Linked issues:** D4.1 (#137), D4.2 (#138), D4.3 (#139), D4.4 (#140), D4.5 (#141), D4.6 (#142), D4.7 (#143)
+**Builds on:** [[DEC-008]] (4-class cancer-risk taxonomy), [[DEC-009]] (MNH taxonomy mapping)
+
+### Decision
+
+Promote the BCN20000+MNH-trained dermoscopic CNN (D4.5 / #141) as the production cancer-risk model, replacing the BCN-only baseline (D3.4 / #119). MNH is the Melanoma and Nevus Dermoscopy Images with Confirmed Histopathological Diagnosis dataset (ISIC collection 294), added to training to boost melanoma representation in the training pool while keeping the BCN20000 frozen test set untouched. D4.6 (#142) measured the head-to-head trade-off on the identical frozen test set and confirmed a meaningful melanoma-recall gain with flat aggregate accuracy.
+
+### Dataset composition
+
+| Stage | Rows | Notes |
+|---|---:|---|
+| BCN20000 training split (input) | 12,352 | from D3.3 (#118) splits |
+| MNH raw | 18,133 | from D4.1 (#137) |
+| MNH after BCN isic_id dedup | 12,500 | −5,633 dupes asserted (D4.2 / #138) |
+| Merged training pool (BCN train + MNH filtered) | 24,852 | input to lesion-grouped split |
+| **New train split** | **21,233** | `splits/bcn_mnh_train.csv` (D4.4 / #140) |
+| **New val split** | **3,619** | `splits/bcn_mnh_val.csv` |
+| **Frozen BCN20000 test set** | **2,659** | unchanged; md5 `a67861586e00812aadf46f2bdb4bc01b` (verified hash-stable across every D4.x notebook) |
+
+### Deduplication and split safety
+
+- Deduplication by exact `isic_id` match against BCN20000 (D4.2): 5,633 MNH images removed before merge.
+- Zero overlap asserted at runtime between MNH ∩ BCN train and MNH ∩ BCN test.
+- Lesion-grouped train/val split (`random.Random(seed=42).shuffle(unique_lesion_ids)` then slice, val_frac=0.15) — same logic as `src/data/prepare_bcn20000_cancer_risk.py:70-84`. MNH rows with NaN `lesion_id` (4,086) given synthetic `MNH_singleton_<isic_id>` so each is its own singleton lesion. Zero lesion leakage between train and val asserted.
+- BCN20000 frozen test file hash unchanged before and after every training and evaluation run.
+
+### Taxonomy mapping
+
+All MNH `diagnosis_3` labels mapped to the same 4-class cancer-risk taxonomy used in BCN20000 (DEC-008). Ambiguous-label decisions (resolved in DEC-009 / D4.3 / #139):
+- **Indeterminate melanocytic lesions** (Atypical melanocytic neoplasm, Atypical intraepithelial melanocytic proliferation, Atypical proliferative nodules in congenital nevus — 80 rows) → `Other non-cancer / indeterminate lesion`.
+- **Non-melanocytic / non-nevus benign pigmentations** (Epidermal nevus, Lentigo NOS, Mucosal melanotic macule — 10 rows) → `Other non-cancer / indeterminate lesion`.
+- **Collision lesions** (26 rows, `diagnosis_3` NaN) → split by `diagnosis_2`: benign-only collisions (15) → `Other non-cancer / indeterminate lesion`; malignant-containing collisions (11) → `Melanoma`.
+- **Melanoma subtypes** (`Melanoma, NOS`, `Melanoma in situ`, `Melanoma Invasive`) → `Melanoma`.
+- Full mapping table: `docs/mnh_taxonomy_mapping.md`.
+
+Class wording fix at merge time: MNH `cancer_risk_class` was normalized from `"Other non-cancer / indeterminate"` → `"Other non-cancer / indeterminate lesion"` to match the DEC-008 wording rule before being concatenated with BCN training rows.
+
+### Outcome — head-to-head on identical frozen BCN20000 test set (n=2,659)
+
+Source files: `outputs/metrics/bcn_mnh_cancer_risk_test_metrics.json` (BCN+MNH, D4.6) vs `outputs/metrics/bcn20000_cancer_risk_test_metrics.json` (BCN-only, #120). All numbers below pulled from those JSONs.
+
+| Metric | BCN-only (#120) | BCN+MNH (D4.6) | Delta |
+|---|---:|---:|---:|
+| **Melanoma recall** | 57.87% | **61.36%** | **+3.50 pp** |
+| **Melanoma FNR** | 42.13% | **38.64%** | **−3.50 pp** |
+| NMSC recall | 72.41% | 75.30% | +2.89 pp |
+| Cancer recall (Mel+NMSC → any malignant class) | 71.91% | 73.70% | +1.79 pp |
+| Cancer FNR | 28.09% | 26.30% | −1.79 pp |
+| Top-1 accuracy | 67.77% | 67.62% | −0.15 pp (flat) |
+| Macro-F1 | 0.6581 | 0.6552 | −0.0030 (flat) |
+| Balanced accuracy | 65.85% | 65.71% | −0.14 pp (flat) |
+
+Both malignant classes gained recall; both benign classes gave a little back — the correct trade-off direction for a cancer-risk model. Melanoma-misclassified-as-benign-nevus errors dropped from 132 to 93 on the test set, the most safety-relevant failure mode. Net change in missed melanoma: from ~241 to 221 cases out of 572 melanoma in test.
+
+### Model artifact
+
+- **Production checkpoint:** `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` (PyTorch). Mirror with epoch suffix at `models/bcn_mnh_cancer_risk_cnn_epoch6.pth`.
+- **Saved by:** `val_macro_f1` (max), matching DEC-008 / #119 / #120 selection rule for apples-to-apples comparison.
+- **Best epoch:** 6 / 10. `val_macro_f1=0.6768` on the BCN+MNH val split (3,619 rows).
+- **Architecture and hyperparameters:** EfficientNet-B0 / ImageNet pretrained / 224×224 / batch 16 / AdamW lr=3e-4 wd=0.01 / 10 epochs / inverse-frequency class weights — identical to BCN-only #119. Only the training data differs.
+- **Training log:** `outputs/metrics/bcn_mnh_training_log.csv`.
+- **Training config:** `config/bcn_mnh_cancer_risk_config.yaml`.
+- **Training notebook:** `Rehma_Revela/Notebook/12_train_bcn_mnh_cancer_risk_cnn.ipynb` (guarded against accidental re-execution).
+- **Evaluation notebook:** `Rehma_Revela/Notebook/13_evaluate_bcn_mnh_cancer_risk_cnn.ipynb`.
+
+### Effect on downstream work
+
+- Inference and app code (#123 / D3.7, F1.x stubs) should switch from `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` to `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth`. Same `class_to_idx`, same input size, drop-in replacement.
+- BCN-only baseline artifacts at `outputs/metrics/bcn20000_cancer_risk_*` are preserved as the comparison baseline — D4.6 wrote to distinct `outputs/metrics/bcn_mnh_*` paths.
+- The frozen BCN20000 test set md5 (`a67861586e00812aadf46f2bdb4bc01b`) is now the canonical evaluation benchmark. Any future model iteration must evaluate against this exact file to remain comparable.
+
+### Communication rules (DEC-001, DEC-006, DEC-007)
+
+Revela remains an **educational prototype**, not a clinical diagnostic device. The +3.50 pp melanoma-recall gain and 75.3% NMSC recall must not be presented as clinical readiness. The model misses approximately 1 in 3 melanoma cases in this single-institution test set; communication must not claim that all cancers or all melanoma are detected. The cancer-risk recall metric is for educational scaffold framing only, not patient triage.
+
+### Consequences
+
+- BCN+MNH model becomes the default checkpoint loaded by inference code.
+- Future supplemental dermoscopic dataset assessments (e.g. #121) must be evaluated against this new baseline, not the BCN-only one.
+- The same dedup-by-isic_id + lesion-grouped split + hash-frozen test pattern is the template for any future dataset-augmentation track.
+
+### Review date
+
+After the next major model iteration (whichever issue follows from #121 supplemental-dataset work) — re-evaluate whether MNH augmentation should remain in the training pool or be replaced by a more skin-tone-diverse dataset (DDI, SCIN clinical) once that becomes feasible.

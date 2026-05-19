@@ -29,9 +29,30 @@ Current MVP is not a general skin-disease classifier and not a patient-facing di
 
 ---
 
-## Current baseline CNN v1
+## Current production dermoscopic CNN (BCN+MNH — D4.5/#141, evaluated D4.6/#142)
 
-CNN v1 is now considered a baseline, not the final product model.
+The production dermoscopic cancer-risk model is now trained on **BCN20000 + MNH (filtered)** — see DEC-010 in `docs/decision_log.md`.
+
+- Training data: BCN20000 training split (12,352 rows) + MNH filtered (12,500 rows, post-BCN dedup) = merged pool 24,852 → lesion-grouped split into **21,233 train / 3,619 val**.
+- Evaluation benchmark: frozen BCN20000 test set, 2,659 rows, md5 `a67861586e00812aadf46f2bdb4bc01b` (unchanged from #120).
+- Model: EfficientNet-B0, ImageNet pretrained, 224×224, AdamW lr=3e-4 wd=0.01, 10 epochs, inverse-frequency class weights.
+- Checkpoint: `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` (PyTorch; mirror `models/bcn_mnh_cancer_risk_cnn_epoch6.pth`). Saved by `val_macro_f1` (max) — same selection rule as the BCN-only baseline.
+- Best epoch: 6 / 10. Test melanoma recall: 61.36% (BCN-only baseline 57.87%, delta +3.50 pp).
+
+Full augmentation decisions: `docs/decision_log.md` D4 (DEC-010).
+Taxonomy mapping for MNH: `docs/mnh_taxonomy_mapping.md`.
+
+---
+
+## Previous baselines (kept for comparison)
+
+### BCN-only cancer-risk CNN (D3.4/#119, evaluated D3.5/#120)
+
+4-class cancer-risk CNN trained on BCN20000 only. Kept on disk as the comparison baseline at `models/bcn20000_cancer_risk_effnet_b0/best_model.pth`. Test melanoma recall 57.87% on the same frozen test set; superseded on melanoma recall (+3.50 pp), NMSC recall (+2.89 pp), and cancer recall (+1.79 pp) by the BCN+MNH model above.
+
+### CNN v1 (3-class, archived)
+
+CNN v1 is the original 3-class baseline (Melanoma / Benign nevus / Other lesion), now archived.
 
 Dataset: BCN20000  
 Image type: Dermoscopic lesion images  
@@ -43,7 +64,7 @@ Old classes:
 - Benign nevus
 - Other lesion
 
-The model was trained for 3 epochs and evaluated on a held-out lesion-level test split.
+The model was trained for 3 epochs and evaluated on a held-out lesion-level test split. Replaced by the 4-class cancer-risk taxonomy (DEC-008) and superseded by the BCN+MNH model above.
 
 ---
 
@@ -108,9 +129,9 @@ Wording rule: the 4th class must be called `Other non-cancer / indeterminate les
 ## Important current decisions
 
 1. Revela is an educational training aid, not a diagnostic product.
-2. BCN20000 remains the core dataset for the dermoscopic model.
-3. The old 3-class CNN v1 is baseline-only.
-4. The next dermoscopic model objective is cancer-risk classification.
+2. BCN20000 + MNH (filtered) is the production dermoscopic training set (DEC-010, D4 / #137–#143). Earlier BCN-only model is kept as the comparison baseline.
+3. The old 3-class CNN v1 is archived.
+4. Dermoscopic model objective is cancer-risk classification (4-class — DEC-008).
 5. Do not mix dermoscopic and clinical-photo datasets in the dermoscopic model.
 6. SCIN and Fitzpatrick17k are candidates for future clinical-photo model planning, not dermoscopic retraining.
 7. Future clinical-image model v2 should be explored as melanoma-risk triage, not broad skin-disease classification.
@@ -223,14 +244,18 @@ Do not:
 
 ## Current open work
 
-High-priority / near-term:
+## Completed
 
-- Redefine dermoscopic CNN target as cancer-risk classification.
-- Create cancer-risk label mapping for BCN20000.
-- Rebuild BCN20000 processed splits for the new taxonomy.
-- Retrain dermoscopic CNN with the new cancer-risk taxonomy.
-- Evaluate cancer-risk CNN with cancer/malignant recall and false-negative rate.
-- Update inference and app schema for cancer-risk output.
+- Redefined dermoscopic CNN target as cancer-risk classification — DEC-008, #116.
+- Created cancer-risk label mapping for BCN20000 — #117.
+- Rebuilt BCN20000 processed splits for 4-class taxonomy — #118.
+- Trained BCN-only cancer-risk CNN — #119.
+- Evaluated BCN-only cancer-risk CNN — #120.
+- **MNH augmentation track (D4) — DEC-010, #137–#143:** downloaded MNH (#137), filtered BCN overlaps (#138), mapped to cancer-risk taxonomy (#139, DEC-009), merged + lesion-grouped split (#140), retrained CNN (#141), evaluated on frozen BCN test (#142, +3.50 pp melanoma recall), closed docs (#143).
+
+## High-priority / near-term
+
+- Update inference and app schema for the BCN+MNH model — checkpoint path swap, otherwise drop-in (#123 / D3.7).
 - Write revised model evaluation report.
 - Write revised model card.
 - Update presentation/demo narrative.

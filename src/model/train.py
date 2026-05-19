@@ -11,6 +11,8 @@ from torch import nn
 from torch.optim import AdamW
 from torch.utils.data import DataLoader
 
+from src.data.samplers import build_weighted_sampler, summarize_sampler_groups
+
 from src.data.dataset import ImageClassificationDataset
 from src.data.transforms import get_eval_transforms, get_train_transforms
 from src.model.model import count_trainable_parameters, create_model
@@ -171,10 +173,37 @@ def create_dataloaders(config: dict, class_to_idx: dict[str, int], args: argpars
     device = select_device()
     pin_memory = device.type == "cuda"
 
+    sampler_config = training_config.get("sampler", {})
+    sampler_mode = sampler_config.get("mode", "none")
+    sampler_class_column = sampler_config.get("class_column", label_column)
+    sampler_source_column = sampler_config.get("source_column", "source_dataset")
+    sampler_replacement = sampler_config.get("replacement", True)
+
+    train_sampler = build_weighted_sampler(
+        rows=train_dataset.rows,
+        mode=sampler_mode,
+        class_column=sampler_class_column,
+        source_column=sampler_source_column,
+        replacement=sampler_replacement,
+    )
+
+    if train_sampler is not None:
+        print(f"Using training sampler mode: {sampler_mode}")
+        sampler_groups = summarize_sampler_groups(
+            rows=train_dataset.rows,
+            mode=sampler_mode,
+            class_column=sampler_class_column,
+            source_column=sampler_source_column,
+        )
+        print("Sampler group counts:")
+        for group_name, group_count in sampler_groups.items():
+            print(f"  - {group_name}: {group_count}")
+
     train_loader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
         num_workers=num_workers,
         pin_memory=pin_memory,
     )

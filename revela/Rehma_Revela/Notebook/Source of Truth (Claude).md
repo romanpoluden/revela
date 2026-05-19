@@ -1,16 +1,15 @@
 # Source of Truth (Claude) — Revela Tickets
 
-> Synced from GitHub issues. Last sync: 2026-05-18
+> Synced from GitHub issues. Last sync: 2026-05-19
 > Source: https://github.com/romanpoluden/revela/issues
 
 ## Active (P0, in flight on Rehma's branch)
 
-- **#142 — D4.6 — Evaluate BCN+MNH CNN on frozen BCN20000 test set** — P0 (next up; checkpoint ready at `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth`)
+- **#143 — D4.7 — Update decision log and project context for MNH augmentation track** — P0 (final doc closure; numbers from D4.6 in hand)
 
 ## Next up (unblocked, not started)
 
-- #143 — D4.7 — Update decision log and project context for MNH augmentation track — P0 (blocked on #142 results)
-- #123 — D3.7 — Update inference and app schema for dermoscopic cancer-risk model — P1 (assignee: romanpoluden)
+- #123 — D3.7 — Update inference and app schema for dermoscopic cancer-risk model — P1 (assignee: romanpoluden). Should now reference the BCN+MNH checkpoint, not BCN-only.
 - #108 — Prepare benchmark plan vs ChatGPT and Claude — P1
 
 ## Backlog (P1/P2, not urgent)
@@ -27,8 +26,9 @@
 
 ## Recently closed (last 30 days)
 
-### MNH augmentation track (D4.1–D4.5) — closed in last 24h
+### MNH augmentation track (D4.1–D4.6) — closed in last 48h
 
+- **#142 — D4.6 — Evaluate BCN+MNH CNN on frozen BCN20000 test set** — closed 2026-05-19. **Headline: melanoma recall 57.87% → 61.36% (+3.50 pp). Cancer recall +1.79 pp. NMSC recall +2.89 pp. Macro-F1 flat. 20 fewer missed melanomas (241 → 221).**
 - #141 — D4.5 — Retrain cancer-risk CNN on BCN+MNH merged dataset — closed 2026-05-18 (val_macro_f1=0.6768, val_acc=74.16%, best epoch 6/10)
 - #140 — D4.4 — Merge filtered MNH with BCN20000 training data and create splits — closed 2026-05-17 (train=21,233, val=3,619; lesion-grouped, BCN test untouched)
 - #139 — D4.3 — Map MNH diagnosis labels to cancer-risk taxonomy — closed 2026-05-17 (DEC-009; Mel 4,345 · Nevus 8,050 · Other 105 · NMSC 0)
@@ -59,23 +59,24 @@
 
 **MNH augmentation track (D4.x):**
 ```
-#137 ✅ → #138 ✅ → #139 ✅ → #140 ✅ → #141 ✅ → #142 ▶ → #143 ⏸
+#137 ✅ → #138 ✅ → #139 ✅ → #140 ✅ → #141 ✅ → #142 ✅ → #143 ▶
 ```
 
 `✅ done  ▶ active  ⏸ blocked  ⬜ not started`
 
-## Trained models on disk
+## Trained models on disk (post-D4.6)
 
-| Model | Train data | Best epoch | Val macro-F1 | Val acc | Checkpoint |
-|---|---|---:|---:|---:|---|
-| BCN-only baseline (#119) | BCN20000 train 12,352 | 6 | 0.6924 | 70.09% | `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` |
-| BCN+MNH augmented (#141) | merged train 21,233 | 6 | 0.6768 | 74.16% | `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` (mirror `models/bcn_mnh_cancer_risk_cnn_epoch6.pth`) |
+| Model | Train data | Val macro-F1 | Test mel-recall | Test FNR | Test macro-F1 | Checkpoint |
+|---|---|---:|---:|---:|---:|---|
+| BCN-only baseline (#119/#120) | BCN20000 train 12,352 | 0.6924 | 57.87% | 42.13% | 0.6581 | `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` |
+| **BCN+MNH (#141/#142) ← production** | merged train 21,233 | 0.6768 | **61.36% (+3.50pp)** | **38.64% (−3.50pp)** | 0.6552 | `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` |
 
-Both EfficientNet-B0 / ImageNet / 224×224 / batch 16 / AdamW lr=3e-4 wd=0.01 / 10 epochs / inverse-frequency class weights.
+Both EfficientNet-B0 / ImageNet / 224×224 / batch 16 / AdamW lr=3e-4 wd=0.01 / 10 epochs / inverse-frequency class weights. Test set: identical frozen BCN20000 test (md5 `a67861586e00812aadf46f2bdb4bc01b`, 2,659 rows).
 
 ## Flags / anomalies
 
 - **#121** may be a duplicate of closed #122 — verify before starting work.
 - **#131, #49** are team P0s sitting in Backlog — not assigned to Rehma, but worth tracking.
-- **#142 vs #120 comparison rule:** D4.6 must use the same frozen BCN20000 test set as #120 — md5 `a67861586e00812aadf46f2bdb4bc01b`. Hash-assert before evaluating; never re-shuffle or re-split this file.
-- **Notebook 12 is guarded against re-execution.** Cells 4 and 5 skip if `training_history.csv` already has ≥10 epochs. If you genuinely want to retrain, delete that file plus `best_model.pth` first.
+- **Production-model migration (post-D4.6):** Inference/app code currently loading `models/bcn20000_cancer_risk_effnet_b0/best_model.pth` should be updated to load `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth`. Relevant to #123 (D3.7) and the F1.x inference stubs.
+- **Notebook 12 is guarded against re-execution.** Cells 4 and 5 skip if `training_history.csv` already has ≥10 epochs. If you want to retrain, delete that file plus `best_model.pth` first.
+- **BCN-only baseline metrics preserved.** D4.6 wrote to distinct `outputs/metrics/bcn_mnh_*` paths; the `outputs/metrics/bcn20000_cancer_risk_*` files are still the #120 baseline.

@@ -18,44 +18,55 @@ This is educational, non-diagnostic inference plumbing work. It does not enable 
 
 ## Artifact Availability
 
-The selected BCN+MNH model is documented by the D4.5 config and notebooks as the improved dermoscopic model, not the older 3-class smoke-test baseline. In this local checkout, the selected artifact directory is currently unavailable, so the required files could not be confirmed on disk:
+The selected BCN+MNH model is documented by the D4.5 config and notebooks as the improved dermoscopic model, not the older 3-class smoke-test baseline. Artifacts are provided through GitHub release tag `bcn-mnh-v1-artifacts`.
 
-- `best_model.pth`: missing
-- `class_to_idx.json`: missing
-- `training_history.csv`: missing
+Expected local artifact paths:
 
-Because `class_to_idx.json` is missing locally, class names could not be read from the artifact. The expected taxonomy from `config/bcn_mnh_cancer_risk_config.yaml` is:
+- `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth`
+- `models/bcn_mnh_cancer_risk_effnet_b0/class_to_idx.json`
+- `models/bcn_mnh_cancer_risk_effnet_b0/training_history.csv`
+
+Local artifact verification passed.
+
+Class names from the registered BCN+MNH taxonomy:
 
 1. `Melanoma`
 2. `Non-melanoma skin cancer`
 3. `Benign nevus`
 4. `Other non-cancer / indeterminate lesion`
 
-No taxonomy mismatch can be confirmed until the artifact `class_to_idx.json` is present.
-
 ## Smoke Test
 
-- Smoke-test image path: `data/raw/bcn20000/images/ISIC_0061284.jpg`
+- Smoke-test image path: `data/raw/bcn20000/images/ISIC_0058528.jpg`
 - Smoke-test command:
 
 ```bash
-.venv/bin/python - <<'PY'
-from src.inference.adapter import run_inference
-
-response = run_inference(
-    model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
-    image_input="data/raw/bcn20000/images/ISIC_0061284.jpg",
-    top_k=4,
-)
-print(response)
-PY
+.venv/bin/python -m src.inference.adapter --model-id dermoscopic_cancer_risk_bcn_mnh_v1 --image data/raw/bcn20000/images/ISIC_0058528.jpg --top-k 4
 ```
 
-- Smoke-test result summary: the adapter returned a safe error response because the selected model artifacts are missing locally.
-- Error code: `missing_model_artifact`
-- Error message: `A required model artifact or input file could not be found.`
+- Smoke-test result summary: passed.
+- `model_id`: `dermoscopic_cancer_risk_bcn_mnh_v1`
+- `input_type`: `dermoscopic`
+- `architecture`: `efficientnet_b0`
+- `image_size`: `224`
+- Top-k returned `4` classes.
+- Sample top prediction: `Melanoma`, `38.57%` model confidence.
+- Uncertainty bucket: `low_confidence`
+- `low_certainty`: `true`
+- Low-certainty fields are present.
+- Safety note and limitations are present.
+- No diagnosis or treatment claims are made.
 
-A successful inference response should be re-run after restoring the selected artifact directory. At that point, confirm the response contains `model_id`, `input_type`, `architecture`, `image_size`, `predictions`, `top_prediction`, `uncertainty`, `safety_note`, `model_limitations`, and `recommended_next_step`, and confirm `input_type` is `dermoscopic`.
+Invalid-image check returned a structured safe error:
+
+- `error_code`: `invalid_image`
+- `message`: `The provided image input could not be read as a valid image.`
+
+Syntax check passed:
+
+```bash
+python -m py_compile src/inference/model_registry.py src/inference/adapter.py src/inference/predict.py src/inference/response_schema.py src/inference/uncertainty.py
+```
 
 ## Scope Confirmation
 

@@ -32,7 +32,7 @@ Canonical fields:
   "low_certainty": false,
   "low_certainty_reason": null,
   "low_certainty_message": null,
-  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 or uncertainty.bucket is low_confidence.",
+  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 (60%) or uncertainty.bucket is low_confidence.",
   "low_certainty_threshold": 0.6,
   "safety_note": "Prototype educational output only. This response is not a diagnosis and does not recommend treatment.",
   "model_limitations": [],
@@ -156,7 +156,7 @@ Suggested `error_code` values:
   "low_certainty": false,
   "low_certainty_reason": null,
   "low_certainty_message": null,
-  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 or uncertainty.bucket is low_confidence.",
+  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 (60%) or uncertainty.bucket is low_confidence.",
   "low_certainty_threshold": 0.6,
   "safety_note": "Prototype educational output only. This response is not a diagnosis and does not recommend treatment.",
   "model_limitations": [
@@ -217,7 +217,7 @@ Suggested `error_code` values:
   "low_certainty": true,
   "low_certainty_reason": "Top model confidence 56.00% is below the conservative 60% low-certainty threshold.",
   "low_certainty_message": "The model output is uncertain. Use this only for educational review. Review the top outputs, image quality, and clinical context, and consider additional image/context review. This is not a diagnosis and does not recommend treatment.",
-  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 or uncertainty.bucket is low_confidence.",
+  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 (60%) or uncertainty.bucket is low_confidence.",
   "low_certainty_threshold": 0.6,
   "safety_note": "Prototype educational output only. This response is not a diagnosis and does not recommend treatment.",
   "model_limitations": [
@@ -277,6 +277,11 @@ Labels below are placeholders for schema shape only. The final taxonomy should c
     "label": "Medium model confidence",
     "explanation": "The model assigned a moderate probability to its top output. This is model confidence, not clinical certainty."
   },
+  "low_certainty": true,
+  "low_certainty_reason": "Top model confidence 48.00% is below the conservative 60% low-certainty threshold.",
+  "low_certainty_message": "The model output is uncertain. Use this only for educational review. Review the top outputs, image quality, and clinical context, and consider additional image/context review. This is not a diagnosis and does not recommend treatment.",
+  "low_certainty_rule": "low_certainty is true when top confidence is below 0.60 (60%) or uncertainty.bucket is low_confidence.",
+  "low_certainty_threshold": 0.6,
   "safety_note": "Prototype educational output only. This response is not a diagnosis and does not recommend treatment.",
   "model_limitations": [
     "Predictions are model outputs from a finite taxonomy, not clinical conclusions.",

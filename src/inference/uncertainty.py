@@ -96,8 +96,9 @@ def get_low_certainty_handling(
         "low_certainty_message": LOW_CERTAINTY_MESSAGE if low_certainty else None,
         "threshold": threshold_value,
         "rule": (
-            "low_certainty is true when top confidence is below 0.60 or "
-            "uncertainty.bucket is low_confidence."
+            f"low_certainty is true when top confidence is below "
+            f"{threshold_value:.2f} ({threshold_value:.0%}) or uncertainty.bucket "
+            "is low_confidence."
         ),
     }
 

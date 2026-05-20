@@ -465,6 +465,18 @@ def render_analysis_result(response: dict | None) -> None:
     st.markdown("##### Uncertainty")
     st.write(uncertainty.get("label", "Unavailable"))
     st.caption(uncertainty.get("explanation", "No uncertainty explanation returned."))
+    if response.get("low_certainty") is True:
+        st.warning(
+            response.get(
+                "low_certainty_message",
+                "The model output is uncertain. Use this only for educational review. "
+                "Review the top outputs, image quality, and clinical context, and consider "
+                "additional image/context review. "
+                "This is not a diagnosis and does not recommend treatment.",
+            )
+        )
+        if response.get("low_certainty_reason"):
+            st.caption(response["low_certainty_reason"])
 
     st.markdown("##### Top-3 Outputs")
     if predictions:

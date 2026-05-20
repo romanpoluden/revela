@@ -5,7 +5,10 @@ import json
 from typing import Any
 
 from src.inference.postprocess import get_top_k_predictions
-from src.inference.uncertainty import get_uncertainty_bucket
+from src.inference.uncertainty import (
+    get_low_certainty_handling,
+    get_uncertainty_bucket,
+)
 
 
 DEFAULT_SAFETY_NOTE = (
@@ -52,6 +55,13 @@ def build_success_response(
         top_k=top_k,
     )
     top_prediction = predictions[0] if predictions else None
+    uncertainty = get_uncertainty_bucket(
+        confidence=prediction_result["predicted_confidence"]
+    )
+    low_certainty_handling = get_low_certainty_handling(
+        top_confidence=prediction_result["predicted_confidence"],
+        uncertainty_bucket=uncertainty["bucket"],
+    )
 
     return {
         "model_id": prediction_result["model_id"],
@@ -61,9 +71,12 @@ def build_success_response(
         "image_size": prediction_result["image_size"],
         "predictions": predictions,
         "top_prediction": top_prediction,
-        "uncertainty": get_uncertainty_bucket(
-            confidence=prediction_result["predicted_confidence"]
-        ),
+        "uncertainty": uncertainty,
+        "low_certainty": low_certainty_handling["low_certainty"],
+        "low_certainty_reason": low_certainty_handling["low_certainty_reason"],
+        "low_certainty_message": low_certainty_handling["low_certainty_message"],
+        "low_certainty_rule": low_certainty_handling["rule"],
+        "low_certainty_threshold": low_certainty_handling["threshold"],
         "safety_note": safety_note or DEFAULT_SAFETY_NOTE,
         "model_limitations": model_limitations or list(DEFAULT_MODEL_LIMITATIONS),
         "recommended_next_step": recommended_next_step

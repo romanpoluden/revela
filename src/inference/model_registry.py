@@ -25,6 +25,15 @@ REGISTRY: dict[str, dict] = {
         "class_to_idx_path": "models/bcn20000_cancer_risk_effnet_b0/class_to_idx.json",
         "image_size": 224,
     },
+    "dermoscopic_cancer_risk_bcn_mnh_v1": {
+        "input_type": "dermoscopic",
+        "architecture": "efficientnet_b0",
+        "num_classes": 4,
+        "config_path": "config/bcn_mnh_cancer_risk_config.yaml",
+        "checkpoint_path": "models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth",
+        "class_to_idx_path": "models/bcn_mnh_cancer_risk_effnet_b0/class_to_idx.json",
+        "image_size": 224,
+    },
     "clinical_skin_condition_v1": {
         "input_type": "clinical",
         "architecture": "efficientnet_b0",

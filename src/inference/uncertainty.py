@@ -9,6 +9,13 @@ DEFAULT_THRESHOLDS = {
     "high_confidence": 0.70,
     "medium_confidence": 0.40,
 }
+DEFAULT_LOW_CERTAINTY_CONFIDENCE_THRESHOLD = 0.60
+LOW_CERTAINTY_MESSAGE = (
+    "The model output is uncertain. Use this only for educational review. "
+    "Review the top outputs, image quality, and clinical context, and consider "
+    "additional image/context review. "
+    "This is not a diagnosis and does not recommend treatment."
+)
 
 
 BUCKET_LABELS = {
@@ -52,6 +59,47 @@ def get_uncertainty_bucket(confidence: float, thresholds: dict | None = None) ->
         "confidence_percent": round(confidence_value * 100, 2),
         "label": BUCKET_LABELS[bucket],
         "explanation": BUCKET_EXPLANATIONS[bucket],
+    }
+
+
+def get_low_certainty_handling(
+    top_confidence: float,
+    uncertainty_bucket: str | None = None,
+    confidence_threshold: float = DEFAULT_LOW_CERTAINTY_CONFIDENCE_THRESHOLD,
+) -> dict:
+    """
+    Return conservative low-certainty handling metadata without changing predictions.
+
+    MVP rule: flag low certainty when top-1 model confidence is below 0.60, or
+    when the existing uncertainty bucket is already low_confidence.
+    """
+    confidence_value = _validate_confidence(top_confidence)
+    threshold_value = _validate_confidence(confidence_threshold)
+    bucket_value = str(uncertainty_bucket or "")
+
+    below_threshold = confidence_value < threshold_value
+    low_confidence_bucket = bucket_value == "low_confidence"
+    low_certainty = below_threshold or low_confidence_bucket
+
+    reason = None
+    if below_threshold:
+        reason = (
+            f"Top model confidence {confidence_value:.2%} is below the "
+            f"conservative {threshold_value:.0%} low-certainty threshold."
+        )
+    elif low_confidence_bucket:
+        reason = "The uncertainty bucket is low_confidence."
+
+    return {
+        "low_certainty": low_certainty,
+        "low_certainty_reason": reason,
+        "low_certainty_message": LOW_CERTAINTY_MESSAGE if low_certainty else None,
+        "threshold": threshold_value,
+        "rule": (
+            f"low_certainty is true when top confidence is below "
+            f"{threshold_value:.2f} ({threshold_value:.0%}) or uncertainty.bucket "
+            "is low_confidence."
+        ),
     }
 
 
@@ -112,7 +160,15 @@ def main() -> None:
             get_uncertainty_bucket(0.55),
             get_uncertainty_bucket(0.24),
         ]
-        print(json.dumps(examples, indent=2))
+        payload = {
+            "uncertainty_buckets": examples,
+            "low_certainty_handling": [
+                get_low_certainty_handling(0.8062, "high_confidence"),
+                get_low_certainty_handling(0.55, "medium_confidence"),
+                get_low_certainty_handling(0.24, "low_confidence"),
+            ],
+        }
+        print(json.dumps(payload, indent=2))
         return
 
     if args.confidence is not None:

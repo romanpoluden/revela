@@ -188,12 +188,23 @@ Copy the full LLM response into:
 
 Preserve original wording. If line breaks make CSV editing difficult, replace line breaks with `\n` or store the raw response in a sidecar note and reference it in `reviewer_notes`.
 
+## Prefilling Revela Outputs
+
+Before running manual ChatGPT/Claude reviews, prefill Revela outputs in `outputs/research/manual_llm_image_benchmark_results_working.csv` using the fixed image set in `outputs/research/manual_llm_benchmark_image_set.csv`.
+
+Use the existing local inference adapter with:
+
+- Clinical rows: `clinical_skin_condition_v1`, `top_k=3`
+- Dermoscopic rows: `dermoscopic_cancer_risk_bcn_mnh_v1`, `top_k=4`
+
+Record `revela_top_1`, `revela_top_3`, and `revela_confidence` before copying prompts into ChatGPT or Claude. For dermoscopic rows, the `revela_top_3` column may contain all four ranked taxonomy labels so the full dermoscopic taxonomy is visible during manual review.
+
 ## Manual Execution Steps
 
 1. Select 10 clinical held-out/test images and 10 dermoscopic held-out/test images.
 2. Fill `outputs/research/manual_llm_benchmark_image_set.csv` with image metadata and selection reasons.
 3. Run Revela inference for each image using the matching model ID.
-4. Record Revela top-1, top-3, and model confidence.
+4. Record Revela top-1, ranked outputs, and model confidence in the working results CSV.
 5. Upload the same image to ChatGPT and run the standardized prompt for the correct track.
 6. Upload the same image to Claude and run the standardized prompt for the correct track.
 7. Copy raw outputs into the benchmark template.

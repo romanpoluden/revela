@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from src.data.dataset import ImageClassificationDataset
 from src.data.transforms import get_eval_transforms
-from src.model.model import create_model
+from src.model.model import build_model, create_model
 
 
 LESION_ROUTING_CLASS = "Lesion — dermoscopic review recommended"
@@ -38,6 +38,13 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=None,
         help="Optional override for the DataLoader worker count.",
+    )
+    parser.add_argument(
+        "--output-prefix",
+        type=str,
+        default=None,
+        help="Optional prefix for output filenames (e.g. 'clinical_v2_aug_mild'). "
+             "Defaults to 'clinical_v2'.",
     )
     return parser.parse_args()
 
@@ -145,7 +152,7 @@ def create_test_loader(
     return test_dataset, test_loader
 
 
-def load_model(model_path: Path, num_classes: int, device: torch.device):
+def load_model(model_path: Path, num_classes: int, device: torch.device, backbone_name: str = "efficientnet_b0"):
     if not model_path.exists():
         raise FileNotFoundError(f"Model checkpoint not found: {model_path}")
 
@@ -153,7 +160,7 @@ def load_model(model_path: Path, num_classes: int, device: torch.device):
     if "model_state_dict" not in checkpoint:
         raise KeyError("Checkpoint is missing `model_state_dict`.")
 
-    model = create_model(num_classes=num_classes, pretrained=False)
+    model = build_model(backbone_name=backbone_name, num_classes=num_classes, pretrained=False)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
     model.eval()
@@ -633,10 +640,12 @@ def main() -> None:
     if len(sources) != len(test_dataset):
         raise ValueError("source_dataset rows do not match the test dataset length.")
 
+    backbone_name = config.get("model", {}).get("architecture", "efficientnet_b0")
     model, checkpoint = load_model(
         model_path=model_path,
         num_classes=num_classes,
         device=device,
+        backbone_name=backbone_name,
     )
     true_labels, predicted_labels = run_inference(model, test_loader, device)
 
@@ -648,14 +657,13 @@ def main() -> None:
         class_names=class_names,
     )
 
+    prefix = args.output_prefix or "clinical_v2"
     output_paths = {
-        "metrics_json": Path("outputs/metrics/clinical_v2_test_metrics.json"),
-        "classification_report": Path(
-            "outputs/metrics/clinical_v2_classification_report.csv"
-        ),
-        "source_metrics": Path("outputs/metrics/clinical_v2_source_metrics.csv"),
-        "confusion_matrix": Path("outputs/plots/clinical_v2_confusion_matrix.png"),
-        "summary": Path("docs/model/clinical_v2_evaluation_summary.md"),
+        "metrics_json": Path(f"outputs/metrics/{prefix}_test_metrics.json"),
+        "classification_report": Path(f"outputs/metrics/{prefix}_classification_report.csv"),
+        "source_metrics": Path(f"outputs/metrics/{prefix}_source_metrics.csv"),
+        "confusion_matrix": Path(f"outputs/plots/{prefix}_confusion_matrix.png"),
+        "summary": Path(f"docs/model/{prefix}_evaluation_summary.md"),
     }
 
     save_metrics_json(

@@ -15,7 +15,7 @@ from src.data.samplers import build_weighted_sampler, summarize_sampler_groups
 
 from src.data.dataset import ImageClassificationDataset
 from src.data.transforms import get_eval_transforms, get_train_transforms
-from src.model.model import count_trainable_parameters, create_model
+from src.model.model import build_model, count_trainable_parameters, create_model
 
 
 def parse_args() -> argparse.Namespace:
@@ -155,10 +155,11 @@ def create_dataloaders(config: dict, class_to_idx: dict[str, int], args: argpars
     image_size = get_image_size(config)
     label_column, class_idx_column = get_label_columns(config)
 
+    strategy = config.get("augmentation_strategy", "baseline")
     train_dataset = ImageClassificationDataset(
         csv_path=get_train_csv_path(config),
         class_to_idx=class_to_idx,
-        transform=get_train_transforms(image_size),
+        transform=get_train_transforms(image_size, strategy=strategy),
         label_column=label_column,
         class_idx_column=class_idx_column,
     )
@@ -431,7 +432,8 @@ def main() -> None:
     )
 
     pretrained = config.get("model", {}).get("pretrained", True)
-    model = create_model(num_classes=num_classes, pretrained=pretrained).to(device)
+    backbone_name = config.get("model", {}).get("architecture", "efficientnet_b0")
+    model = build_model(backbone_name=backbone_name, num_classes=num_classes, pretrained=pretrained).to(device)
 
     class_weights = None
     if config["training"]["use_class_weights"]:

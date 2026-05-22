@@ -4,6 +4,7 @@ from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
 from src.inference.adapter import run_inference
+from src.prompting.llm_prompt_builder import build_llm_transfer_prompt
 
 
 CLINICAL_CLASSES = [
@@ -1354,7 +1355,7 @@ def render_final_result_screen(case_type: str) -> None:
 
     with prompt_col:
         st.markdown("#### Continue in ChatGPT / Claude")
-        render_prompt_export_placeholder()
+        render_prompt_export(case_type)
         _render_result_context_summary(st.session_state.get("learner_context", {}))
 
         clinical_response = results.get("clinical")
@@ -1422,20 +1423,34 @@ def render_learner_rating_form() -> None:
         }
 
 
-def render_prompt_export_placeholder() -> None:
-    st.markdown(
-        """
-        <div class="prompt-export-card">
-          <div class="section-label" style="margin-top:0">Prompt export</div>
-          <p class="prompt-placeholder-text">
-            After review, you will be able to copy a structured prompt combining the model result,
-            uncertainty level, and your learning context — ready to paste into ChatGPT or Claude
-            for further educational discussion.
-          </p>
-          <p class="prompt-placeholder-coming">Prompt export — available in the next iteration</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+def render_prompt_export(case_type: str) -> None:
+    results = st.session_state.get("analysis_results", {})
+    learner_context = st.session_state.get("learner_context") or None
+    learner_rating = st.session_state.get("learner_rating") or None
+
+    prompt = build_llm_transfer_prompt(
+        case_type=case_type,
+        clinical_response=results.get("clinical"),
+        dermoscopic_response=results.get("dermoscopic"),
+        learner_context=learner_context,
+        learner_rating=learner_rating,
+    )
+
+    st.caption(
+        "Copy this prompt into ChatGPT or Claude to continue the case "
+        "as an educational reasoning exercise."
+    )
+    st.text_area(
+        "Generated prompt",
+        value=prompt,
+        height=400,
+        label_visibility="collapsed",
+    )
+    st.download_button(
+        label="Download prompt (.txt)",
+        data=prompt,
+        file_name="revela_case_prompt.txt",
+        mime="text/plain",
     )
 
 

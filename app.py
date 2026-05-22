@@ -21,6 +21,14 @@ DERMOSCOPIC_CLASSES = [
     "Other non-cancer / indeterminate lesion",
 ]
 
+LESION_ROUTING_LABEL = "Lesion — dermoscopic review recommended"
+
+_CASE_TYPES = [
+    "Clinical photo only",
+    "Dermoscopic image only",
+    "Paired clinical + dermoscopic case",
+]
+
 _CONTEXT_OPTIONS: dict[str, list[str]] = {
     "body_location": [
         "not provided",
@@ -522,6 +530,31 @@ def inject_css() -> None:
             padding-top: 0.55rem;
         }
 
+        /* ── Learner rating card ─────────────────────── */
+        .rating-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #2f6f73;
+            border-radius: 10px;
+            padding: 1rem 1.1rem;
+            background: #f4faf9;
+            margin-top: 1rem;
+        }
+        .rating-disclaimer {
+            font-size: 0.82rem;
+            color: #52616b;
+            font-style: italic;
+            margin: 0.6rem 0 0 0;
+            border-top: 1px solid #d0e8e5;
+            padding-top: 0.5rem;
+        }
+
+        /* ── Upload section divider ──────────────────── */
+        .upload-divider {
+            border: none;
+            border-top: 1px dashed #dbe3ea;
+            margin: 1.2rem 0;
+        }
+
         /* ── Safety footer ───────────────────────────── */
         .safety-footer {
             margin-top: 2rem;
@@ -581,8 +614,8 @@ def render_step_indicator(current_step: int) -> None:
         return "step-connector conn-done" if after_step < current_step else "step-connector"
 
     steps = [
-        (1, "Choose image type"),
-        (2, "Upload image"),
+        (1, "Choose case type"),
+        (2, "Upload image(s)"),
         (3, "Learning context"),
         (4, "Review model output"),
     ]
@@ -618,13 +651,13 @@ def render_analyze_tab() -> None:
         _step = 2
     render_step_indicator(_step)
 
-    input_mode = st.radio(
-        "Choose image type",
-        ["Clinical photo", "Dermoscopic image"],
+    case_type = st.radio(
+        "Choose case type",
+        _CASE_TYPES,
         horizontal=True,
+        key="case_type_radio",
         on_change=reset_analysis_state,
     )
-    mode_config = get_mode_config(input_mode)
 
     if status == "complete":
         _col, _ = st.columns([1, 5])
@@ -632,63 +665,75 @@ def render_analyze_tab() -> None:
             if st.button("Start over"):
                 reset_analysis_state()
                 st.rerun()
-        render_final_result_screen(st.session_state.analysis_result, mode_config)
+        render_final_result_screen(case_type)
         render_safety_footer()
         return
 
     left, right = st.columns([0.95, 1.05], gap="large")
-    uploaded_image = None
-    image_error = None
-    valid_image_uploaded = False
+
+    clinical_image: Image.Image | None = None
+    dermoscopic_image: Image.Image | None = None
+    has_image_error = False
+    clinical_valid = False
+    dermoscopic_valid = False
+
+    need_clinical = case_type in ("Clinical photo only", "Paired clinical + dermoscopic case")
+    need_dermoscopic = case_type in ("Dermoscopic image only", "Paired clinical + dermoscopic case")
 
     with left:
-        uploaded_file = st.file_uploader(
-            mode_config["upload_label"],
-            type=["jpg", "jpeg", "png", "webp"],
-            help="Accepted formats: JPG, JPEG, PNG, WEBP.",
-            key=f"upload_{mode_config['input_mode']}",
-            on_change=reset_analysis_state,
+        if need_clinical:
+            clinical_image, clinical_err, clinical_valid = render_upload_card(
+                label="Clinical / macroscopic photo",
+                upload_key="upload_clinical",
+                preview_caption="Clinical photo preview",
+                mode_note=(
+                    "Regular camera photo of visible skin condition. "
+                    "Not dermoscopic, not microscope, not highly magnified."
+                ),
+            )
+            if clinical_err:
+                has_image_error = True
+
+        if need_dermoscopic:
+            if need_clinical:
+                st.markdown('<hr class="upload-divider">', unsafe_allow_html=True)
+            dermoscopic_image, derm_err, dermoscopic_valid = render_upload_card(
+                label="Dermoscopic / close-up lesion image",
+                upload_key="upload_dermoscopic",
+                preview_caption="Dermoscopic image preview",
+                mode_note=(
+                    "Dermoscopic or magnified lesion image. "
+                    "Not a regular clinical photo. Model output is not diagnosis."
+                ),
+            )
+            if derm_err:
+                has_image_error = True
+
+        required_uploads_valid = (
+            (not need_clinical or clinical_valid)
+            and (not need_dermoscopic or dermoscopic_valid)
+            and not has_image_error
         )
-        st.info(mode_config["mode_note"])
+        st.session_state.file_uploaded = required_uploads_valid
 
-        if uploaded_file is None:
-            render_empty_upload_state(mode_config)
-        else:
-            try:
-                uploaded_image = load_uploaded_image(uploaded_file)
-                valid_image_uploaded = True
-                st.session_state.file_uploaded = True
-                st.image(
-                    uploaded_image,
-                    caption=mode_config["preview_caption"],
-                    use_container_width=True,
-                )
-                render_upload_metadata(uploaded_file, uploaded_image)
-            except (UnidentifiedImageError, OSError):
-                image_error = (
-                    "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
-                )
-                st.error(image_error)
-
-        if valid_image_uploaded:
+        if required_uploads_valid:
             render_learner_context_form()
             render_context_summary_card()
 
         if st.button(
             "Analyze case",
-            disabled=not valid_image_uploaded
-            or st.session_state.analysis_status == "running",
+            disabled=not required_uploads_valid or status == "running",
         ):
             start_analysis()
             st.rerun()
 
     with right:
-        st.markdown("#### Result")
-        render_result_panel(
-            mode_config=mode_config,
-            has_upload=uploaded_file is not None,
-            image_error=image_error,
-            uploaded_image=uploaded_image,
+        render_right_panel(
+            case_type=case_type,
+            required_uploads_valid=required_uploads_valid,
+            has_image_error=has_image_error,
+            clinical_image=clinical_image,
+            dermoscopic_image=dermoscopic_image,
         )
 
     render_safety_footer()
@@ -700,19 +745,6 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
             "input_mode": input_mode,
             "model_id": "dermoscopic_cancer_risk_bcn_mnh_v1",
             "top_k": 4,
-            "upload_label": "Upload a dermoscopic image",
-            "preview_caption": "Dermoscopic image preview",
-            "mode_note": (
-                "Dermoscopic mode shows educational dermoscopic review output from a local "
-                "prototype model. Model output is not diagnosis. Review by a qualified "
-                "clinician is required for real decisions."
-            ),
-            "waiting_text": (
-                "Upload a supported dermoscopic image to prepare educational dermoscopic review output."
-            ),
-            "received_text": (
-                "Select Analyze case to prepare educational dermoscopic review output for this image."
-            ),
             "result_heading": "Educational Dermoscopic Review Output",
             "top_outputs_heading": "Top-4 Outputs",
             "result_note": (
@@ -724,17 +756,6 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
         "input_mode": input_mode,
         "model_id": "clinical_skin_condition_v1",
         "top_k": 3,
-        "upload_label": "Upload a clinical photo",
-        "preview_caption": "Clinical photo preview",
-        "mode_note": (
-            "Clinical-photo mode runs a local prototype model and displays structured educational output."
-        ),
-        "waiting_text": (
-            "Upload a supported clinical photo to prepare structured educational model output."
-        ),
-        "received_text": (
-            "Select Analyze case to prepare structured educational model output for this image."
-        ),
         "result_heading": "Educational Model Output",
         "top_outputs_heading": "Top-3 Outputs",
         "result_note": "Model output, not diagnosis.",
@@ -744,70 +765,103 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
 def initialize_analysis_state() -> None:
     if "analysis_status" not in st.session_state:
         st.session_state.analysis_status = "idle"
-    if "analysis_result" not in st.session_state:
-        st.session_state.analysis_result = None
+    if "analysis_results" not in st.session_state:
+        st.session_state.analysis_results = {}
     if "analysis_error" not in st.session_state:
         st.session_state.analysis_error = None
     if "file_uploaded" not in st.session_state:
         st.session_state.file_uploaded = False
     if "learner_context" not in st.session_state:
         st.session_state.learner_context = {}
+    if "learner_rating" not in st.session_state:
+        st.session_state.learner_rating = {}
 
 
 def reset_analysis_state() -> None:
     st.session_state.analysis_status = "idle"
-    st.session_state.analysis_result = None
+    st.session_state.analysis_results = {}
     st.session_state.analysis_error = None
     st.session_state.file_uploaded = False
     for key in list(st.session_state.keys()):
-        if key.startswith("ctx_"):
+        if key.startswith("ctx_") or key.startswith("lrt_"):
             del st.session_state[key]
     st.session_state.learner_context = {}
+    st.session_state.learner_rating = {}
 
 
 def start_analysis() -> None:
     st.session_state.analysis_status = "running"
-    st.session_state.analysis_result = None
+    st.session_state.analysis_results = {}
     st.session_state.analysis_error = None
     st.session_state.learner_context = _collect_learner_context()
 
 
-def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> None:
+def complete_analysis(
+    case_type: str,
+    clinical_image: Image.Image | None,
+    dermoscopic_image: Image.Image | None,
+) -> None:
+    is_paired = case_type == "Paired clinical + dermoscopic case"
+
     progress = st.progress(0, text="Starting analysis...")
     with st.status("Running educational image analysis...", expanded=True) as status_widget:
-        st.write("Validating uploaded image")
-        progress.progress(20, text="Validating uploaded image")
+        st.write("Validating uploaded image(s)")
+        progress.progress(15, text="Validating uploaded image(s)")
 
         st.write("Preparing model input")
-        progress.progress(40, text="Preparing model input")
+        progress.progress(30, text="Preparing model input")
 
-        st.write("Running local model inference")
-        progress.progress(60, text="Running local model inference")
+        results: dict[str, dict] = {}
 
-        try:
-            response = run_inference(
-                model_id=str(mode_config["model_id"]),
-                image_input=image,
-                top_k=int(mode_config["top_k"]),
-            )
-        except Exception as error:
-            response = {
-                "error": True,
-                "error_code": "frontend_inference_error",
-                "message": "The educational image review could not be prepared. Please try again.",
-                "details": str(error),
-            }
+        if clinical_image is not None:
+            st.write("Running clinical model inference")
+            progress.progress(50 if is_paired else 60, text="Running clinical model inference")
+            try:
+                results["clinical"] = run_inference(
+                    model_id="clinical_skin_condition_v1",
+                    image_input=clinical_image,
+                    top_k=3,
+                )
+            except Exception as error:
+                results["clinical"] = {
+                    "error": True,
+                    "error_code": "frontend_inference_error",
+                    "message": "Clinical model inference could not be prepared. Please try again.",
+                    "details": str(error),
+                }
+
+        if dermoscopic_image is not None:
+            st.write("Running dermoscopic model inference")
+            progress.progress(70 if is_paired else 60, text="Running dermoscopic model inference")
+            try:
+                results["dermoscopic"] = run_inference(
+                    model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
+                    image_input=dermoscopic_image,
+                    top_k=4,
+                )
+            except Exception as error:
+                results["dermoscopic"] = {
+                    "error": True,
+                    "error_code": "frontend_inference_error",
+                    "message": "Dermoscopic model inference could not be prepared. Please try again.",
+                    "details": str(error),
+                }
 
         st.write("Preparing uncertainty and safety output")
-        progress.progress(80, text="Preparing uncertainty and safety output")
+        progress.progress(85, text="Preparing uncertainty and safety output")
 
         st.write("Preparing learning prompt area")
         progress.progress(95, text="Preparing learning prompt area")
 
-        st.session_state.analysis_result = response
+        st.session_state.analysis_results = results
 
-        if response.get("error") is True:
-            st.session_state.analysis_error = response
+        all_errored = bool(results) and all(
+            r.get("error") is True for r in results.values()
+        )
+
+        if all_errored:
+            first_error = next(iter(results.values()))
+            st.session_state.analysis_error = first_error
             st.session_state.analysis_status = "error"
             status_widget.update(label="Analysis error", state="error", expanded=True)
         else:
@@ -818,15 +872,122 @@ def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> 
     st.rerun()
 
 
-def render_empty_upload_state(mode_config: dict[str, str | int]) -> None:
+def render_upload_card(
+    label: str,
+    upload_key: str,
+    preview_caption: str,
+    mode_note: str,
+) -> tuple[Image.Image | None, str | None, bool]:
+    st.markdown(
+        f'<div class="section-label" style="margin-top:0.4rem">{label}</div>',
+        unsafe_allow_html=True,
+    )
+    uploaded_file = st.file_uploader(
+        label,
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Accepted formats: JPG, JPEG, PNG, WEBP.",
+        key=upload_key,
+        on_change=reset_analysis_state,
+        label_visibility="collapsed",
+    )
+    st.caption(mode_note)
+
+    if uploaded_file is None:
+        return None, None, False
+
+    try:
+        image = load_uploaded_image(uploaded_file)
+        st.image(image, caption=preview_caption, use_container_width=True)
+        render_upload_metadata(uploaded_file, image)
+        return image, None, True
+    except (UnidentifiedImageError, OSError):
+        st.error(
+            "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
+        )
+        return None, "invalid_image", False
+
+
+def render_right_panel(
+    case_type: str,
+    required_uploads_valid: bool,
+    has_image_error: bool,
+    clinical_image: Image.Image | None,
+    dermoscopic_image: Image.Image | None,
+) -> None:
+    st.markdown("#### Result")
+
+    if has_image_error:
+        st.markdown(
+            """
+            <div class="card">
+              <h3>Preview unavailable</h3>
+              <p>Please choose a different supported image file. No model inference has been run.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if not required_uploads_valid:
+        is_plural = case_type == "Paired clinical + dermoscopic case"
+        label = "image" + ("s" if is_plural else "")
+        st.markdown(
+            f"""
+            <div class="card">
+              <h3>Waiting for {label}</h3>
+              <p>{_get_waiting_text(case_type)}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if st.session_state.analysis_status == "running":
+        if not clinical_image and not dermoscopic_image:
+            st.session_state.analysis_error = {
+                "message": "The uploaded image is unavailable. Please upload a supported image and try again."
+            }
+            st.session_state.analysis_status = "error"
+            st.rerun()
+            return
+        complete_analysis(case_type, clinical_image, dermoscopic_image)
+        return
+
+    if st.session_state.analysis_status == "error":
+        render_analysis_error(st.session_state.analysis_error)
+        return
+
+    is_plural = case_type == "Paired clinical + dermoscopic case"
     st.markdown(
         f"""
         <div class="card">
-          <h3>No image selected</h3>
-          <p>{mode_config["waiting_text"]}</p>
+          <h3>Image{"s" if is_plural else ""} received</h3>
+          <p>{_get_received_text(case_type)}</p>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def _get_waiting_text(case_type: str) -> str:
+    if case_type == "Clinical photo only":
+        return "Upload a clinical photo to prepare structured educational model output."
+    if case_type == "Dermoscopic image only":
+        return "Upload a dermoscopic image to prepare educational dermoscopic review output."
+    return (
+        "Upload both a clinical photo and a dermoscopic image "
+        "to prepare paired educational case review."
+    )
+
+
+def _get_received_text(case_type: str) -> str:
+    if case_type == "Clinical photo only":
+        return "Select Analyze case to prepare structured educational model output for this image."
+    if case_type == "Dermoscopic image only":
+        return "Select Analyze case to prepare educational dermoscopic review output for this image."
+    return (
+        "Both images received. "
+        "Select Analyze case to prepare paired educational case review."
     )
 
 
@@ -857,66 +1018,6 @@ def format_file_size(num_bytes: int) -> str:
     if num_bytes < 1024 * 1024:
         return f"{num_bytes / 1024:.1f} KB"
     return f"{num_bytes / (1024 * 1024):.2f} MB"
-
-
-def render_result_panel(
-    mode_config: dict[str, str | int],
-    has_upload: bool,
-    image_error: str | None,
-    uploaded_image: Image.Image | None,
-) -> None:
-    if image_error is not None:
-        st.markdown(
-            """
-            <div class="card">
-              <h3>Preview unavailable</h3>
-              <p>Please choose a different supported image file. No model inference has been run.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    if not has_upload:
-        st.markdown(
-            f"""
-            <div class="card">
-              <h3>Waiting for image</h3>
-              <p>{mode_config["waiting_text"]}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    if st.session_state.analysis_status == "running":
-        if uploaded_image is None:
-            st.session_state.analysis_error = {
-                "message": "The uploaded image is unavailable. Please upload a supported image and try again."
-            }
-            st.session_state.analysis_status = "error"
-            st.rerun()
-            return
-        complete_analysis(uploaded_image, mode_config)
-        return
-
-    if st.session_state.analysis_status == "complete":
-        render_analysis_result(st.session_state.analysis_result, mode_config)
-        return
-
-    if st.session_state.analysis_status == "error":
-        render_analysis_error(st.session_state.analysis_error)
-        return
-
-    st.markdown(
-        f"""
-        <div class="card">
-          <h3>Image received</h3>
-          <p>{mode_config["received_text"]}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def render_analysis_result(response: dict | None, mode_config: dict[str, str | int]) -> None:
@@ -1028,7 +1129,6 @@ def render_analysis_result(response: dict | None, mode_config: dict[str, str | i
             """,
             unsafe_allow_html=True,
         )
-
 
 
 def _confidence_color_class(conf_pct: object) -> str:
@@ -1197,10 +1297,7 @@ def render_context_summary_card() -> None:
 
 
 def _render_result_context_summary(ctx: dict[str, str]) -> None:
-    has_any = any(
-        v and v != "not provided"
-        for k, v in ctx.items()
-    )
+    has_any = any(v and v != "not provided" for k, v in ctx.items())
     with st.expander("Learning context (collected for prompt export)", expanded=False):
         st.caption(
             "This context will be used to build a ChatGPT/Claude prompt export in a later step. "
@@ -1215,18 +1312,114 @@ def _render_result_context_summary(ctx: dict[str, str]) -> None:
             st.caption("No context was provided for this analysis.")
 
 
-def render_final_result_screen(response: dict | None, mode_config: dict[str, str | int]) -> None:
+def render_final_result_screen(case_type: str) -> None:
+    results = st.session_state.get("analysis_results", {})
     result_col, prompt_col = st.columns([1, 1], gap="large")
+
     with result_col:
-        st.markdown("#### Revela model result")
-        if response and not response.get("error"):
-            render_analysis_result(response, mode_config)
+        if case_type == "Paired clinical + dermoscopic case":
+            st.markdown("#### Revela model results")
+            clinical_response = results.get("clinical")
+            derm_response = results.get("dermoscopic")
+
+            st.markdown("**Clinical model output**")
+            if clinical_response and not clinical_response.get("error"):
+                render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
+            else:
+                render_analysis_error(clinical_response)
+
+            st.markdown("---")
+
+            st.markdown("**Dermoscopic model output**")
+            if derm_response and not derm_response.get("error"):
+                render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
+            else:
+                render_analysis_error(derm_response)
+
+        elif case_type == "Dermoscopic image only":
+            st.markdown("#### Revela model result")
+            derm_response = results.get("dermoscopic")
+            if derm_response and not derm_response.get("error"):
+                render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
+            else:
+                render_analysis_error(derm_response)
+
         else:
-            render_analysis_error(response)
+            st.markdown("#### Revela model result")
+            clinical_response = results.get("clinical")
+            if clinical_response and not clinical_response.get("error"):
+                render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
+            else:
+                render_analysis_error(clinical_response)
+
     with prompt_col:
         st.markdown("#### Continue in ChatGPT / Claude")
         render_prompt_export_placeholder()
         _render_result_context_summary(st.session_state.get("learner_context", {}))
+
+        clinical_response = results.get("clinical")
+        if _clinical_top_is_lesion_routing(clinical_response):
+            render_learner_rating_form()
+
+
+def _clinical_top_is_lesion_routing(clinical_response: dict | None) -> bool:
+    if not clinical_response or clinical_response.get("error"):
+        return False
+    top = clinical_response.get("top_prediction") or {}
+    return top.get("label") == LESION_ROUTING_LABEL
+
+
+def render_learner_rating_form() -> None:
+    with st.expander("Learner reflection — lesion routing flagged", expanded=True):
+        st.caption(
+            "The clinical model output suggests dermoscopic review. "
+            "This learning reflection is optional and does not change model output. "
+            "Confidence is model confidence, not clinical certainty."
+        )
+
+        st.slider(
+            "Educational concern level (1 = low concern, 5 = high concern)",
+            min_value=1,
+            max_value=5,
+            value=3,
+            step=1,
+            key="lrt_concern",
+        )
+
+        st.radio(
+            "Would you prioritize dermoscopic review for this case?",
+            options=["yes", "no", "unsure"],
+            index=2,
+            key="lrt_prioritize",
+            horizontal=True,
+        )
+
+        st.text_area(
+            "Visible cues that influenced your rating (optional)",
+            key="lrt_cues",
+            height=80,
+            placeholder=(
+                "Describe any features you noticed that informed your rating, "
+                "for educational discussion only."
+            ),
+        )
+
+        st.markdown(
+            """
+            <p class="rating-disclaimer">
+            This is a learning reflection, not a diagnosis.
+            The rating does not change model output.
+            Qualified review is required for real decisions.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.session_state.learner_rating = {
+            "concern": st.session_state.get("lrt_concern", 3),
+            "prioritize_dermoscopy": st.session_state.get("lrt_prioritize", "unsure"),
+            "visible_cues": st.session_state.get("lrt_cues", "").strip(),
+        }
 
 
 def render_prompt_export_placeholder() -> None:

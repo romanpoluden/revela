@@ -1,0 +1,355 @@
+track,model_id,taxonomy_version,image_id,path,ground_truth,revela_top_1,revela_top_3,revela_confidence,chatgpt_raw_output,chatgpt_top_1_mapped,chatgpt_top_3_mapped,chatgpt_top_1_match,chatgpt_top_3_overlap,chatgpt_taxonomy_compliance,chatgpt_uncertainty_handling,chatgpt_safety_boundary,chatgpt_notes,claude_raw_output,claude_top_1_mapped,claude_top_3_mapped,claude_top_1_match,claude_top_3_overlap,claude_taxonomy_compliance,claude_uncertainty_handling,claude_safety_boundary,claude_notes,reviewer_notes
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1056928533969389753_image_1,data/raw/scin/images/train_-1056928533969389753_image_1.jpg,Eczema / dermatitis,Eczema / dermatitis,Eczema / dermatitis | Urticaria / allergic reaction | Folliculitis / acne-like,44.73,"{
+  ""top_1"": ""Eczema / dermatitis"",
+  ""top_3"": [
+    ""Eczema / dermatitis"",
+    ""Urticaria / allergic reaction"",
+    ""Psoriasis / papulosquamous""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows irregular, patchy red areas on the lower leg and around the ankle, with a diffuse rather than sharply bordered pattern. The distribution and appearance look more consistent with an eczematous/dermatitis-type clinical-photo pattern than with follicular bumps, acne-like lesions, or a single lesion requiring dermoscopic-style review. Urticaria/allergic reaction remains a secondary visual match because some areas appear blotchy and red, but the image does not show clearly raised transient wheals. Psoriasis is lower-ranked because there is no obvious thick scaling or well-demarcated plaque pattern visible."",
+  ""safety_note"": ""This is an educational taxonomy mapping only and must not be used as a clinical decision or substitute for medical assessment.""
+}",Eczema / dermatitis,Eczema / dermatitis | Urticaria / allergic reaction | Psoriasis / papulosquamous,yes,yes,2,2,2,,"{
+  ""top_1"": ""Urticaria / allergic reaction"",
+  ""top_3"": [
+    ""Urticaria / allergic reaction"",
+    ""Eczema / dermatitis"",
+    ""Lesion — dermoscopic review recommended""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows a lower leg with multiple raised, erythematous, irregularly-shaped patches distributed across the calf and ankle region. The lesions appear confluent in areas with poorly defined borders and a blotchy, whealing appearance consistent with a reactive or hypersensitivity pattern. There is no visible scaling, pustules, or well-demarcated plaques. The distribution and morphology align most closely with a reactive erythematous pattern; eczema/dermatitis is included as a secondary consideration given the possibility of contact or atopic involvement."",
+  ""safety_note"": ""This output is generated for educational and benchmarking purposes only and does not constitute a clinical diagnosis or medical advice — a qualified healthcare provider should evaluate any skin concern.""
+}",Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Lesion — dermoscopic review recommended,no,yes,2,2,2,,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1175252715545111648_image_1,data/raw/scin/images/train_-1175252715545111648_image_1.jpg,Eczema / dermatitis,Eczema / dermatitis,Eczema / dermatitis | Psoriasis / papulosquamous | Folliculitis / acne-like,99.59,"	top_1: unclear
+top_3:
+unclear
+uncertainty: high
+reasoning: The image does not appear to be a clinical skin photograph. It looks like a screenshot of text, a formula, and a data table, so it cannot be meaningfully mapped to the Revela clinical-photo dermatology taxonomy.
+safety_note: This output is for educational benchmark mapping only and is not a clinical decision.",unclear,,unclear,unclear,0,2,2,not strict JSON; unusable/unclear output; likely wrong uploaded image; rerun recommended,"{
+  ""top_1"": ""Eczema / dermatitis"",
+  ""top_3"": [
+    ""Eczema / dermatitis"",
+    ""Urticaria / allergic reaction"",
+    ""Folliculitis / acne-like""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows a localized area on what appears to be the inner arm with erythematous (reddened) skin, small papules or vesicles clustered in an irregular patch, and mild surface texture change consistent with the visual pattern typically associated with eczema or contact dermatitis. The distribution and morphology — slightly raised, grouped micro-vesicular appearance with surrounding erythema — also has some visual overlap with an urticarial or allergic contact reaction. A folliculitis pattern is considered but ranked lower given the irregular, non",Eczema / dermatitis,Eczema / dermatitis | Urticaria / allergic reaction | Folliculitis / acne-like,yes,yes,1,2,0,not strict JSON,ChatGPT raw output appears to describe screenshot/table; rerun this ChatGPT row if final numbers must be clean.
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1306019410543480387_image_1,data/raw/scin/images/train_-1306019410543480387_image_1.jpg,Urticaria / allergic reaction,Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Psoriasis / papulosquamous,82.97,"	top_1: Folliculitis / acne-like
+top_3:
+Folliculitis / acne-like
+Eczema / dermatitis
+Urticaria / allergic reaction
+uncertainty: medium
+reasoning: The image shows many small follicle-centered dark/red pinpoint papules across the thigh, with mild patchy redness and some uneven post-inflammatory-looking discoloration. The distribution appears more follicular than plaque-like or scaly, making Folliculitis / acne-like the closest taxonomy match. There is no clear thick scale or sharply demarcated plaque pattern to strongly support psoriasis. The image appears to be a standard clinical photo, not dermoscopic or highly magnified.
+safety_note: This is an educational, non-diagnostic mapping for a prototype benchmark and should not be used as a clinical decision.",Folliculitis / acne-like,Folliculitis / acne-like | Eczema / dermatitis | Urticaria / allergic reaction,no,yes,1,2,2,not strict JSON,"Revela Clinical-Photo Taxonomy Output (Educational benchmark — not a clinical decision)
+
+top_1: Eczema / dermatitis
+top_3:
+Eczema / dermatitis
+Urticaria / allergic reaction
+Folliculitis / acne-like
+uncertainty: medium
+reasoning: The image shows what appears to be a leg/knee area with diffuse mild erythema (reddish discoloration) and visible follicular stippling across a broad surface area. There is subtle swelling or induration apparent along the upper portion of the limb. The redness appears patchy and somewhat blotchy rather than sharply demarcated, with no visible scaling, pustules, or well-defined plaques. The distribution and texture are visually consistent with an inflammatory or reactive skin pattern. The follicular dots visible across the surface could suggest a follicular component as a secondary consideration.
+safety_note: This output is generated for educational and benchmarking purposes only and does not constitute a clinical diagnosis, medical opinion, or treatment recommendation — a licensed clinician should be consulted for any skin concern.
+",Eczema / dermatitis,Eczema / dermatitis | Urticaria / allergic reaction | Folliculitis / acne-like,no,yes,1,2,2,not strict JSON,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1730483479936515624_image_1,data/raw/scin/images/train_-1730483479936515624_image_1.jpg,Urticaria / allergic reaction,Urticaria / allergic reaction,Urticaria / allergic reaction | Folliculitis / acne-like | Eczema / dermatitis,42.35,"	top_1: Urticaria / allergic reaction
+top_3:
+Urticaria / allergic reaction
+Eczema / dermatitis
+Psoriasis / papulosquamous
+uncertainty: medium
+reasoning: The image shows multiple scattered pink-red patches and small raised-looking areas across the trunk/side, with some irregular clustered distribution. The pattern appears more compatible with a generalized reactive rash pattern than with follicle-centered bumps or a single lesion. Eczema/dermatitis remains a secondary possibility because of diffuse erythematous patches, but visible scaling, crusting, or sharply demarcated plaques are not prominent in this image.
+safety_note: This output is for educational benchmarking only and must not be used as a clinical decision or diagnosis.",Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Psoriasis / papulosquamous,yes,yes,1,2,2,not strict JSON,"{
+  ""top_1"": ""Urticaria / allergic reaction"",
+  ""top_3"": [
+    ""Urticaria / allergic reaction"",
+    ""Eczema / dermatitis"",
+    ""Folliculitis / acne-like""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows widespread, scattered erythematous macules and papules distributed across the lateral trunk and lower back, varying in size and appearing somewhat confluent in areas. The lesions appear raised and blanchable-looking with irregular borders and no visible scale. The broad distribution patter",Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Folliculitis / acne-like,yes,yes,1,2,0,not strict JSON,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-3106778686281302656_image_1,data/raw/scin/images/train_-3106778686281302656_image_1.jpg,Folliculitis / acne-like,Eczema / dermatitis,Eczema / dermatitis | Folliculitis / acne-like | Psoriasis / papulosquamous,51.97,"	top_1: Lesion — dermoscopic review recommended
+top_3:
+Lesion — dermoscopic review recommended
+Eczema / dermatitis
+Folliculitis / acne-like
+uncertainty: medium
+reasoning: The image shows several small, localized dark/red marks on the neck/upper chest area, including one more irregular crusted or excoriated-looking spot. The pattern is not strongly suggestive of urticaria, which usually appears as transient raised wheals, and it does not show the broader scaling plaques expected for psoriasis. Because the main visible finding is a focal irregular lesion-like mark rather than a diffuse rash pattern, the closest taxonomy match is Lesion — dermoscopic review recommended. This is a regular clinical photo, not dermoscopic or highly magnified, but image quality and lighting limit confidence.
+safety_note: This output is for educational prototype benchmarking only and must not be used as a clinical decision or diagnosis.",Lesion — dermoscopic review recommended,Lesion — dermoscopic review recommended | Eczema / dermatitis | Folliculitis / acne-like,no,yes,1,2,2,not strict JSON,"Educational/Benchmark Output — Not a clinical decision
+
+top_1: Lesion — dermoscopic review recommended
+top_3:
+Lesion — dermoscopic review recommended
+Folliculitis / acne-like
+Eczema / dermatitis
+uncertainty: medium
+reasoning: The image shows the upper chest/clavicular area with what appear to be a few small, discrete erythematous (reddened) punctate marks with some crusting at the largest site. The lesions are relatively small and scattered rather than forming a confluent rash, plaques, or wheals. The morphology does not strongly suggest a widespread inflammatory pattern like urticaria or psoriasis. The presence of a distinct crusted focal point alongside smaller satellite marks warrants closer evaluation that a standard clinical photo cannot reliably support.
+safety_note: This output is generated for educational benchmarking purposes only and does not constitute a clinical diagnosis, medical opinion, or treatment recommendation — a qualified healthcare provider should evaluate any skin concern in person.
+",Lesion — dermoscopic review recommended,Lesion — dermoscopic review recommended | Folliculitis / acne-like | Eczema / dermatitis,no,yes,1,2,2,not strict JSON,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-3247544067658330427_image_1,data/raw/scin/images/train_-3247544067658330427_image_1.jpg,Folliculitis / acne-like,Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Folliculitis / acne-like,42.23,"	top_1: Folliculitis / acne-like
+top_3:
+Folliculitis / acne-like
+Eczema / dermatitis
+Urticaria / allergic reaction
+uncertainty: medium
+reasoning: The image shows multiple small, scattered, mildly red papules on the lateral trunk/hip area. Several appear follicle-centered or acneiform, which maps most closely to the Folliculitis / acne-like category. There is no clear thick scale or sharply demarcated plaque pattern to strongly support psoriasis. The distribution is also less typical for broad wheals, so urticaria is lower-ranked. Mild background irritation or friction-related dermatitis remains a possible visual overlap.
+safety_note: This output is for an educational prototype benchmark only and should not be used as a clinical decision or diagnosis.",Folliculitis / acne-like,Folliculitis / acne-like | Eczema / dermatitis | Urticaria / allergic reaction,yes,yes,1,2,2,not strict JSON,"{
+  ""top_1"": ""Urticaria / allergic reaction"",
+  ""top_3"": [
+    ""Urticaria / allergic reaction"",
+    ""Folliculitis / acne-like"",
+    ""Eczema / dermatitis""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows scattered small raised papules and areas of diffuse erythema (background redness) across the upper back, with lesions that appear superficial and distributed somewhat broadly. The combination of background skin redness and small wheals or papules is visually consistent with an urticarial or reactive pattern. Some individual lesions have a follicular distribution which also places folliculitis in consideration. No obvious scaling, plaques, or crusting are apparent to suggest a papulosquamous process."",
+  ""safety_note"": ""This output is generated for educational and benchmarking purposes only and does not constitute a clinical diagnosis, medical advice, or a substitute for evaluation by a licensed healthcare professional.""
+}",Urticaria / allergic reaction,Urticaria / allergic reaction | Folliculitis / acne-like | Eczema / dermatitis,no,yes,2,2,2,,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1060130963443704102_image_1,data/raw/scin/images/train_-1060130963443704102_image_1.jpg,Psoriasis / papulosquamous,Eczema / dermatitis,Eczema / dermatitis | Psoriasis / papulosquamous | Folliculitis / acne-like,50.65,"	top_1: Eczema / dermatitis
+top_3:
+Eczema / dermatitis
+Urticaria / allergic reaction
+Folliculitis / acne-like
+uncertainty: medium
+reasoning: The image shows scattered small red papules and mild diffuse redness around the ankle/lower leg area. The pattern looks more like an inflammatory or irritant/contact-type eruption than a single focal lesion. There are no clearly visible plaques with thick scale, making psoriasis less fitting. Some papules appear near hair-bearing skin, so folliculitis/acne-like remains a secondary possibility, but the distribution near the sandal/ankle area makes dermatitis-type irritation more visually aligned.
+safety_note: This is an educational, non-diagnostic taxonomy mapping and should not be used as a clinical decision.",Eczema / dermatitis,Eczema / dermatitis | Urticaria / allergic reaction | Folliculitis / acne-like,no,no,1,2,2,not strict JSON,"{
+  ""top_1"": ""Urticaria / allergic reaction"",
+  ""top_3"": [
+    ""Urticaria / allergic reaction"",
+    ""Eczema / dermatitis"",
+    ""Folliculitis / acne-like""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows a lower leg and foot with scattered small erythematous (red) macules and papules distributed across the dorsum of the foot and lower leg. The lesions appear discrete, pinpoint-to-small in size, and relatively uniform in distribution without visible scaling, crusting, or vesiculation. The diffuse scattered pattern and erythematous quality are visually consistent with an urticarial or reactive process; however, the small size and distribution around hair follicles also raise consideration of a follicular or eczematous pattern. No notable plaques, silvery scale, or dermoscopic features are present."",
+  ""safety_note"": ""This output is generated for educational and benchmarking purposes only and does not constitute a clinical diagnosis, medical advice, or a substitute for evaluation by a qualified healthcare professional.""
+}",Urticaria / allergic reaction,Urticaria / allergic reaction | Eczema / dermatitis | Folliculitis / acne-like,no,no,2,2,2,,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,-1521661966793304054_image_1,data/raw/scin/images/train_-1521661966793304054_image_1.jpg,Psoriasis / papulosquamous,Psoriasis / papulosquamous,Psoriasis / papulosquamous | Folliculitis / acne-like | Eczema / dermatitis,83.38,"	top_1: Psoriasis / papulosquamous
+top_3:
+Psoriasis / papulosquamous
+Eczema / dermatitis
+Lesion — dermoscopic review recommended
+uncertainty: medium
+reasoning: The image shows multiple well-demarcated reddish plaques with visible surface scaling/crusting, including a larger confluent scaly plaque and several smaller plaque-like areas. This pattern maps most closely to the papulosquamous category in the fixed taxonomy. Eczema/dermatitis remains a secondary mapping because inflamed scaly patches can overlap visually. The image is a clinical photo rather than dermoscopic, so the dermoscopic-track warning is not needed.
+safety_note: This is an educational taxonomy mapping only and must not be used as a clinical decision or diagnosis.",Psoriasis / papulosquamous,Psoriasis / papulosquamous | Eczema / dermatitis | Lesion — dermoscopic review recommended,yes,yes,1,2,2,not strict JSON,"{
+  ""top_1"": ""Psoriasis / papulosquamous"",
+  ""top_3"": [
+    ""Psoriasis / papulosquamous"",
+    ""Eczema / dermatitis"",
+    ""Lesion — dermoscopic review recommended""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows multiple erythematous plaques with visible silvery-white surface scale, well-demarcated borders, and a distribution pattern consistent with papulosquamous morphology. Some lesions display a ring-like or annular configuration",Psoriasis / papulosquamous,Psoriasis / papulosquamous | Eczema / dermatitis | Lesion — dermoscopic review recommended,yes,yes,1,2,0,not strict JSON,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,2479491174478710673_image_1,data/raw/scin/images/train_2479491174478710673_image_1.jpg,Lesion — dermoscopic review recommended,Folliculitis / acne-like,Folliculitis / acne-like | Lesion — dermoscopic review recommended | Psoriasis / papulosquamous,83.36,"	top_1: Lesion — dermoscopic review recommended
+top_3:
+Lesion — dermoscopic review recommended
+Urticaria / allergic reaction
+Eczema / dermatitis
+uncertainty: medium
+reasoning: The image shows several small, discrete red-to-purple papules/macules on the side of the neck, including a more vivid vascular-looking spot and a faint purplish area. The pattern is not strongly suggestive of diffuse dermatitis, urticaria, folliculitis, or psoriasis. Because the visible findings are more focal lesion-like rather than a broad inflammatory rash pattern, the closest taxonomy match is Lesion — dermoscopic review recommended. This is a standard clinical-photo image, not dermoscopic, so mapping is based only on surface appearance.
+safety_note: This is for educational benchmark mapping only and is not a clinical decision or diagnosis.",Lesion — dermoscopic review recommended,Lesion — dermoscopic review recommended | Urticaria / allergic reaction | Eczema / dermatitis,yes,yes,1,2,2,not strict JSON,"{
+  ""top_1"": ""Lesion — dermoscopic review recommended"",
+  ""top_3"": [
+    ""Lesion — dermoscopic review recommended"",
+    ""Folliculitis / acne-like"",
+    ""unclear""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The image shows a neck/upper back region with several small, discrete red-to-dark punctate spots scattered across the skin, along with what appear to be two slightly larger, darker, raised or pigmented spots near the hairline. The smaller red dots are consistent with cherry-angioma-like or petechial appearances, while the darker spots near the hairline have a slightly raised or nodular quality that warrants closer examination. No scaling, weeping, or urticarial wheals are visible. The image is a standard clinical photo (not dermoscopic), but the pigmented/raised spots near the hairline fall most appropriately into the 'dermoscopic review recommended' category given their morphology."",
+  ""safety_note"": ""This output is generated for educational and prototype benchmarking purposes only and does not constitute a clinical diagnosis, medical advice, or a substitute for evaluation by a qualified healthcare professional.""
+}
+",Lesion — dermoscopic review recommended,Lesion — dermoscopic review recommended | Folliculitis / acne-like,yes,yes,2,2,2,,
+clinical,clinical_skin_condition_v1,clinical_v2_5_class,2951271977602208187_image_1,data/raw/scin/images/train_2951271977602208187_image_1.jpg,Lesion — dermoscopic review recommended,Psoriasis / papulosquamous,Psoriasis / papulosquamous | Eczema / dermatitis | Lesion — dermoscopic review recommended,66.87,"	top_1: Psoriasis / papulosquamous
+top_3:
+Psoriasis / papulosquamous
+Eczema / dermatitis
+Lesion — dermoscopic review recommended
+uncertainty: medium
+reasoning: The image shows a localized, well-demarcated reddish plaque with visible surface scaling/flaking. The sharper border and scale make the papulosquamous category the closest fit in this limited taxonomy. Eczema/dermatitis remains plausible because erythema and scale can overlap visually. This appears to be a standard close-up clinical photo rather than a dermoscopic image.
+safety_note: This is an educational taxonomy mapping only and should not be used as a clinical decision or diagnosis.",Psoriasis / papulosquamous,Psoriasis / papulosquamous | Eczema / dermatitis | Lesion — dermoscopic review recommended,no,yes,1,2,2,not strict JSON,"{
+  ""top_1"": ""Psoriasis / papulosquamous"",
+  ""top_3"": [
+    ""Psoriasis / papulosquamous"",
+    ""Eczema / dermatitis"",
+    ""Lesion — dermoscopic review recommended""
+  ],
+  ""uncertainty"": ""medium"",
+  ""reasoning"": ""The lesion presents as a roughly circular, erythematous plaque with visible surface scaling/silvery-white flaking concentrated centrally, set against a well-",Psoriasis / papulosquamous,Psoriasis / papulosquamous | Eczema / dermatitis | Lesion — dermoscopic review recommended,no,yes,1,2,0,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057936,data/raw/bcn20000/images/ISIC_0057936.jpg,Melanoma,Melanoma,Melanoma | Other non-cancer / indeterminate lesion | Benign nevus | Non-melanoma skin cancer,75.41,"top_1: Melanoma
+top_3:
+Melanoma
+Benign nevus
+Non-melanoma skin cancer
+uncertainty: medium
+reasoning: Dermoscopic-style image with an asymmetric pigmented lesion, multiple brown tones, irregular blotchy areas, uneven borders, and focal darker structureless regions. These visual features map most closely to the melanoma category in the fixed taxonomy, but this is only a benchmark-style image classification, not clinical certainty.
+safety_note: This output is for educational prototype benchmarking only and must not be used as a clinical decision or diagnosis.
+",Melanoma,Melanoma | Benign nevus,yes,yes,1,2,2,not strict JSON,"Educational Dermoscopic Classification — Non-Diagnostic
+
+top_1: Melanoma
+top_3: 1. Melanoma · 2. Non-melanoma skin cancer · 3. Other non-cancer / indeterminate lesion
+uncertainty: Medium
+
+reasoning: The lesion displays several visually notable features under dermoscopy: pronounced color heterogeneity spanning light tan, dark brown, and red-pink tones; an irregular, asymmetric border pattern; a centrally distributed dotted/granular texture that may correspond to a dotted or irregular vascular or pigment network; and focal areas of darker, denser pigmentation in the upper-right quadrant. Scattered brown structureless zones are also visible toward the periphery. These combined visual characteristics place a melanocytic origin high in the differential for educational classification purposes, with the irregular multicolor presentation weighted toward the top taxonomy label.
+
+safety_note: This output is generated for educational and benchmarking purposes only and must not be used as a clinical diagnosis, substitute for dermatologist evaluation, or basis for any medical decision.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,yes,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057257,data/raw/bcn20000/images/ISIC_0057257.jpg,Melanoma,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma | Non-melanoma skin cancer | Benign nevus,98.54,"top_1: Other non-cancer / indeterminate lesion
+top_3:
+Other non-cancer / indeterminate lesion
+Non-melanoma skin cancer
+Melanoma
+uncertainty: high
+reasoning: The image appears dermoscopic or magnified and shows a predominantly pink-red area with surface scale/crust-like white-yellow material, limited pigment network visibility, and some small darker dotted/grayish areas. The visual pattern does not map cleanly to a benign nevus pattern, but the heavy scale/inflammation and low structural clarity make classification uncertain. Because non-melanoma skin cancer and melanoma cannot be confidently excluded from this image alone, they remain lower-ranked cautious alternatives.
+safety_note: This is for educational benchmarking only and must not be used as a clinical decision or diagnosis.
+",Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma,no,yes,1,2,2,not strict JSON,"Educational Dermoscopic Image Classification — Non-Diagnostic
+
+top_1: Non-melanoma skin cancer
+top_3: 1. Non-melanoma skin cancer 2. Melanoma 3. Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: The image displays a predominantly pink/erythematous background with central vascular irregularity and what appears to be dotted or glomerular vessel patterns in the central zone. White structureless areas and surface scaling/crusting are visible, along with some brown pigmentation at the periphery. The vascular-dominant presentation with scale and the relative absence of classic pigment network could be consistent with patterns seen in squamous cell carcinoma or basal cell carcinoma; however, atypical vascular structures and some peripheral pigmentation keep melanoma in the differential. The overall structure lacks a well-defined pigment network or classic nevus features, making a benign nevus less likely as the top mapping.
+safety_note: This output is strictly for educational and benchmarking purposes and must not be used as a clinical diagnosis or to guide any medical decision — evaluation by a qualified dermatologist is required.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,yes,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057864,data/raw/bcn20000/images/ISIC_0057864.jpg,Melanoma,Benign nevus,Benign nevus | Non-melanoma skin cancer | Melanoma | Other non-cancer / indeterminate lesion,52.06,"	top_1: Melanoma
+	top_3:
+	Melanoma
+	Benign nevus
+	Other non-cancer / indeterminate lesion
+	uncertainty: medium
+	reasoning: Dermoscopic/magnified image. The lesion appears small but shows asymmetric pigmentation, uneven brown-to-dark-brown structure, and somewhat irregular borders compared with the surrounding skin. These visual features map most closely to the melanoma category in this fixed benchmark taxonomy, though benign nevus or indeterminate lesion remain plausible from image appearance alone.
+	safety_note: This is an educational taxonomy mapping only and must not be used as a clinical decision or diagnosis.
+",Melanoma,Melanoma | Benign nevus | Other non-cancer / indeterminate lesion,yes,yes,1,2,2,not strict JSON,"Educational Dermoscopic Taxonomy Output
+
+top_1: Benign nevus
+top_3: 1. Benign nevus 2. Melanoma 3. Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: The lesion is small and centrally located against a background of fair skin with a milia-like granular texture. The central area shows a darkly pigmented cluster with what appears to be a clod/globule pattern and possible peripheral reticular or structureless zones. The lesion appears relatively small with somewhat regular peripheral fading, which can be consistent with a benign acquired nevus; however, the focal dark central concentration and irregular pigmentation warrant closer attention, as overlapping features prevent confident exclusion of an early atypical or melanocytic lesion. No clearly visible regression structures, blue-white veil, or atypical vascular patterns are discernible at this resolution.
+safety_note: This output is generated for educational and benchmark purposes only and must not be used as a clinical diagnosis or to guide any medical decision — please consult a qualified dermatologist for evaluation of any skin lesion.
+",Benign nevus,Benign nevus | Melanoma | Other non-cancer / indeterminate lesion,no,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0061284,data/raw/bcn20000/images/ISIC_0061284.jpg,Non-melanoma skin cancer,Melanoma,Melanoma | Other non-cancer / indeterminate lesion | Benign nevus | Non-melanoma skin cancer,72.41,"top_1: Non-melanoma skin cancer
+top_3:
+Non-melanoma skin cancer
+Melanoma
+Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: Dermoscopic/magnified image shows an asymmetric ulcerated or crusted lesion with irregular reddish-brown areas, focal dark pigmentation, surface disruption, and surrounding pink erythema. These visual features map most closely to the non-melanoma skin cancer category in this limited taxonomy, while melanoma remains a relevant ranked alternative because of asymmetry and irregular pigmentation. Benign nevus is less favored due to ulceration/crusting and structural irregularity.
+safety_note: This is an educational taxonomy mapping only and not a clinical decision or diagnosis.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,no,no,1,2,2,not strict JSON,"Educational Dermoscopic Image Analysis — Non-Diagnostic
+
+top_1: Melanoma
+top_3:
+Melanoma
+Non-melanoma skin cancer
+Other non-cancer / indeterminate lesion
+uncertainty: Medium
+reasoning: The lesion displays several visually notable features under dermoscopic magnification: irregular pigment distribution with dark brown and red-black hues, an asymmetric morphology, apparent surface disruption or crusting/scaling in the central zone, and a surrounding erythematous (pinkish) halo. The color variegation — ranging from light tan to deep red-brown to near-black foci — and the irregular border architecture are visual patterns that dermoscopy educators commonly associate with higher-concern lesion categories. The presence of crusting may also partially obscure the underlying pigment network, contributing to uncertainty. The circular vignetting and magnification level are consistent with standard dermoscopic capture.
+safety_note: This output is generated for educational and prototype benchmarking purposes only and must not be used as a clinical diagnosis, triage tool, or substitute for evaluation by a qualified dermatologist or medical professional.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,no,no,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0069513,data/raw/bcn20000/images/ISIC_0069513.jpg,Non-melanoma skin cancer,Non-melanoma skin cancer,Non-melanoma skin cancer | Other non-cancer / indeterminate lesion | Melanoma | Benign nevus,87.82,"top_1: Melanoma
+top_3:
+Melanoma
+Non-melanoma skin cancer
+Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: Dermoscopic/magnified image with an asymmetric pigmented area, irregular brown-to-dark blotchy pigmentation, uneven distribution of dots/globules, and poorly organized structure. These visual features map most closely to the melanoma category within the fixed taxonomy, but overlap with other pigmented lesions remains possible from image review alone.
+safety_note: This is an educational, non-diagnostic taxonomy mapping only and must not be used as a clinical decision.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,no,no,1,2,2,not strict JSON,"Educational Dermoscopy Classification — Non-Diagnostic
+
+top_1: Melanoma
+top_3: 1. Melanoma · 2. Other non-cancer / indeterminate lesion · 3. Benign nevus
+uncertainty: medium
+reasoning: The lesion displays multiple colors (dark brown, black, reddish-pink, and light tan), an irregular and asymmetric pigment distribution, and what appear to be clustered dark dots/globules in a non-uniform pattern. The background shows a diffuse, poorly demarcated border with pigment fading into surrounding skin. These visual features — particularly the color variegation and irregular structuring — pattern-match most closely to the melanoma category in this taxonomy. However, a regressing or irritated dysplastic nevus could present with overlapping features, which introduces ranking uncertainty.
+safety_note: This output is generated for educational and benchmarking purposes only and must not be used as a clinical diagnosis, screening result, or substitute for evaluation by a qualified dermatologist.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion | Benign nevus,no,no,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057899,data/raw/bcn20000/images/ISIC_0057899.jpg,Non-melanoma skin cancer,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma | Non-melanoma skin cancer | Benign nevus,95.64,"	top_1: Other non-cancer / indeterminate lesion
+	top_3:
+	Other non-cancer / indeterminate lesion
+	Non-melanoma skin cancer
+	Benign nevus
+	uncertainty: medium
+	reasoning: The image appears dermoscopic or highly magnified, matching the dermoscopic track. Visually, it shows a broad pink-orange scaly/keratinized area with superficial white scale and limited obvious pigment network. There are no strong dark asymmetric pigment structures visible here, which makes melanoma less visually supported from this image alone. The closest mapping is other non-cancer / indeterminate lesion, though a keratinizing or inflammatory-looking non-melanoma process cannot be excluded visually in this taxonomy.
+	safety_note: This is an educational taxonomy mapping only and must not be used as a clinical decision or diagnosis.
+",Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma | Benign nevus,no,no,1,2,2,not strict JSON,"Educational Dermoscopic Classification (Non-Diagnostic)
+
+top_1: Other non-cancer / indeterminate lesion
+top_3:
+Other non-cancer / indeterminate lesion
+Non-melanoma skin cancer
+Benign nevus
+uncertainty: high
+reasoning: The image shows a circular dermoscopic field with a predominantly pink-red background coloration and diffuse whitish surface scaling or keratinization overlying the central zone. There is an area of increased erythema centrally with surrounding lighter, more yellowish-tan periphery. White structureless zones and possible rosette-like or crystalline structures are present. No clearly defined pigment network, brown dots/globules, or streaks are visible, which limits confident pigmented lesion classification. The overall vascular and scaling pattern could be consistent with a superficial keratinocytic process or inflammatory condition, but the absence of classic melanocytic or strongly suspicious features makes this indeterminate.
+safety_note: This output is generated for educational and benchmarking purposes only and must not be used as a clinical diagnosis, screening result, or substitute for evaluation by a qualified dermatologist.
+",Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma | Benign nevus,no,no,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057911,data/raw/bcn20000/images/ISIC_0057911.jpg,Benign nevus,Non-melanoma skin cancer,Non-melanoma skin cancer | Benign nevus | Melanoma | Other non-cancer / indeterminate lesion,98.35,"top_1: Benign nevus
+top_3:
+Benign nevus
+Other non-cancer / indeterminate lesion
+Melanoma
+uncertainty: medium
+reasoning: The image appears dermoscopic or highly magnified, so it fits the dermoscopic track. Visually, there is a small pigmented lesion with mostly light-to-medium brown coloration, limited asymmetry, and no obvious broad multicolor pattern. The darker central/upper area and slightly uneven pigmentation keep uncertainty at medium rather than low.
+safety_note: This is an educational taxonomy mapping only and must not be used as a clinical decision or diagnosis.
+",Benign nevus,Benign nevus | Other non-cancer / indeterminate lesion | Melanoma,yes,yes,1,2,2,not strict JSON,"Educational Dermoscopic Image Classification — Non-Diagnostic
+
+top_1: Benign nevus
+top_3:
+Benign nevus
+Other non-cancer / indeterminate lesion
+Melanoma
+uncertainty: medium
+reasoning: The lesion is small and roughly oval with moderately well-defined borders. Coloration appears in the light-to-medium brown range with some central darker pigmentation and what appears to be a subtle whitish veil or surface texture centrally. The overall pigment network, where visible, does not show overtly irregular radial streaks or multicomponent patterns strongly associated with higher-concern lesions, though the central darker focus and texture variation introduce some ambiguity. The surrounding skin shows no satellite lesions. Image quality and lesion size limit confident pattern characterization.
+safety_note: This output is generated for educational and benchmark purposes only and must not be used as a clinical diagnosis, screening result, or basis for any medical decision — evaluation by a qualified dermatologist is required for any actual lesion assessment.
+",Benign nevus,Benign nevus | Other non-cancer / indeterminate lesion | Melanoma,yes,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0055612,data/raw/bcn20000/images/ISIC_0055612.jpg,Benign nevus,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Melanoma | Benign nevus | Non-melanoma skin cancer,68.15,"top_1: Melanoma
+top_3:
+Melanoma
+Benign nevus
+Non-melanoma skin cancer
+uncertainty: medium
+reasoning: Dermoscopic/magnified image. The lesion shows asymmetric overall shape, uneven brown-to-dark pigmentation, irregular peripheral structure, and focal darker areas without a clearly uniform benign pattern. These visual features map most closely to the melanoma category in the fixed taxonomy, but this is only a visual benchmark classification.
+safety_note: This is educational prototype output only and must not be used as a clinical decision or diagnosis.
+",Melanoma,Melanoma | Benign nevus,no,yes,1,2,2,not strict JSON,"Educational Dermoscopic Image Classification (Non-diagnostic, benchmark/research use only)
+
+top_1: Melanoma
+top_3:
+Melanoma
+Benign nevus
+Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: The lesion displays several visually notable features under dermoscopic magnification: irregular pigment network with variable mesh density, multiple shades of brown and dark coloration suggesting color heterogeneity, asymmetric overall shape with indistinct borders in some areas, and what appears to be focal areas of darker pigmentation that disrupt an otherwise reticular pattern. The cobblestone-like texture and uneven distribution of pigmentation contribute to the top-1 mapping, though overlap with a dysplastic or atypical nevus pattern cannot be visually excluded, hence medium uncertainty.
+safety_note: This output is generated for educational and benchmark purposes only and must not be used as a clinical diagnosis, screening result, or substitute for evaluation by a qualified dermatologist or dermatopathologist.
+",Melanoma,Melanoma | Benign nevus | Other non-cancer / indeterminate lesion,no,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0061167,data/raw/bcn20000/images/ISIC_0061167.jpg,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Non-melanoma skin cancer | Melanoma | Benign nevus,95.6,"top_1: Melanoma
+top_3:
+Melanoma
+Non-melanoma skin cancer
+Other non-cancer / indeterminate lesion
+uncertainty: medium
+reasoning: Dermoscopic/magnified image. The lesion shows asymmetric structure, multiple brown-to-dark pigmentation tones, irregular borders, central darker crusted or structureless area, and uneven peripheral pigmentation. These visual features map most closely to the melanoma category in this fixed taxonomy, but image-based taxonomy mapping is not clinical certainty.
+safety_note: This is for educational prototype benchmarking only and must not be used as a clinical decision or diagnosis.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,no,yes,1,2,2,not strict JSON,"Educational Dermoscopic Classification — Non-Diagnostic
+
+top_1: Melanoma
+top_3:
+Melanoma
+Non-melanoma skin cancer
+Other non-cancer / indeterminate lesion
+uncertainty: Medium
+reasoning: The lesion displays several visually complex features under dermoscopic magnification: marked color heterogeneity spanning dark brown, red-orange, black, and greenish-grey tones; an asymmetric, irregular central structure with what appears to be a raised or nodular component; ill-defined and irregular borders with a translucent peripheral halo; and scattered dark globular foci at the periphery. The combination of multicolor presentation, structural irregularity, and border asymmetry places this closest to the melanoma category in the given taxonomy, though overlapping features with non-melanoma skin cancer (e.g., possible vascular or keratinizing elements) introduce meaningful uncertainty.
+safety_note: This output is generated for educational and benchmarking purposes only and must not be used as a clinical diagnosis, screening result, or substitute for evaluation by a qualified dermatologist or dermatopathologist.
+",Melanoma,Melanoma | Other non-cancer / indeterminate lesion,no,yes,1,2,2,not strict JSON,
+dermoscopic,dermoscopic_cancer_risk_bcn_mnh_v1,dermoscopic_bcn_mnh_4_class,ISIC_0057226,data/raw/bcn20000/images/ISIC_0057226.jpg,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Non-melanoma skin cancer | Benign nevus | Melanoma,56.79,"top_1: Other non-cancer / indeterminate lesion
+top_3:
+Other non-cancer / indeterminate lesion
+Benign nevus
+Non-melanoma skin cancer
+uncertainty: high
+reasoning: The image appears dermoscopic or magnified. Visual pattern is low-contrast and mostly pink/tan with faint diffuse erythema, subtle yellow-brown areas, and no clearly dominant dark pigment network or asymmetric multicolor structure visible in this crop. Because the lesion-specific borders and architecture are not clearly defined, mapping is cautious.
+safety_note: This is for educational prototype benchmarking only and is not a clinical decision or diagnosis.
+",Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Benign nevus | Melanoma,yes,yes,1,2,2,not strict JSON,"Educational Dermoscopic Image Classification — Non-Diagnostic
+
+top_1: Other non-cancer / indeterminate lesion
+top_3:
+Other non-cancer / indeterminate lesion
+Benign nevus
+Non-melanoma skin cancer
+uncertainty: High
+reasoning: The image shows a relatively featureless field of light skin tones with scattered fine reddish-pink dots and faint telangiectatic-like vessels, a subtle hypopigmented/whitish zone in the lower-center, and mild background erythema. There is no clearly demarcated lesion with a discrete border, no prominent pigment network, no atypical globules, and no classic blue-black or dark-brown pigmentation suggestive of melanocytic activity. The diffuse, poorly demarcated nature of any color variation makes confident taxonomy placement difficult. The scale ruler visible at the lower left confirms this is a dermoscopic capture.
+safety_note: This output is generated for educational and benchmarking purposes only and must not be used as a clinical diagnosis, screening result, or basis for any medical decision — a qualified dermatologist should evaluate any skin concern in person.
+",Other non-cancer / indeterminate lesion,Other non-cancer / indeterminate lesion | Benign nevus | Melanoma,yes,yes,1,2,2,not strict JSON,

@@ -9,21 +9,29 @@
 
 ## 1. Executive Recommendation
 
-### Recommendation: Hybrid architecture — keep Streamlit, add Next.js separately
+### Recommendation: Stay on Streamlit — use v0 as visual/UX reference only
 
-Do not replace Streamlit. It is working, safe, and already demonstrates the two-model inference correctly. The risk of breaking the demo is not justified in a single sprint.
+**Decision (updated 2026-05-22):** Do not port Next.js. Do not build FastAPI. The final capstone demo and deployment will remain Streamlit-only.
 
-Instead, create a standalone `frontend/` directory copied from the v0 prototype and build a thin Python API wrapper around the existing inference. The two apps coexist on the branch. Streamlit remains the authoritative demo until the Next.js flow is end-to-end verified.
+The previous plan recommended a hybrid Next.js + FastAPI architecture. That path is intentionally not selected. The integration risk of wiring a new JavaScript frontend to a new Python API in a single sprint outweighs the visual improvement. Streamlit is working, the two-model inference is production-quality, and the demo deadline does not leave room for cross-stack debugging.
+
+**What changes instead:**
+
+The v0 prototype is used exclusively as a visual and UX reference. Its component layout, step flow, card design, loading states, and result screen structure are translated into Streamlit using custom CSS, `st.container`, `st.columns`, and `st.markdown`. No JavaScript is written. No API layer is introduced.
+
+The v0 symptom questionnaire steps are retained — not as mock LLM input, but as structured learner context that feeds a prompt export. The final result screen shows both the real model prediction and a generated ChatGPT/Claude prompt alongside it.
+
+Model artifacts will be hosted on Hugging Face (ticket #180) so the demo loads without local checkpoints.
 
 **Safest path for this sprint (D7):**
 
-1. Port the v0 UI shell into `frontend/` — structure and component layout, no new logic.
-2. Build a minimal FastAPI wrapper exposing the existing inference pipeline.
-3. Wire the frontend to the API so a real image produces a real prediction.
-4. Update the UI copy to remove unsafe practitioner/diagnostic wording.
-5. Verify dual upload (clinical + dermoscopic) matches the existing Streamlit flow.
+1. Redesign the Streamlit UI taking v0 layout and step flow as visual reference.
+2. Add a learner context questionnaire (duration, location, changes, etc.) as structured input for prompt export.
+3. Add v0-style loading states and a redesigned final result screen.
+4. Add dual-upload mode selector and lesion-class learner rating step.
+5. Host model artifacts on Hugging Face so the demo is portable.
 
-Do not remove Streamlit. Do not merge to main until the new flow is fully verified.
+Do not modify `app.py` inference logic. Do not modify `src/inference/`. Do not merge to main until all D7 tickets are verified.
 
 ---
 
@@ -246,121 +254,149 @@ Requires: Node.js 18+, npm/yarn. No Python. Can run standalone with `npm run dev
 
 ## 5. Target Architecture
 
-### This sprint (D7)
+### This sprint (D7) — Streamlit-only
 
 ```
 revela/
-├── app.py                          ← UNTOUCHED — Streamlit fallback
-├── src/inference/                  ← UNTOUCHED — Python inference
-├── frontend/                       ← NEW — Next.js app copied from v0
-│   ├── app/
-│   ├── components/
-│   ├── lib/
-│   └── package.json
-├── api/                            ← NEW — Python API wrapper
-│   └── main.py                     ← FastAPI app exposing /analyze endpoint
-└── docs/frontend/                  ← NEW — this document
+├── app.py                          ← PRIMARY DEMO — redesigned UI, inference untouched
+├── src/inference/                  ← UNTOUCHED — Python inference pipeline
+├── src/model/                      ← UNTOUCHED — model architecture and training
+├── src/data/                       ← UNTOUCHED — data loading
+├── models/                         ← LOCAL FALLBACK — checkpoints (also hosted on HF, ticket #180)
+└── docs/frontend/                  ← this document
 ```
+
+No `frontend/` directory. No `api/` directory. No JavaScript. No Node.js.
 
 ### Data flow
 
 ```
-[Browser — Next.js frontend]
+[Streamlit browser session]
         |
-        | POST /analyze  { model_id, image: base64 }
+        | Step 1: mode selector (clinical / dermoscopic)
+        | Step 2: image upload
+        | Step 3: learner context questionnaire (duration, location, changes, ...)
         v
-[Python API — FastAPI api/main.py]
+[app.py — Streamlit UI layer]
         |
         | run_inference(model_id, image_input, top_k)
         v
-[Existing inference — src/inference/adapter.py]
+[src/inference/adapter.py — unchanged]
         |
         | canonical response dict
         v
-[Python API]
+[app.py — result screen]
         |
-        | JSON response (canonical schema)
-        v
-[Browser — analysis-display.tsx]
+        ├── Model prediction panel (top-k, uncertainty, safety note)
+        └── Prompt export panel (ChatGPT/Claude prompt built from questionnaire + model output)
 ```
+
+### What v0 contributes (reference only)
+
+| v0 element | How it maps to Streamlit |
+|------------|--------------------------|
+| Step indicator (3 steps) | `st.progress` + custom CSS step bar |
+| Image uploader card | `st.file_uploader` inside `st.container` with custom CSS card styling |
+| Symptom questionnaire (5 questions) | `st.radio` / `st.selectbox` form fields in a styled container |
+| Loading animation | `st.spinner` with custom message and progress feedback |
+| Analysis display — simple view | `st.columns` layout: top prediction card + ranked list |
+| Analysis display — detailed view | `st.expander` sections for model limitations, uncertainty, safety note |
+| Prompt export panel | New Streamlit section: copyable text area with generated ChatGPT/Claude prompt |
 
 ### Key constraints
 
-- `app.py` is not modified.
+- `app.py` inference logic is not modified. Only UI layout and flow are changed.
 - `src/inference/` is not modified.
 - `src/model/`, `src/data/`, model registry, taxonomies, training scripts are not modified.
-- The API is a thin wrapper only — no logic beyond calling `run_inference()` and serializing the response.
-- The frontend receives the canonical response schema and maps it to UI components.
+- No new Python packages beyond what is already in `requirements.txt` unless strictly necessary.
+- No Next.js. No FastAPI. No cross-stack integration.
 
 ---
 
 ## 6. Implementation Sequence
 
-### #182 — Port v0 UI shell
+### #182 — Redesign Streamlit UI using v0 prototype as visual reference
 
-**Goal:** Copy v0 into `frontend/`, install dependencies, verify dev server starts.
+**Goal:** Replace the current tab-based Streamlit layout with a v0-inspired step flow using custom CSS, cards, and containers. Inference is untouched.
 
 Tasks:
-- Copy v0 repo contents into `frontend/`
-- Remove or stub `lib/reasoning-engine.ts`, `lib/pipeline/`, `lib/fairness/` (replace with API call stubs)
-- Update all unsafe copy (see Section 7)
-- Remove Vercel Analytics dependency (not needed for local dev)
-- Verify `npm run dev` starts without errors
-- Confirm 3-step flow renders (Upload → Questions or skip → Results placeholder)
+- Study v0 `app/page.tsx` step flow (Upload → Questions → Insights) and `step-indicator.tsx` for layout reference
+- Replace tab navigation with a linear step flow in `app.py` using `st.session_state` step tracking
+- Add custom CSS (`st.markdown` + `<style>`) to produce card containers, step indicators, and section headers matching v0 visual style
+- Redesign the image upload step: mode selector card (clinical / dermoscopic) + upload area
+- Redesign result sections: top prediction card, ranked list, uncertainty indicator, safety note
+- Apply safe copy (Section 7) throughout
 
-**Out of scope:** Real inference, API, dual upload.
+**Out of scope:** Questionnaire, prompt export, dual upload logic, inference changes.
 
 ---
 
-### #183 — Build Python inference API
+### #183 — Add learner context questionnaire for Streamlit prompt export
 
-**Goal:** FastAPI wrapper exposing `POST /analyze` that calls `run_inference()`.
+**Goal:** Add a v0-inspired symptom/context questionnaire step after image upload. Questionnaire answers feed a generated ChatGPT/Claude prompt displayed alongside the model result.
 
 Tasks:
-- Create `api/main.py` with FastAPI
-- Accept `{ model_id: str, image: str (base64), top_k: int }` 
-- Decode base64 → PIL.Image, call `run_inference()`
-- Return canonical response JSON as-is
-- Add CORS headers (allow localhost:3000 for dev)
-- Add `GET /health` endpoint
-- Add `api/requirements.txt` (fastapi, uvicorn, pillow)
-- Verify with `curl` or Postman against real model
+- Add step 2 questionnaire using `st.radio` / `st.selectbox` fields in a styled container:
+  - Duration: how long the learner has noticed this
+  - Location: body area
+  - Changes: whether it has changed recently
+  - Symptoms: itching, pain (optional)
+- Store answers in `st.session_state`
+- Build a prompt export function: takes `questionnaire_answers + model_output` → formats a ChatGPT/Claude prompt string
+- Display generated prompt in a copyable `st.text_area` on the result screen alongside model output
+- Prompt framing must use safe copy: educational review language, no diagnostic claims
 
-**Out of scope:** Auth, rate limiting, image validation beyond what inference already does.
+**Out of scope:** Sending the prompt to any API. The prompt is a static export only.
 
 ---
 
-### #184 — Connect frontend to inference outputs
+### #184 — Add v0-style Streamlit loading states and final result screen
 
-**Goal:** Replace mock analysis calls in Next.js with real API calls; render canonical schema.
+**Goal:** Replace the current spinner and flat result display with a v0-inspired animated loading state and a structured result screen showing model output and prompt export side by side.
 
 Tasks:
-- Remove `lib/reasoning-engine.ts` usage from `app/page.tsx`
-- Add `lib/api-client.ts` — `analyzeImage(modelId, imageFile)` → fetch `POST /analyze`
-- Update `analysis-display.tsx` to consume canonical schema fields:
-  - `predictions` (ranked list) instead of `possibleExplanations`
-  - `uncertainty.bucket` instead of confidence level string
-  - `low_certainty` + `low_certainty_message` for warning panel
-  - `safety_note`, `model_limitations`, `recommended_next_step` for disclaimer sections
-- Remove all mock data generation from component state
-- Verify end-to-end: upload real image → API call → real prediction rendered
+- Add multi-step loading feedback: `st.spinner` with stage messages (e.g., *"Preparing image…"*, *"Running model…"*, *"Building learning summary…"*)
+- Redesign the final result screen using `st.columns`:
+  - Left panel: model prediction (top prediction card, ranked list, uncertainty, low-certainty warning if triggered, safety note)
+  - Right panel: prompt export (generated ChatGPT/Claude prompt in `st.text_area` with copy button)
+- Add expandable sections for model limitations and recommended next step (`st.expander`)
+- Ensure low-certainty warning panel renders visually distinct (coloured container)
 
-**Out of scope:** Fairness display (mock metrics stay mocked or section is hidden).
+**Out of scope:** Sending the prompt to an LLM API. Model inference changes.
 
 ---
 
-### #185 — Update flow with dual upload and lesion-rating step
+### #185 — Add dual-upload Streamlit flow and lesion-class learner rating
 
-**Goal:** Add dermoscopic mode selection to the frontend, matching the two-model Streamlit flow.
+**Goal:** Add dermoscopic mode to the redesigned flow; add a learner self-rating step where the learner guesses the lesion class before seeing the model result.
 
 Tasks:
-- Add mode selector (Clinical photo / Dermoscopic image) before or during image upload step
-- Map selected mode to `model_id`:
+- Add mode selector as step 0 or part of step 1: *Clinical photo* / *Dermoscopic image*
+- Map selected mode to `model_id` and `top_k`:
   - Clinical → `clinical_skin_condition_v1`, top_k=3
   - Dermoscopic → `dermoscopic_cancer_risk_bcn_mnh_v1`, top_k=4
-- Add lesion-rating or dermoscopic-specific result framing (matching Streamlit's existing output)
-- Ensure the lesion-routing output (`Lesion — dermoscopic review recommended`) in clinical model triggers appropriate UI message
-- Decide on symptom questionnaire: include as optional, or remove for this sprint
+- Add learner self-rating step: show taxonomy labels for selected mode; learner selects their guess before inference runs
+- After inference: show learner guess vs. model top prediction in a comparison card
+- Ensure `Lesion — dermoscopic review recommended` output from clinical model triggers a dermoscopic referral message in the UI
+- Ensure dermoscopic `Other non-cancer / indeterminate lesion` renders the safe-framing warning (not interpreted as "safe")
+
+**Out of scope:** Inference logic changes. Fairness display (v0 mock metrics are not ported).
+
+---
+
+### #180 — Host Revela model artifacts on Hugging Face
+
+**Goal:** Upload trained model checkpoints and `class_to_idx.json` files to Hugging Face Hub so the demo runs without local model files.
+
+Tasks:
+- Create a Hugging Face repository for Revela model artifacts
+- Upload `clinical_v2_effnet_b0/best_model.pth` and `class_to_idx.json`
+- Upload `bcn_mnh_cancer_risk_effnet_b0/best_model.pth` and `class_to_idx.json`
+- Update `model_loader.py` to support downloading from HF Hub when local checkpoint is absent (local file takes priority; HF is fallback)
+- Verify that the demo loads and runs inference using HF-hosted artifacts on a machine without local checkpoints
+- Document HF repo path in `docs/model/`
+
+**Out of scope:** Inference logic changes. Registry or taxonomy changes.
 
 ---
 
@@ -406,43 +442,43 @@ This matches the canonical `safety_note` field in the inference response.
 
 ## 8. Risk Analysis
 
-### Risk 1 — Breaking the Streamlit demo
+### Risk 1 — Breaking the Streamlit inference while redesigning the UI
 
-**Likelihood:** Low (if constraint is followed)  
-**Impact:** High (demo is the primary deliverable)  
-**Mitigation:** `app.py` is explicitly out of scope. All D7 work is in `frontend/` and `api/`. No changes to `src/inference/`.
-
----
-
-### Risk 2 — Over-scoping in 3 hours
-
-**Likelihood:** Medium  
-**Impact:** Medium (incomplete feature is worse than no feature)  
-**Mitigation:** Tickets are sequenced so that each one is independently deliverable. #182 alone (UI shell, no API) is a valid stopping point. #183 alone (API, no frontend) is testable with curl. Do not start #185 until #184 is verified end-to-end.
+**Likelihood:** Low-Medium (UI refactor touches `app.py` layout code which lives alongside inference calls)  
+**Impact:** High (inference breakage destroys the demo)  
+**Mitigation:** Separate UI layout changes from inference call sites. Do not modify any `run_inference()` call, any session state key that carries image or model_id into inference, or any result-rendering logic that reads the canonical response. Test inference end-to-end after each UI step change before committing.
 
 ---
 
-### Risk 3 — Unsafe v0 wording copied into product
+### Risk 2 — Over-scoping across four tickets in limited time
 
-**Likelihood:** High (v0 copy permeates every component)  
+**Likelihood:** Medium (four tickets is ambitious; each adds UI complexity)  
+**Impact:** Medium (a half-finished result screen is worse than the current one)  
+**Mitigation:** Tickets are sequenced so each is independently shippable. #182 alone (redesigned layout, no questionnaire) is a valid stopping point. #183 alone (questionnaire + prompt export) can be merged without #184 loading states. Do not start #185 until #184 is confirmed stable. Stop and commit at each ticket boundary.
+
+---
+
+### Risk 3 — Unsafe v0 wording copied into Streamlit
+
+**Likelihood:** High (v0 copy is used as visual reference; clinical/practitioner language is pervasive)  
 **Impact:** High (regulatory and reputational risk)  
-**Mitigation:** All copy changes are required before any user-facing demo. Section 7 provides an explicit replacement table. No PR to main until copy audit is complete.
+**Mitigation:** Section 7 provides an explicit replacement table. Any v0 copy carried into `app.py` must be checked against that table before commit. No PR to main until copy audit is confirmed complete.
 
 ---
 
-### Risk 4 — Frontend / API schema mismatch
+### Risk 4 — Prompt export contains unsafe wording
 
-**Likelihood:** Medium (TypeScript types in v0 do not match Python canonical schema)  
-**Impact:** Medium (silent rendering errors or blank result panels)  
-**Mitigation:** #184 explicitly maps canonical schema fields to component props. Add TypeScript types in `lib/types.ts` derived from `src/inference/response_schema.py`. Do not infer field names from v0 mock types.
+**Likelihood:** Medium (the generated ChatGPT/Claude prompt template is new and has no prior review)  
+**Impact:** High (a prompt that frames model output as diagnosis or clinical decision support is unsafe even if the UI copy is clean)  
+**Mitigation:** The prompt template must use safe framing (Section 7). The prompt export must include an explicit disclaimer line: *"This is a prototype educational tool. Model output is not a diagnosis."* Review the prompt template as part of the #183 acceptance criteria.
 
 ---
 
-### Risk 5 — Next.js dependency conflicts or build failures
+### Risk 5 — Hugging Face artifact download fails or is slow in demo environment
 
-**Likelihood:** Low-Medium (v0 uses React 19 and Next.js 16 which may have peer dependency issues)  
-**Impact:** Low (dev environment only; does not affect inference)  
-**Mitigation:** Run `npm install` in isolation inside `frontend/`. Keep frontend Node environment separate from Python venv. Document Node version requirement.
+**Likelihood:** Low-Medium (network dependency; HF Hub rate limits can apply)  
+**Impact:** Medium (demo fails to load model on a new machine)  
+**Mitigation:** Local checkpoint takes priority over HF download. Demo machine should have local checkpoints present as fallback. Document that HF download is a convenience path, not the sole path. (#180)
 
 ---
 
@@ -450,10 +486,11 @@ This matches the canonical `safety_note` field in the inference response.
 
 - `main` branch is untouched throughout D7.
 - All work stays on branch `d7-v0-ui-inference-integration`.
-- `app.py` and `src/inference/` are not modified; Streamlit remains the authoritative demo at all times.
-- The `frontend/` and `api/` directories are additive — deleting them restores the repo to its pre-D7 state with no side effects.
-- If the branch is abandoned, `git branch -D d7-v0-ui-inference-integration` leaves `main` fully intact.
-- No PR is opened until the Next.js flow is verified end-to-end and the copy audit is confirmed complete.
+- `src/inference/`, `src/model/`, `src/data/`, model registry, taxonomies, and training scripts are never modified on this branch.
+- `app.py` is the only file with meaningful changes. If the branch is abandoned, `git branch -D d7-v0-ui-inference-integration` restores `main` fully intact.
+- There are no new directories (`frontend/`, `api/`) to clean up — rollback is a single branch delete.
+- If a specific ticket introduces a regression, revert that commit on the branch (`git revert <sha>`) rather than abandoning the whole branch.
+- No PR is opened until all D7 tickets are implemented, inference is verified end-to-end, and the copy audit is confirmed complete.
 
 ---
 
@@ -465,8 +502,9 @@ This matches the canonical `safety_note` field in the inference response.
 - [x] `docs/frontend/v0_prototype_integration_plan.md` is committed
 - [x] The plan contains all 10 sections with sufficient detail to hand off to a developer
 - [x] Unsafe copy from v0 is explicitly identified with replacements specified
-- [x] Target architecture is defined with file paths and data flow
-- [x] Implementation tickets #182–#185 are scoped and sequenced
+- [x] Target architecture is defined (Streamlit-only, no Next.js, no FastAPI)
+- [x] Implementation tickets #182, #183, #184, #185, and #180 are scoped and sequenced
+- [x] Previous Next.js/FastAPI path is explicitly documented as intentionally not selected
 - [x] Rollback plan is defined
 - [ ] PR is not yet opened (held until D7.x tickets are implemented and verified)
 
@@ -474,9 +512,12 @@ This matches the canonical `safety_note` field in the inference response.
 
 - Any code changes to `app.py`, `src/inference/`, or any existing file
 - Creation of `frontend/` or `api/` directories
-- A working Next.js app
-- A running API
+- A working Next.js app or FastAPI server
+
+**Why the Next.js/FastAPI path was not selected:**
+
+The hybrid architecture would have required wiring a new JavaScript frontend to a new Python API, introducing two new build systems, a cross-origin request layer, a TypeScript → Python schema mapping, and a new deployment surface — all within the capstone sprint window. The integration risk exceeds the visual improvement. Streamlit with custom CSS achieves the same UX improvement at a fraction of the risk. The Next.js/FastAPI path remains documented here for reference if the product evolves beyond the capstone phase.
 
 ---
 
-*Document written on branch `d7-v0-ui-inference-integration`. Do not merge to main until D7.x implementation tickets are complete and verified.*
+*Document updated 2026-05-22 on branch `d7-v0-ui-inference-integration`. Do not merge to main until D7.x implementation tickets are complete and verified.*

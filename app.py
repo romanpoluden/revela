@@ -486,6 +486,42 @@ def inject_css() -> None:
             color: #184e52;
         }
 
+        /* ── Staged loading messages ─────────────────── */
+        .loading-stage-msg {
+            padding: 0.35rem 0.7rem;
+            background: #f4f9f8;
+            border-left: 3px solid #2f6f73;
+            border-radius: 0 6px 6px 0;
+            color: #1f3f46;
+            font-size: 0.87rem;
+            margin: 0.25rem 0;
+        }
+
+        /* ── Prompt export card ──────────────────────── */
+        .prompt-export-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #184e52;
+            border-radius: 10px;
+            padding: 1rem 1.1rem 1rem 1.1rem;
+            background: #f4faf9;
+            margin-bottom: 1rem;
+            min-height: 160px;
+        }
+        .prompt-placeholder-text {
+            color: #1f3f46;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 0.4rem 0 0.75rem 0;
+        }
+        .prompt-placeholder-coming {
+            color: #52616b;
+            font-size: 0.82rem;
+            font-style: italic;
+            margin: 0;
+            border-top: 1px solid #d0e8e5;
+            padding-top: 0.55rem;
+        }
+
         /* ── Safety footer ───────────────────────────── */
         .safety-footer {
             margin-top: 2rem;
@@ -572,8 +608,9 @@ def render_step_indicator(current_step: int) -> None:
 
 def render_analyze_tab() -> None:
     initialize_analysis_state()
+    status = st.session_state.analysis_status
 
-    if st.session_state.analysis_status in ("complete", "error", "running"):
+    if status in ("complete", "error", "running"):
         _step = 4
     elif st.session_state.get("file_uploaded", False):
         _step = 3
@@ -588,6 +625,16 @@ def render_analyze_tab() -> None:
         on_change=reset_analysis_state,
     )
     mode_config = get_mode_config(input_mode)
+
+    if status == "complete":
+        _col, _ = st.columns([1, 5])
+        with _col:
+            if st.button("Start over"):
+                reset_analysis_state()
+                st.rerun()
+        render_final_result_screen(st.session_state.analysis_result, mode_config)
+        render_safety_footer()
+        return
 
     left, right = st.columns([0.95, 1.05], gap="large")
     uploaded_image = None
@@ -726,7 +773,17 @@ def start_analysis() -> None:
 
 
 def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> None:
-    with st.spinner("Preparing educational image review..."):
+    progress = st.progress(0, text="Starting analysis...")
+    with st.status("Running educational image analysis...", expanded=True) as status_widget:
+        st.write("Validating uploaded image")
+        progress.progress(20, text="Validating uploaded image")
+
+        st.write("Preparing model input")
+        progress.progress(40, text="Preparing model input")
+
+        st.write("Running local model inference")
+        progress.progress(60, text="Running local model inference")
+
         try:
             response = run_inference(
                 model_id=str(mode_config["model_id"]),
@@ -741,14 +798,23 @@ def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> 
                 "details": str(error),
             }
 
+        st.write("Preparing uncertainty and safety output")
+        progress.progress(80, text="Preparing uncertainty and safety output")
+
+        st.write("Preparing learning prompt area")
+        progress.progress(95, text="Preparing learning prompt area")
+
         st.session_state.analysis_result = response
 
         if response.get("error") is True:
             st.session_state.analysis_error = response
             st.session_state.analysis_status = "error"
+            status_widget.update(label="Analysis error", state="error", expanded=True)
         else:
             st.session_state.analysis_status = "complete"
+            status_widget.update(label="Analysis complete", state="complete", expanded=False)
 
+    progress.progress(100, text="Complete")
     st.rerun()
 
 
@@ -963,7 +1029,6 @@ def render_analysis_result(response: dict | None, mode_config: dict[str, str | i
             unsafe_allow_html=True,
         )
 
-    _render_result_context_summary(st.session_state.get("learner_context", {}))
 
 
 def _confidence_color_class(conf_pct: object) -> str:
@@ -1148,6 +1213,37 @@ def _render_result_context_summary(ctx: dict[str, str]) -> None:
                     st.markdown(f"- **{label}:** {val}")
         else:
             st.caption("No context was provided for this analysis.")
+
+
+def render_final_result_screen(response: dict | None, mode_config: dict[str, str | int]) -> None:
+    result_col, prompt_col = st.columns([1, 1], gap="large")
+    with result_col:
+        st.markdown("#### Revela model result")
+        if response and not response.get("error"):
+            render_analysis_result(response, mode_config)
+        else:
+            render_analysis_error(response)
+    with prompt_col:
+        st.markdown("#### Continue in ChatGPT / Claude")
+        render_prompt_export_placeholder()
+        _render_result_context_summary(st.session_state.get("learner_context", {}))
+
+
+def render_prompt_export_placeholder() -> None:
+    st.markdown(
+        """
+        <div class="prompt-export-card">
+          <div class="section-label" style="margin-top:0">Prompt export</div>
+          <p class="prompt-placeholder-text">
+            After review, you will be able to copy a structured prompt combining the model result,
+            uncertainty level, and your learning context — ready to paste into ChatGPT or Claude
+            for further educational discussion.
+          </p>
+          <p class="prompt-placeholder-coming">Prompt export — available in the next iteration</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_overview_tab() -> None:

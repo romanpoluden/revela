@@ -1,0 +1,32 @@
+variant_name: clinical_v2_pad_ufes_lesion_enrichment
+base_variant: clinical_v2
+enrichment_source: PAD-UFES-20
+enrichment_purpose: 'Reduce lesion-routing false negatives (baseline FN: 76)'
+taxonomy: 5-class Clinical V2 — unchanged
+pad_ufes_mapping:
+  BCC: Lesion — dermoscopic review recommended
+  SCC: Lesion — dermoscopic review recommended
+  MEL: Lesion — dermoscopic review recommended
+  ACK: Lesion — dermoscopic review recommended
+excluded_labels:
+  NEV: Benign nevus — may dilute lesion-routing signal
+  SEK: Seborrheic keratosis — more appropriate for 8-class taxonomy
+split_strategy: patient_level
+split_seed: 42
+val_ratio: 0.15
+data:
+  train: data/processed/clinical_v2_pad_ufes_lesion_enrichment/train.csv
+  val: data/processed/clinical_v2_pad_ufes_lesion_enrichment/val.csv
+  test: data/processed/clinical_v2_pad_ufes_lesion_enrichment/test.csv
+promotion_criteria:
+  lesion_routing_fn_max: 76
+  macro_f1_min: 0.642
+  scin_macro_f1_min: 0.4028
+  fitzpatrick_macro_f1_min: 0.6366
+  inflammatory_f1_note: must not collapse
+out_of_scope:
+- Model training
+- Model evaluation
+- Model promotion
+- 8-class taxonomy
+- Clinical-readiness claims

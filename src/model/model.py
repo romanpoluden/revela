@@ -29,6 +29,41 @@ def create_model(num_classes: int, pretrained: bool = True):
     return model
 
 
+def build_model(backbone_name: str, num_classes: int, pretrained: bool = True):
+    """Create a model with a configurable backbone and custom classifier head."""
+    if num_classes <= 0:
+        raise ValueError("num_classes must be greater than 0.")
+
+    if backbone_name == "efficientnet_b0":
+        return create_model(num_classes=num_classes, pretrained=pretrained)
+
+    if backbone_name == "efficientnet_b2":
+        from torchvision.models import efficientnet_b2, EfficientNet_B2_Weights
+        weights = EfficientNet_B2_Weights.DEFAULT if pretrained else None
+        model = efficientnet_b2(weights=weights)
+        in_features = model.classifier[1].in_features
+        model.classifier[1] = nn.Linear(in_features, num_classes)
+        return model
+
+    if backbone_name == "convnext_tiny":
+        from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
+        weights = ConvNeXt_Tiny_Weights.DEFAULT if pretrained else None
+        model = convnext_tiny(weights=weights)
+        in_features = model.classifier[2].in_features
+        model.classifier[2] = nn.Linear(in_features, num_classes)
+        return model
+
+    if backbone_name == "resnet50":
+        from torchvision.models import resnet50, ResNet50_Weights
+        weights = ResNet50_Weights.DEFAULT if pretrained else None
+        model = resnet50(weights=weights)
+        in_features = model.fc.in_features
+        model.fc = nn.Linear(in_features, num_classes)
+        return model
+
+    raise ValueError(f"Unknown backbone: {backbone_name}")
+
+
 def count_trainable_parameters(model) -> int:
     """Count parameters that will be updated during training."""
     return sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)

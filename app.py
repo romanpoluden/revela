@@ -65,6 +65,8 @@ def inject_css() -> None:
             padding-bottom: 3rem;
             max-width: 1180px;
         }
+
+        /* ── Hero header ─────────────────────────────── */
         .hero {
             padding: 2rem 2.2rem;
             border: 1px solid #dbe3ea;
@@ -75,15 +77,36 @@ def inject_css() -> None:
         .hero h1 {
             font-size: 3rem;
             line-height: 1.05;
-            margin: 0 0 0.4rem 0;
+            margin: 0 0 0.3rem 0;
             letter-spacing: 0;
             color: #102a43;
         }
-        .hero p {
-            color: #34495e;
-            font-size: 1.05rem;
-            margin: 0.25rem 0;
+        .hero-subtitle {
+            color: #184e52;
+            font-size: 1.12rem;
+            font-weight: 650;
+            margin: 0 0 0.2rem 0;
         }
+        .hero-tagline {
+            color: #52616b;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* ── Status pill ─────────────────────────────── */
+        .status-pill {
+            display: inline-block;
+            padding: 0.25rem 0.58rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 650;
+            color: #184e52;
+            background: #e3f4f1;
+            border: 1px solid #b9ded8;
+            margin-bottom: 0.45rem;
+        }
+
+        /* ── Note / disclaimer strip ─────────────────── */
         .note {
             padding: 0.85rem 1rem;
             border-left: 4px solid #2f6f73;
@@ -91,7 +114,10 @@ def inject_css() -> None:
             border-radius: 8px;
             color: #1f3f46;
             margin: 0.8rem 0 1rem 0;
+            font-size: 0.92rem;
         }
+
+        /* ── Generic card ────────────────────────────── */
         .card {
             border: 1px solid #dbe3ea;
             border-radius: 10px;
@@ -110,6 +136,8 @@ def inject_css() -> None:
             color: #425466;
             font-size: 0.95rem;
         }
+
+        /* ── Metric card ─────────────────────────────── */
         .metric-card {
             border: 1px solid #dbe3ea;
             border-radius: 10px;
@@ -127,23 +155,241 @@ def inject_css() -> None:
             color: #52616b;
             font-size: 0.88rem;
         }
-        .status-pill {
-            display: inline-block;
-            padding: 0.25rem 0.58rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 650;
-            color: #184e52;
-            background: #e3f4f1;
-            border: 1px solid #b9ded8;
-            margin-bottom: 0.45rem;
-        }
+
+        /* ── Disabled panel ──────────────────────────── */
         .disabled-panel {
             border: 1px dashed #aebdca;
             border-radius: 10px;
             padding: 1rem;
             background: #f8fafc;
             color: #425466;
+        }
+
+        /* ── Step indicator ──────────────────────────── */
+        .step-bar {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.4rem;
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 12px;
+            margin-bottom: 1.4rem;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex: 1;
+        }
+        .step-dot {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-done   { background: #184e52; color: #ffffff; }
+        .step-active { background: #2f6f73; color: #ffffff;
+                       box-shadow: 0 0 0 3px rgba(47,111,115,0.18); }
+        .step-pending { background: #e8edf2; color: #8a9ab0;
+                        border: 1.5px solid #c8d4de; }
+        .step-text-done    { font-size: 0.83rem; font-weight: 600; color: #184e52; }
+        .step-text-active  { font-size: 0.83rem; font-weight: 700; color: #102a43; }
+        .step-text-pending { font-size: 0.83rem; color: #8a9ab0; }
+        .step-connector {
+            height: 2px; width: 40px;
+            background: #dbe3ea;
+            flex-shrink: 0;
+            margin: 0 0.3rem;
+        }
+        .conn-done { background: #184e52; }
+
+        /* ── Mode selector (targets Streamlit radio widget) ── */
+        div[data-testid="stRadio"] {
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 10px;
+            padding: 0.75rem 1rem 0.65rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Result section label ────────────────────── */
+        .section-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #52616b;
+            margin: 1rem 0 0.4rem 0;
+        }
+
+        /* ── Top prediction card ─────────────────────── */
+        .top-pred-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #2f6f73;
+            border-radius: 10px;
+            padding: 1rem 1.1rem 0.85rem 1.1rem;
+            background: #f4faf9;
+        }
+        .top-pred-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+        .top-pred-label {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: #102a43;
+        }
+        .top-pred-note {
+            font-size: 0.78rem;
+            color: #52616b;
+            margin: 0.3rem 0 0 0;
+        }
+
+        /* ── Confidence badge ────────────────────────── */
+        .conf-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.83rem;
+            font-weight: 700;
+        }
+        .conf-high    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .conf-medium  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .conf-low     { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .conf-unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+
+        /* ── Uncertainty badge ───────────────────────── */
+        .unc-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .unc-high   { background: #d1fae5; color: #065f46; }
+        .unc-medium { background: #fef3c7; color: #92400e; }
+        .unc-low    { background: #fee2e2; color: #991b1b; }
+        .unc-explanation {
+            font-size: 0.87rem;
+            color: #425466;
+            margin: 0.4rem 0 0 0;
+            line-height: 1.45;
+        }
+
+        /* ── Low-certainty warning card ──────────────── */
+        .low-certainty-card {
+            display: flex;
+            gap: 0.7rem;
+            align-items: flex-start;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-left: 4px solid #f59e0b;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin: 0.75rem 0;
+            font-size: 0.87rem;
+            color: #78350f;
+            line-height: 1.5;
+        }
+        .low-certainty-marker {
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+            background: #f59e0b;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Prediction list ─────────────────────────── */
+        .pred-list { margin: 0.2rem 0 0.5rem 0; }
+        .pred-row {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f0f4f7;
+            font-size: 0.87rem;
+        }
+        .pred-row:last-child { border-bottom: none; }
+        .pred-rank {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e8edf2;
+            color: #52616b;
+            font-size: 0.73rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .pred-label-text {
+            flex: 1;
+            color: #102a43;
+            font-weight: 500;
+            min-width: 0;
+        }
+        .pred-bar-outer {
+            width: 72px;
+            height: 5px;
+            background: #e8edf2;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .pred-bar-inner {
+            height: 100%;
+            background: #2f6f73;
+            border-radius: 4px;
+        }
+        .pred-conf-text {
+            width: 50px;
+            text-align: right;
+            color: #52616b;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Next step card ──────────────────────────── */
+        .next-step-card {
+            background: #f4f9f8;
+            border: 1px solid #b9ded8;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin-top: 1rem;
+        }
+        .next-step-text {
+            color: #1f3f46;
+            font-size: 0.9rem;
+            margin: 0.25rem 0 0 0;
+            line-height: 1.5;
+        }
+
+        /* ── Safety footer ───────────────────────────── */
+        .safety-footer {
+            margin-top: 2rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #dbe3ea;
+            border-top: 3px solid #2f6f73;
+            border-radius: 0 0 10px 10px;
+            background: #f4f9f8;
+            color: #1f3f46;
+            font-size: 0.87rem;
+            line-height: 1.6;
         }
         </style>
         """,
@@ -155,10 +401,10 @@ def render_header() -> None:
     st.markdown(
         """
         <div class="hero">
-          <div class="status-pill">Prototype app shell</div>
+          <div class="status-pill">Prototype</div>
           <h1>Revela</h1>
-          <p><strong>Educational AI skin-image training aid</strong></p>
-          <p>Explore structured skin-image review with transparent model outputs, confidence framing, and prototype evaluation metrics.</p>
+          <p class="hero-subtitle">Educational dermatology AI training aid</p>
+          <p class="hero-tagline">Structured image review for learning. Model output, not diagnosis.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -173,48 +419,59 @@ def render_header() -> None:
     )
 
 
-def render_overview_tab() -> None:
-    st.subheader("Product Overview")
-    st.write(
-        "Revela is a portfolio-ready prototype for educational dermatology image review. "
-        "The app is designed to show model outputs, uncertainty, limitations, and evaluation context in one calm workflow."
+def render_step_indicator(current_step: int) -> None:
+    def _dot(step: int) -> tuple[str, str]:
+        if step < current_step:
+            return "step-done", "&#10003;"
+        if step == current_step:
+            return "step-active", str(step)
+        return "step-pending", str(step)
+
+    def _label_class(step: int) -> str:
+        if step < current_step:
+            return "step-text-done"
+        if step == current_step:
+            return "step-text-active"
+        return "step-text-pending"
+
+    def _connector_class(after_step: int) -> str:
+        return "step-connector conn-done" if after_step < current_step else "step-connector"
+
+    steps = [
+        (1, "Choose image type"),
+        (2, "Upload image"),
+        (3, "Review model output"),
+    ]
+
+    parts: list[str] = []
+    for i, (num, label) in enumerate(steps):
+        dot_class, dot_text = _dot(num)
+        lbl_class = _label_class(num)
+        parts.append(
+            f'<div class="step-item">'
+            f'<div class="step-dot {dot_class}">{dot_text}</div>'
+            f'<span class="{lbl_class}">{label}</span>'
+            f'</div>'
+        )
+        if i < len(steps) - 1:
+            parts.append(f'<div class="{_connector_class(num)}"></div>')
+
+    st.markdown(
+        f'<div class="step-bar">{"".join(parts)}</div>',
+        unsafe_allow_html=True,
     )
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        render_card(
-            "Clinical Photo Mode",
-            "Uses the current clinical-image model for common condition-oriented outputs and lesion-routing review.",
-        )
-    with col2:
-        render_card(
-            "Dermoscopic Mode",
-            "Uses the dermoscopic BCN+MNH model for educational dermoscopic image review.",
-        )
-    with col3:
-        render_card(
-            "Transparent Results",
-            "Inference uses the canonical schema with top outputs, uncertainty, safety notes, and limitations.",
-        )
-
-    st.markdown("### Current Build Status")
-    status_col1, status_col2 = st.columns(2)
-    with status_col1:
-        render_card(
-            "Available now",
-            "Clinical-photo mode is available for educational local inference with transparent model outputs.",
-        )
-    with status_col2:
-        render_card(
-            "Dermoscopic mode",
-            "The improved dermoscopic model is available for educational local inference.",
-        )
 
 
 def render_analyze_tab() -> None:
-    st.subheader("Analyze Image")
-    st.caption("Clinical-photo and dermoscopic modes use local educational inference adapters.")
     initialize_analysis_state()
+
+    if st.session_state.analysis_status in ("complete", "error", "running"):
+        _step = 3
+    elif st.session_state.get("file_uploaded", False):
+        _step = 2
+    else:
+        _step = 1
+    render_step_indicator(_step)
 
     input_mode = st.radio(
         "Choose image type",
@@ -245,6 +502,7 @@ def render_analyze_tab() -> None:
             try:
                 uploaded_image = load_uploaded_image(uploaded_file)
                 valid_image_uploaded = True
+                st.session_state.file_uploaded = True
                 st.image(
                     uploaded_image,
                     caption=mode_config["preview_caption"],
@@ -266,13 +524,15 @@ def render_analyze_tab() -> None:
             st.rerun()
 
     with right:
-        st.markdown("#### Result Preview")
+        st.markdown("#### Result")
         render_result_panel(
             mode_config=mode_config,
             has_upload=uploaded_file is not None,
             image_error=image_error,
             uploaded_image=uploaded_image,
         )
+
+    render_safety_footer()
 
 
 def get_mode_config(input_mode: str) -> dict[str, str | int]:
@@ -329,12 +589,15 @@ def initialize_analysis_state() -> None:
         st.session_state.analysis_result = None
     if "analysis_error" not in st.session_state:
         st.session_state.analysis_error = None
+    if "file_uploaded" not in st.session_state:
+        st.session_state.file_uploaded = False
 
 
 def reset_analysis_state() -> None:
     st.session_state.analysis_status = "idle"
     st.session_state.analysis_result = None
     st.session_state.analysis_error = None
+    st.session_state.file_uploaded = False
 
 
 def start_analysis() -> None:
@@ -480,55 +743,124 @@ def render_analysis_result(response: dict | None, mode_config: dict[str, str | i
     uncertainty = response.get("uncertainty") or {}
     predictions = response.get("predictions") or []
 
-    st.markdown(f"##### {mode_config['result_heading']}")
-    st.caption(str(mode_config["result_note"]))
-    label_col, confidence_col = st.columns(2)
-    with label_col:
-        st.metric("Top output", top_prediction.get("label", "Unavailable"))
-    with confidence_col:
-        st.metric(
-            "Model confidence",
-            format_percent(top_prediction.get("confidence_percent")),
-        )
+    label = top_prediction.get("label", "Unavailable")
+    conf_pct = top_prediction.get("confidence_percent")
+    conf_str = format_percent(conf_pct)
+    conf_class = _confidence_color_class(conf_pct)
 
-    st.markdown("##### Uncertainty")
-    st.write(uncertainty.get("label", "Unavailable"))
-    st.caption(uncertainty.get("explanation", "No uncertainty explanation returned."))
+    st.markdown(
+        f"""
+        <div class="section-label">{mode_config["result_heading"]}</div>
+        <div class="top-pred-card">
+          <div class="top-pred-header">
+            <span class="top-pred-label">{label}</span>
+            <span class="conf-badge {conf_class}">{conf_str}</span>
+          </div>
+          <p class="top-pred-note">Rank 1 output &mdash; {mode_config["result_note"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    unc_bucket = uncertainty.get("bucket", "")
+    unc_label = uncertainty.get("label", "Unavailable")
+    unc_explanation = uncertainty.get("explanation", "No uncertainty explanation returned.")
+    unc_class = _uncertainty_class(unc_bucket)
+
+    st.markdown(
+        f"""
+        <div class="section-label">Uncertainty</div>
+        <span class="unc-badge {unc_class}">{unc_label}</span>
+        <p class="unc-explanation">{unc_explanation}</p>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if response.get("low_certainty") is True:
-        st.warning(
-            response.get(
-                "low_certainty_message",
-                "The model output is uncertain. Use this only for educational review. "
-                "Review the top outputs, image quality, and clinical context, and consider "
-                "additional image/context review. "
-                "This is not a diagnosis and does not recommend treatment.",
-            )
+        msg = response.get(
+            "low_certainty_message",
+            "The model output is uncertain. Use this only for educational review. "
+            "This is not a diagnosis and does not recommend treatment.",
         )
-        if response.get("low_certainty_reason"):
-            st.caption(response["low_certainty_reason"])
+        reason = response.get("low_certainty_reason") or ""
+        reason_html = f"<br><small style='opacity:0.8'>{reason}</small>" if reason else ""
+        st.markdown(
+            f"""
+            <div class="low-certainty-card">
+              <div class="low-certainty-marker">!</div>
+              <div><strong>Low certainty</strong><br>{msg}{reason_html}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    st.markdown(f"##### {mode_config['top_outputs_heading']}")
+    st.markdown(
+        f'<div class="section-label">{mode_config["top_outputs_heading"]}</div>',
+        unsafe_allow_html=True,
+    )
     if predictions:
-        for index, prediction in enumerate(predictions[: int(mode_config["top_k"])], start=1):
-            label = prediction.get("label", "Unavailable")
-            confidence = format_percent(prediction.get("confidence_percent"))
-            st.write(f"{index}. {label} - {confidence}")
+        rows_html = ""
+        for pred in predictions[: int(mode_config["top_k"])]:
+            pred_label = pred.get("label", "Unavailable")
+            pred_conf_pct = pred.get("confidence_percent")
+            pred_conf_str = format_percent(pred_conf_pct)
+            bar_width = min(
+                max(float(pred_conf_pct) if isinstance(pred_conf_pct, (int, float)) else 0, 0),
+                100,
+            )
+            rank = pred.get("rank", "")
+            rows_html += (
+                f'<div class="pred-row">'
+                f'<span class="pred-rank">{rank}</span>'
+                f'<span class="pred-label-text">{pred_label}</span>'
+                f'<div class="pred-bar-outer">'
+                f'<div class="pred-bar-inner" style="width:{bar_width:.1f}%"></div>'
+                f'</div>'
+                f'<span class="pred-conf-text">{pred_conf_str}</span>'
+                f'</div>'
+            )
+        st.markdown(f'<div class="pred-list">{rows_html}</div>', unsafe_allow_html=True)
     else:
         st.write("No ranked outputs were returned.")
 
-    st.markdown("##### Safety Note")
+    st.markdown('<div class="section-label">Safety Note</div>', unsafe_allow_html=True)
     st.info(response.get("safety_note", "No safety note returned."))
 
-    st.markdown("##### Model Limitations")
     limitations = response.get("model_limitations") or []
     if limitations:
-        for limitation in limitations:
-            st.markdown(f"- {limitation}")
-    else:
-        st.write("No model limitations returned.")
+        with st.expander("Model limitations", expanded=False):
+            for limitation in limitations:
+                st.markdown(f"- {limitation}")
 
-    st.markdown("##### Recommended Next Step")
-    st.write(response.get("recommended_next_step", "No next-step guidance returned."))
+    next_step = response.get("recommended_next_step")
+    if next_step:
+        st.markdown(
+            f"""
+            <div class="next-step-card">
+              <div class="section-label" style="margin-top:0">Recommended next step</div>
+              <p class="next-step-text">{next_step}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def _confidence_color_class(conf_pct: object) -> str:
+    if not isinstance(conf_pct, (int, float)):
+        return "conf-unknown"
+    if conf_pct >= 70.0:
+        return "conf-high"
+    if conf_pct >= 40.0:
+        return "conf-medium"
+    return "conf-low"
+
+
+def _uncertainty_class(bucket: str) -> str:
+    if bucket == "high_confidence":
+        return "unc-high"
+    if bucket == "medium_confidence":
+        return "unc-medium"
+    return "unc-low"
 
 
 def render_analysis_error(error_response: dict | None) -> None:
@@ -546,6 +878,58 @@ def format_percent(value: object) -> str:
     if isinstance(value, (int, float)):
         return f"{value:.2f}%"
     return "Unavailable"
+
+
+def render_safety_footer() -> None:
+    st.markdown(
+        """
+        <div class="safety-footer">
+          <strong>Prototype educational output only.</strong>
+          This is not a diagnosis and does not recommend treatment.
+          Confidence is model confidence, not clinical certainty.
+          Qualified review is required for real decisions.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_overview_tab() -> None:
+    st.subheader("Product Overview")
+    st.write(
+        "Revela is a portfolio-ready prototype for educational dermatology image review. "
+        "The app is designed to show model outputs, uncertainty, limitations, and evaluation context in one calm workflow."
+    )
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        render_card(
+            "Clinical Photo Mode",
+            "Uses the current clinical-image model for common condition-oriented outputs and lesion-routing review.",
+        )
+    with col2:
+        render_card(
+            "Dermoscopic Mode",
+            "Uses the dermoscopic BCN+MNH model for educational dermoscopic image review.",
+        )
+    with col3:
+        render_card(
+            "Transparent Results",
+            "Inference uses the canonical schema with top outputs, uncertainty, safety notes, and limitations.",
+        )
+
+    st.markdown("### Current Build Status")
+    status_col1, status_col2 = st.columns(2)
+    with status_col1:
+        render_card(
+            "Available now",
+            "Clinical-photo mode is available for educational local inference with transparent model outputs.",
+        )
+    with status_col2:
+        render_card(
+            "Dermoscopic mode",
+            "The improved dermoscopic model is available for educational local inference.",
+        )
 
 
 def render_transparency_tab() -> None:

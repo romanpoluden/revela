@@ -21,6 +21,81 @@ DERMOSCOPIC_CLASSES = [
     "Other non-cancer / indeterminate lesion",
 ]
 
+_CONTEXT_OPTIONS: dict[str, list[str]] = {
+    "body_location": [
+        "not provided",
+        "face / scalp / neck",
+        "trunk",
+        "arm / hand",
+        "leg / foot",
+        "other",
+    ],
+    "duration": [
+        "not provided",
+        "days",
+        "weeks",
+        "months",
+        "longer / recurring",
+        "unsure",
+    ],
+    "itching": [
+        "not provided",
+        "no",
+        "mild",
+        "moderate",
+        "severe",
+    ],
+    "pain_tenderness": [
+        "not provided",
+        "no",
+        "mild",
+        "moderate",
+        "severe",
+    ],
+    "change_over_time": [
+        "not provided",
+        "no clear change",
+        "spreading",
+        "changing color / shape / size",
+        "improving",
+        "unsure",
+    ],
+    "bleeding_crusting_discharge": [
+        "not provided",
+        "no",
+        "bleeding",
+        "crusting",
+        "discharge",
+        "unsure",
+    ],
+    "prior_episodes": [
+        "not provided",
+        "no",
+        "yes",
+        "unsure",
+    ],
+    "image_quality_concern": [
+        "not provided",
+        "blurry",
+        "poor lighting",
+        "too close / too far",
+        "obstruction",
+        "unsure",
+    ],
+}
+
+_CONTEXT_LABELS: dict[str, str] = {
+    "body_location": "Body location",
+    "duration": "Duration",
+    "itching": "Itching",
+    "pain_tenderness": "Pain / tenderness",
+    "change_over_time": "Change over time",
+    "bleeding_crusting_discharge": "Bleeding / crusting / discharge",
+    "prior_episodes": "Prior similar episodes",
+    "image_quality_concern": "Image quality concern",
+    "learner_note": "Learner note",
+}
+
 
 def main() -> None:
     st.set_page_config(
@@ -379,6 +454,38 @@ def inject_css() -> None:
             line-height: 1.5;
         }
 
+        /* ── Context summary card ───────────────────────── */
+        .context-summary-card {
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin: 0.75rem 0 0.5rem 0;
+        }
+        .ctx-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+        }
+        .ctx-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: #e8f4f3;
+            border: 1px solid #b9ded8;
+            border-radius: 6px;
+            padding: 0.18rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        .ctx-tag-label {
+            color: #52616b;
+            font-weight: 600;
+        }
+        .ctx-tag-value {
+            color: #184e52;
+        }
+
         /* ── Safety footer ───────────────────────────── */
         .safety-footer {
             margin-top: 2rem;
@@ -440,7 +547,8 @@ def render_step_indicator(current_step: int) -> None:
     steps = [
         (1, "Choose image type"),
         (2, "Upload image"),
-        (3, "Review model output"),
+        (3, "Learning context"),
+        (4, "Review model output"),
     ]
 
     parts: list[str] = []
@@ -466,11 +574,11 @@ def render_analyze_tab() -> None:
     initialize_analysis_state()
 
     if st.session_state.analysis_status in ("complete", "error", "running"):
-        _step = 3
+        _step = 4
     elif st.session_state.get("file_uploaded", False):
-        _step = 2
+        _step = 3
     else:
-        _step = 1
+        _step = 2
     render_step_indicator(_step)
 
     input_mode = st.radio(
@@ -514,6 +622,10 @@ def render_analyze_tab() -> None:
                     "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
                 )
                 st.error(image_error)
+
+        if valid_image_uploaded:
+            render_learner_context_form()
+            render_context_summary_card()
 
         if st.button(
             "Analyze case",
@@ -591,6 +703,8 @@ def initialize_analysis_state() -> None:
         st.session_state.analysis_error = None
     if "file_uploaded" not in st.session_state:
         st.session_state.file_uploaded = False
+    if "learner_context" not in st.session_state:
+        st.session_state.learner_context = {}
 
 
 def reset_analysis_state() -> None:
@@ -598,12 +712,17 @@ def reset_analysis_state() -> None:
     st.session_state.analysis_result = None
     st.session_state.analysis_error = None
     st.session_state.file_uploaded = False
+    for key in list(st.session_state.keys()):
+        if key.startswith("ctx_"):
+            del st.session_state[key]
+    st.session_state.learner_context = {}
 
 
 def start_analysis() -> None:
     st.session_state.analysis_status = "running"
     st.session_state.analysis_result = None
     st.session_state.analysis_error = None
+    st.session_state.learner_context = _collect_learner_context()
 
 
 def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> None:
@@ -844,6 +963,8 @@ def render_analysis_result(response: dict | None, mode_config: dict[str, str | i
             unsafe_allow_html=True,
         )
 
+    _render_result_context_summary(st.session_state.get("learner_context", {}))
+
 
 def _confidence_color_class(conf_pct: object) -> str:
     if not isinstance(conf_pct, (int, float)):
@@ -892,6 +1013,141 @@ def render_safety_footer() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def _collect_learner_context() -> dict[str, str]:
+    return {
+        "body_location": st.session_state.get("ctx_body_location", "not provided"),
+        "duration": st.session_state.get("ctx_duration", "not provided"),
+        "itching": st.session_state.get("ctx_itching", "not provided"),
+        "pain_tenderness": st.session_state.get("ctx_pain_tenderness", "not provided"),
+        "change_over_time": st.session_state.get("ctx_change_over_time", "not provided"),
+        "bleeding_crusting_discharge": st.session_state.get(
+            "ctx_bleeding_crusting_discharge", "not provided"
+        ),
+        "prior_episodes": st.session_state.get("ctx_prior_episodes", "not provided"),
+        "image_quality_concern": st.session_state.get("ctx_image_quality_concern", "not provided"),
+        "learner_note": st.session_state.get("ctx_learner_note", "").strip(),
+    }
+
+
+def render_learner_context_form() -> None:
+    with st.expander("Learning context (optional)", expanded=True):
+        st.caption(
+            "Optional context for educational discussion. "
+            "This information is not used by the image model."
+        )
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.selectbox(
+                "Body location / anatomical site",
+                options=_CONTEXT_OPTIONS["body_location"],
+                key="ctx_body_location",
+            )
+            st.selectbox(
+                "Duration",
+                options=_CONTEXT_OPTIONS["duration"],
+                key="ctx_duration",
+            )
+            st.selectbox(
+                "Itching",
+                options=_CONTEXT_OPTIONS["itching"],
+                key="ctx_itching",
+            )
+            st.selectbox(
+                "Pain / tenderness",
+                options=_CONTEXT_OPTIONS["pain_tenderness"],
+                key="ctx_pain_tenderness",
+            )
+        with col_b:
+            st.selectbox(
+                "Change over time / spreading",
+                options=_CONTEXT_OPTIONS["change_over_time"],
+                key="ctx_change_over_time",
+            )
+            st.selectbox(
+                "Bleeding / crusting / discharge",
+                options=_CONTEXT_OPTIONS["bleeding_crusting_discharge"],
+                key="ctx_bleeding_crusting_discharge",
+            )
+            st.selectbox(
+                "Prior similar episodes",
+                options=_CONTEXT_OPTIONS["prior_episodes"],
+                key="ctx_prior_episodes",
+            )
+            st.selectbox(
+                "Image quality concern",
+                options=_CONTEXT_OPTIONS["image_quality_concern"],
+                key="ctx_image_quality_concern",
+            )
+        st.text_area(
+            "Learner note (optional)",
+            placeholder=(
+                "Optional: add any context you would share in an educational discussion of this case."
+            ),
+            key="ctx_learner_note",
+            height=80,
+        )
+
+
+def render_context_summary_card() -> None:
+    ctx = _collect_learner_context()
+    filled = {
+        _CONTEXT_LABELS[k]: v
+        for k, v in ctx.items()
+        if k in _CONTEXT_LABELS and k != "learner_note" and v != "not provided"
+    }
+    note = ctx.get("learner_note", "")
+
+    if not filled and not note:
+        st.caption("No learning context added yet. Context is optional.")
+        return
+
+    tags_html = ""
+    for label, value in filled.items():
+        tags_html += (
+            f'<span class="ctx-tag">'
+            f'<span class="ctx-tag-label">{label}:</span>'
+            f'<span class="ctx-tag-value">{value}</span>'
+            f'</span>'
+        )
+    if note:
+        truncated = note[:60] + ("..." if len(note) > 60 else "")
+        tags_html += (
+            f'<span class="ctx-tag">'
+            f'<span class="ctx-tag-label">Note:</span>'
+            f'<span class="ctx-tag-value">{truncated}</span>'
+            f'</span>'
+        )
+
+    st.markdown(
+        f"""
+        <div class="context-summary-card">
+          <div class="section-label" style="margin-top:0">Context for prompt export</div>
+          <div class="ctx-tags">{tags_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_result_context_summary(ctx: dict[str, str]) -> None:
+    has_any = any(
+        v and v != "not provided"
+        for k, v in ctx.items()
+    )
+    with st.expander("Learning context (collected for prompt export)", expanded=False):
+        st.caption(
+            "This context will be used to build a ChatGPT/Claude prompt export in a later step. "
+            "It was not used as input to the image model."
+        )
+        if has_any:
+            for key, label in _CONTEXT_LABELS.items():
+                val = ctx.get(key, "")
+                if val and val != "not provided":
+                    st.markdown(f"- **{label}:** {val}")
+        else:
+            st.caption("No context was provided for this analysis.")
 
 
 def render_overview_tab() -> None:

@@ -67,3 +67,34 @@ def build_model(backbone_name: str, num_classes: int, pretrained: bool = True):
 def count_trainable_parameters(model) -> int:
     """Count parameters that will be updated during training."""
     return sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad)
+
+
+# Module attribute holding the final classifier ("head") for each backbone. The
+# rest of the network is treated as the frozen-able backbone during staged
+# fine-tuning.
+_HEAD_ATTRIBUTE = {
+    "efficientnet_b0": "classifier",
+    "efficientnet_b2": "classifier",
+    "convnext_tiny": "classifier",
+    "resnet50": "fc",
+}
+
+
+def get_head_parameters(model, backbone_name: str):
+    """Return the list of parameters belonging to the classifier head."""
+    if backbone_name not in _HEAD_ATTRIBUTE:
+        raise ValueError(f"Unknown backbone: {backbone_name}")
+    head_module = getattr(model, _HEAD_ATTRIBUTE[backbone_name])
+    return list(head_module.parameters())
+
+
+def set_backbone_requires_grad(model, backbone_name: str, requires_grad: bool) -> None:
+    """Freeze or unfreeze every parameter except the classifier head.
+
+    Used for head-first staged fine-tuning: the backbone is frozen while the
+    head warms up, then unfrozen for full fine-tuning.
+    """
+    head_parameter_ids = {id(parameter) for parameter in get_head_parameters(model, backbone_name)}
+    for parameter in model.parameters():
+        if id(parameter) not in head_parameter_ids:
+            parameter.requires_grad = requires_grad

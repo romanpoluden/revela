@@ -1,0 +1,54 @@
+dataset:
+  name: clinical_v2
+  task: clinical_image_classification_with_lesion_routing
+  processed_dir: data/processed/clinical_v2
+  train_csv: data/processed/clinical_v2/train.csv
+  val_csv: data/processed/clinical_v2/val.csv
+  test_csv: data/processed/clinical_v2/test.csv
+  label_column: target_label
+  class_idx_column: class_idx
+  image_size: 224
+  num_classes: 5
+  class_names:
+  - Eczema / dermatitis
+  - Urticaria / allergic reaction
+  - Folliculitis / acne-like
+  - Psoriasis / papulosquamous
+  - Lesion — dermoscopic review recommended
+
+model:
+  architecture: efficientnet_b0
+  pretrained: true
+
+training:
+  batch_size: 16
+  epochs: 5
+  num_workers: 0
+  learning_rate: 0.00005
+  weight_decay: 0.01
+  use_class_weights: true
+  sampler:
+    mode: none
+    class_column: target_label
+    source_column: source_dataset
+    replacement: true
+  scheduler:
+    type: cosine
+    eta_min: 0.0
+  staged_finetune:
+    enabled: true
+    head_epochs: 2
+    head_learning_rate: 0.001
+  random_seed: 42
+  output_dir: models/clinical_v2_staged_finetune_effnet_b0
+
+notes:
+  - Clinical model is not diagnostic.
+  - Lesion class is a routing output, not cancer detection.
+  - SCIN uses official google/scin export with case_id preserved.
+  - Fitzpatrick17k lacks case_id/patient_id/lesion_id; split limitation must be documented.
+  - Preserve source_dataset and report source-specific performance during evaluation.
+  - V2.19 staged fine-tuning variant (issue #160). Same EfficientNet-B0 backbone and frozen clinical_v2 split as the baseline; only the training schedule differs.
+  - Phase 1 (head):    2 epochs, backbone frozen, classifier head trained at head_learning_rate=1e-3.
+  - Phase 2 (finetune): 5 epochs, full model unfrozen, fine-tuned at learning_rate=5e-5 (half the baseline 1e-4) with cosine LR decay.
+  - Best checkpoint selected by val_macro_f1 across all 7 epochs, matching the baseline selection rule.

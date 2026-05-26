@@ -19,4 +19,6 @@ data/raw/
 
 # Model artifacts and generated outputs
 models/
-outputs/
+outputs/error_analysis_review/
+outputs/metrics/
+outputs/plots/

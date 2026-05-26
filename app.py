@@ -4,6 +4,7 @@ from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
 from src.inference.adapter import run_inference
+from src.prompting.llm_prompt_builder import build_llm_transfer_prompt
 
 
 CLINICAL_CLASSES = [
@@ -20,6 +21,88 @@ DERMOSCOPIC_CLASSES = [
     "Benign nevus",
     "Other non-cancer / indeterminate lesion",
 ]
+
+LESION_ROUTING_LABEL = "Lesion — dermoscopic review recommended"
+
+_CASE_TYPES = [
+    "Clinical photo",
+    "Dermoscopic image",
+]
+
+_CONTEXT_OPTIONS: dict[str, list[str]] = {
+    "body_location": [
+        "not provided",
+        "face / scalp / neck",
+        "trunk",
+        "arm / hand",
+        "leg / foot",
+        "other",
+    ],
+    "duration": [
+        "not provided",
+        "days",
+        "weeks",
+        "months",
+        "longer / recurring",
+        "unsure",
+    ],
+    "itching": [
+        "not provided",
+        "no",
+        "mild",
+        "moderate",
+        "severe",
+    ],
+    "pain_tenderness": [
+        "not provided",
+        "no",
+        "mild",
+        "moderate",
+        "severe",
+    ],
+    "change_over_time": [
+        "not provided",
+        "no clear change",
+        "spreading",
+        "changing color / shape / size",
+        "improving",
+        "unsure",
+    ],
+    "bleeding_crusting_discharge": [
+        "not provided",
+        "no",
+        "bleeding",
+        "crusting",
+        "discharge",
+        "unsure",
+    ],
+    "prior_episodes": [
+        "not provided",
+        "no",
+        "yes",
+        "unsure",
+    ],
+    "image_quality_concern": [
+        "not provided",
+        "blurry",
+        "poor lighting",
+        "too close / too far",
+        "obstruction",
+        "unsure",
+    ],
+}
+
+_CONTEXT_LABELS: dict[str, str] = {
+    "body_location": "Body location",
+    "duration": "Duration",
+    "itching": "Itching",
+    "pain_tenderness": "Pain / tenderness",
+    "change_over_time": "Change over time",
+    "bleeding_crusting_discharge": "Bleeding / crusting / discharge",
+    "prior_episodes": "Prior similar episodes",
+    "image_quality_concern": "Image quality concern",
+    "learner_note": "Learner note",
+}
 
 
 def main() -> None:
@@ -65,6 +148,8 @@ def inject_css() -> None:
             padding-bottom: 3rem;
             max-width: 1180px;
         }
+
+        /* ── Hero header ─────────────────────────────── */
         .hero {
             padding: 2rem 2.2rem;
             border: 1px solid #dbe3ea;
@@ -75,15 +160,36 @@ def inject_css() -> None:
         .hero h1 {
             font-size: 3rem;
             line-height: 1.05;
-            margin: 0 0 0.4rem 0;
+            margin: 0 0 0.3rem 0;
             letter-spacing: 0;
             color: #102a43;
         }
-        .hero p {
-            color: #34495e;
-            font-size: 1.05rem;
-            margin: 0.25rem 0;
+        .hero-subtitle {
+            color: #184e52;
+            font-size: 1.12rem;
+            font-weight: 650;
+            margin: 0 0 0.2rem 0;
         }
+        .hero-tagline {
+            color: #52616b;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+
+        /* ── Status pill ─────────────────────────────── */
+        .status-pill {
+            display: inline-block;
+            padding: 0.25rem 0.58rem;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 650;
+            color: #184e52;
+            background: #e3f4f1;
+            border: 1px solid #b9ded8;
+            margin-bottom: 0.45rem;
+        }
+
+        /* ── Note / disclaimer strip ─────────────────── */
         .note {
             padding: 0.85rem 1rem;
             border-left: 4px solid #2f6f73;
@@ -91,7 +197,10 @@ def inject_css() -> None:
             border-radius: 8px;
             color: #1f3f46;
             margin: 0.8rem 0 1rem 0;
+            font-size: 0.92rem;
         }
+
+        /* ── Generic card ────────────────────────────── */
         .card {
             border: 1px solid #dbe3ea;
             border-radius: 10px;
@@ -110,6 +219,8 @@ def inject_css() -> None:
             color: #425466;
             font-size: 0.95rem;
         }
+
+        /* ── Metric card ─────────────────────────────── */
         .metric-card {
             border: 1px solid #dbe3ea;
             border-radius: 10px;
@@ -127,23 +238,336 @@ def inject_css() -> None:
             color: #52616b;
             font-size: 0.88rem;
         }
-        .status-pill {
-            display: inline-block;
-            padding: 0.25rem 0.58rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 650;
-            color: #184e52;
-            background: #e3f4f1;
-            border: 1px solid #b9ded8;
-            margin-bottom: 0.45rem;
-        }
+
+        /* ── Disabled panel ──────────────────────────── */
         .disabled-panel {
             border: 1px dashed #aebdca;
             border-radius: 10px;
             padding: 1rem;
             background: #f8fafc;
             color: #425466;
+        }
+
+        /* ── Step indicator ──────────────────────────── */
+        .step-bar {
+            display: flex;
+            align-items: center;
+            padding: 0.85rem 1.4rem;
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 12px;
+            margin-bottom: 1.4rem;
+        }
+        .step-item {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            flex: 1;
+        }
+        .step-dot {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .step-done   { background: #184e52; color: #ffffff; }
+        .step-active { background: #2f6f73; color: #ffffff;
+                       box-shadow: 0 0 0 3px rgba(47,111,115,0.18); }
+        .step-pending { background: #e8edf2; color: #8a9ab0;
+                        border: 1.5px solid #c8d4de; }
+        .step-text-done    { font-size: 0.83rem; font-weight: 600; color: #184e52; }
+        .step-text-active  { font-size: 0.83rem; font-weight: 700; color: #102a43; }
+        .step-text-pending { font-size: 0.83rem; color: #8a9ab0; }
+        .step-connector {
+            height: 2px; width: 40px;
+            background: #dbe3ea;
+            flex-shrink: 0;
+            margin: 0 0.3rem;
+        }
+        .conn-done { background: #184e52; }
+
+        /* ── Mode selector (targets Streamlit radio widget) ── */
+        div[data-testid="stRadio"] {
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 10px;
+            padding: 0.75rem 1rem 0.65rem 1rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Result section label ────────────────────── */
+        .section-label {
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #52616b;
+            margin: 1rem 0 0.4rem 0;
+        }
+
+        /* ── Top prediction card ─────────────────────── */
+        .top-pred-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #2f6f73;
+            border-radius: 10px;
+            padding: 1rem 1.1rem 0.85rem 1.1rem;
+            background: #f4faf9;
+        }
+        .top-pred-header {
+            display: flex;
+            align-items: baseline;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+        .top-pred-label {
+            font-size: 1.08rem;
+            font-weight: 700;
+            color: #102a43;
+        }
+        .top-pred-note {
+            font-size: 0.78rem;
+            color: #52616b;
+            margin: 0.3rem 0 0 0;
+        }
+
+        /* ── Confidence badge ────────────────────────── */
+        .conf-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-size: 0.83rem;
+            font-weight: 700;
+        }
+        .conf-high    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+        .conf-medium  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+        .conf-low     { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+        .conf-unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+
+        /* ── Uncertainty badge ───────────────────────── */
+        .unc-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+        .unc-high   { background: #d1fae5; color: #065f46; }
+        .unc-medium { background: #fef3c7; color: #92400e; }
+        .unc-low    { background: #fee2e2; color: #991b1b; }
+        .unc-explanation {
+            font-size: 0.87rem;
+            color: #425466;
+            margin: 0.4rem 0 0 0;
+            line-height: 1.45;
+        }
+
+        /* ── Low-certainty warning card ──────────────── */
+        .low-certainty-card {
+            display: flex;
+            gap: 0.7rem;
+            align-items: flex-start;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-left: 4px solid #f59e0b;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin: 0.75rem 0;
+            font-size: 0.87rem;
+            color: #78350f;
+            line-height: 1.5;
+        }
+        .low-certainty-marker {
+            font-size: 0.78rem;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 0.1rem;
+            background: #f59e0b;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Prediction list ─────────────────────────── */
+        .pred-list { margin: 0.2rem 0 0.5rem 0; }
+        .pred-row {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.45rem 0;
+            border-bottom: 1px solid #f0f4f7;
+            font-size: 0.87rem;
+        }
+        .pred-row:last-child { border-bottom: none; }
+        .pred-rank {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e8edf2;
+            color: #52616b;
+            font-size: 0.73rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .pred-label-text {
+            flex: 1;
+            color: #102a43;
+            font-weight: 500;
+            min-width: 0;
+        }
+        .pred-bar-outer {
+            width: 72px;
+            height: 5px;
+            background: #e8edf2;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .pred-bar-inner {
+            height: 100%;
+            background: #2f6f73;
+            border-radius: 4px;
+        }
+        .pred-conf-text {
+            width: 50px;
+            text-align: right;
+            color: #52616b;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        /* ── Next step card ──────────────────────────── */
+        .next-step-card {
+            background: #f4f9f8;
+            border: 1px solid #b9ded8;
+            border-radius: 10px;
+            padding: 0.85rem 1rem;
+            margin-top: 1rem;
+        }
+        .next-step-text {
+            color: #1f3f46;
+            font-size: 0.9rem;
+            margin: 0.25rem 0 0 0;
+            line-height: 1.5;
+        }
+
+        /* ── Context summary card ───────────────────────── */
+        .context-summary-card {
+            background: #f8fafc;
+            border: 1px solid #dbe3ea;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin: 0.75rem 0 0.5rem 0;
+        }
+        .ctx-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.3rem;
+        }
+        .ctx-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            background: #e8f4f3;
+            border: 1px solid #b9ded8;
+            border-radius: 6px;
+            padding: 0.18rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        .ctx-tag-label {
+            color: #52616b;
+            font-weight: 600;
+        }
+        .ctx-tag-value {
+            color: #184e52;
+        }
+
+        /* ── Staged loading messages ─────────────────── */
+        .loading-stage-msg {
+            padding: 0.35rem 0.7rem;
+            background: #f4f9f8;
+            border-left: 3px solid #2f6f73;
+            border-radius: 0 6px 6px 0;
+            color: #1f3f46;
+            font-size: 0.87rem;
+            margin: 0.25rem 0;
+        }
+
+        /* ── Prompt export card ──────────────────────── */
+        .prompt-export-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #184e52;
+            border-radius: 10px;
+            padding: 1rem 1.1rem 1rem 1.1rem;
+            background: #f4faf9;
+            margin-bottom: 1rem;
+            min-height: 160px;
+        }
+
+        /* ── Learner rating card ─────────────────────── */
+        .rating-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #2f6f73;
+            border-radius: 10px;
+            padding: 1rem 1.1rem;
+            background: #f4faf9;
+            margin-top: 1rem;
+        }
+        .rating-disclaimer {
+            font-size: 0.82rem;
+            color: #52616b;
+            font-style: italic;
+            margin: 0.6rem 0 0 0;
+            border-top: 1px solid #d0e8e5;
+            padding-top: 0.5rem;
+        }
+
+        /* ── Dermoscopic follow-up card ──────────────── */
+        .followup-card {
+            border: 1px solid #b9ded8;
+            border-left: 4px solid #2f6f73;
+            border-radius: 10px;
+            padding: 0.9rem 1.1rem;
+            background: #f4faf9;
+            margin-top: 1.5rem;
+        }
+        .followup-card-text {
+            color: #1f3f46;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            margin: 0.3rem 0 0.5rem 0;
+        }
+
+        /* ── Upload section divider ──────────────────── */
+        .upload-divider {
+            border: none;
+            border-top: 1px dashed #dbe3ea;
+            margin: 1.2rem 0;
+        }
+
+        /* ── Safety footer ───────────────────────────── */
+        .safety-footer {
+            margin-top: 2rem;
+            padding: 1rem 1.2rem;
+            border: 1px solid #dbe3ea;
+            border-top: 3px solid #2f6f73;
+            border-radius: 0 0 10px 10px;
+            background: #f4f9f8;
+            color: #1f3f46;
+            font-size: 0.87rem;
+            line-height: 1.6;
         }
         </style>
         """,
@@ -155,10 +579,10 @@ def render_header() -> None:
     st.markdown(
         """
         <div class="hero">
-          <div class="status-pill">Prototype app shell</div>
+          <div class="status-pill">Prototype</div>
           <h1>Revela</h1>
-          <p><strong>Educational AI skin-image training aid</strong></p>
-          <p>Explore structured skin-image review with transparent model outputs, confidence framing, and prototype evaluation metrics.</p>
+          <p class="hero-subtitle">Educational dermatology AI training aid</p>
+          <p class="hero-tagline">Structured image review for learning. Model output, not diagnosis.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -170,6 +594,945 @@ def render_header() -> None:
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def render_step_indicator(current_step: int) -> None:
+    def _dot(step: int) -> tuple[str, str]:
+        if step < current_step:
+            return "step-done", "&#10003;"
+        if step == current_step:
+            return "step-active", str(step)
+        return "step-pending", str(step)
+
+    def _label_class(step: int) -> str:
+        if step < current_step:
+            return "step-text-done"
+        if step == current_step:
+            return "step-text-active"
+        return "step-text-pending"
+
+    def _connector_class(after_step: int) -> str:
+        return "step-connector conn-done" if after_step < current_step else "step-connector"
+
+    steps = [
+        (1, "Choose image type"),
+        (2, "Upload image"),
+        (3, "Learning context"),
+        (4, "Review model output"),
+    ]
+
+    parts: list[str] = []
+    for i, (num, label) in enumerate(steps):
+        dot_class, dot_text = _dot(num)
+        lbl_class = _label_class(num)
+        parts.append(
+            f'<div class="step-item">'
+            f'<div class="step-dot {dot_class}">{dot_text}</div>'
+            f'<span class="{lbl_class}">{label}</span>'
+            f'</div>'
+        )
+        if i < len(steps) - 1:
+            parts.append(f'<div class="{_connector_class(num)}"></div>')
+
+    st.markdown(
+        f'<div class="step-bar">{"".join(parts)}</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def render_analyze_tab() -> None:
+    initialize_analysis_state()
+    status = st.session_state.analysis_status
+
+    if status in ("complete", "error", "running"):
+        _step = 4
+    elif st.session_state.get("file_uploaded", False):
+        _step = 3
+    else:
+        _step = 2
+    render_step_indicator(_step)
+
+    case_type = st.radio(
+        "Choose image type",
+        _CASE_TYPES,
+        horizontal=True,
+        key="case_type_radio",
+        on_change=reset_analysis_state,
+    )
+
+    if status == "complete":
+        _col, _ = st.columns([1, 5])
+        with _col:
+            if st.button("Start over"):
+                reset_analysis_state()
+                st.rerun()
+        render_final_result_screen(case_type)
+        render_safety_footer()
+        return
+
+    left, right = st.columns([0.95, 1.05], gap="large")
+
+    uploaded_image: Image.Image | None = None
+    has_image_error = False
+    upload_valid = False
+
+    with left:
+        if case_type == "Clinical photo":
+            uploaded_image, img_err, upload_valid = render_upload_card(
+                label="Clinical / macroscopic photo",
+                upload_key="upload_clinical",
+                preview_caption="Clinical photo preview",
+                mode_note=(
+                    "Regular camera photo of visible skin condition. "
+                    "Not dermoscopic, not microscope, not highly magnified."
+                ),
+            )
+        else:
+            uploaded_image, img_err, upload_valid = render_upload_card(
+                label="Dermoscopic / close-up lesion image",
+                upload_key="upload_dermoscopic",
+                preview_caption="Dermoscopic image preview",
+                mode_note=(
+                    "Dermoscopic or magnified lesion image. "
+                    "Not a regular clinical photo. Model output is not diagnosis."
+                ),
+            )
+
+        if img_err:
+            has_image_error = True
+
+        st.session_state.file_uploaded = upload_valid and not has_image_error
+
+        if upload_valid and not has_image_error:
+            render_learner_context_form()
+            render_context_summary_card()
+
+        if st.button(
+            "Analyze case",
+            disabled=not upload_valid or has_image_error or status == "running",
+        ):
+            start_analysis()
+            st.rerun()
+
+    with right:
+        render_right_panel(
+            case_type=case_type,
+            upload_valid=upload_valid,
+            has_image_error=has_image_error,
+            uploaded_image=uploaded_image,
+        )
+
+    render_safety_footer()
+
+
+def get_mode_config(input_mode: str) -> dict[str, str | int]:
+    if input_mode == "Dermoscopic image":
+        return {
+            "input_mode": input_mode,
+            "model_id": "dermoscopic_cancer_risk_bcn_mnh_v1",
+            "top_k": 4,
+            "result_heading": "Educational Dermoscopic Review Output",
+            "top_outputs_heading": "Top-4 Outputs",
+            "result_note": (
+                "Model output, not diagnosis. Review by a qualified clinician is required for real decisions."
+            ),
+        }
+
+    return {
+        "input_mode": input_mode,
+        "model_id": "clinical_skin_condition_v1",
+        "top_k": 3,
+        "result_heading": "Educational Model Output",
+        "top_outputs_heading": "Top-3 Outputs",
+        "result_note": "Model output, not diagnosis.",
+    }
+
+
+def initialize_analysis_state() -> None:
+    if "analysis_status" not in st.session_state:
+        st.session_state.analysis_status = "idle"
+    if "analysis_results" not in st.session_state:
+        st.session_state.analysis_results = {}
+    if "analysis_error" not in st.session_state:
+        st.session_state.analysis_error = None
+    if "file_uploaded" not in st.session_state:
+        st.session_state.file_uploaded = False
+    if "learner_context" not in st.session_state:
+        st.session_state.learner_context = {}
+    if "learner_rating" not in st.session_state:
+        st.session_state.learner_rating = {}
+    if "dermoscopic_followup_status" not in st.session_state:
+        st.session_state.dermoscopic_followup_status = "idle"
+
+
+def reset_analysis_state() -> None:
+    st.session_state.analysis_status = "idle"
+    st.session_state.analysis_results = {}
+    st.session_state.analysis_error = None
+    st.session_state.file_uploaded = False
+    st.session_state.dermoscopic_followup_status = "idle"
+    for key in list(st.session_state.keys()):
+        if key.startswith("ctx_") or key.startswith("lrt_"):
+            del st.session_state[key]
+    st.session_state.learner_context = {}
+    st.session_state.learner_rating = {}
+
+
+def reset_followup_state() -> None:
+    """Reset only the dermoscopic follow-up without clearing the clinical result."""
+    st.session_state.dermoscopic_followup_status = "idle"
+    results = dict(st.session_state.get("analysis_results", {}))
+    results.pop("dermoscopic", None)
+    st.session_state.analysis_results = results
+
+
+def start_analysis() -> None:
+    st.session_state.analysis_status = "running"
+    st.session_state.analysis_results = {}
+    st.session_state.analysis_error = None
+    st.session_state.dermoscopic_followup_status = "idle"
+    st.session_state.learner_context = _collect_learner_context()
+
+
+def complete_analysis(
+    case_type: str,
+    uploaded_image: Image.Image,
+) -> None:
+    is_clinical = case_type == "Clinical photo"
+
+    progress = st.progress(0, text="Starting analysis...")
+    with st.status("Running educational image analysis...", expanded=True) as status_widget:
+        st.write("Validating uploaded image")
+        progress.progress(20, text="Validating uploaded image")
+
+        st.write("Preparing model input")
+        progress.progress(40, text="Preparing model input")
+
+        if is_clinical:
+            st.write("Running clinical model inference")
+            progress.progress(60, text="Running clinical model inference")
+            try:
+                result = run_inference(
+                    model_id="clinical_skin_condition_v1",
+                    image_input=uploaded_image,
+                    top_k=3,
+                )
+            except Exception as error:
+                result = {
+                    "error": True,
+                    "error_code": "frontend_inference_error",
+                    "message": "Clinical model inference could not be prepared. Please try again.",
+                    "details": str(error),
+                }
+            results = {"clinical": result}
+        else:
+            st.write("Running dermoscopic model inference")
+            progress.progress(60, text="Running dermoscopic model inference")
+            try:
+                result = run_inference(
+                    model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
+                    image_input=uploaded_image,
+                    top_k=4,
+                )
+            except Exception as error:
+                result = {
+                    "error": True,
+                    "error_code": "frontend_inference_error",
+                    "message": "Dermoscopic model inference could not be prepared. Please try again.",
+                    "details": str(error),
+                }
+            results = {"dermoscopic": result}
+
+        st.write("Preparing uncertainty and safety output")
+        progress.progress(80, text="Preparing uncertainty and safety output")
+
+        st.write("Preparing learning prompt area")
+        progress.progress(95, text="Preparing learning prompt area")
+
+        st.session_state.analysis_results = results
+
+        if result.get("error") is True:
+            st.session_state.analysis_error = result
+            st.session_state.analysis_status = "error"
+            status_widget.update(label="Analysis error", state="error", expanded=True)
+        else:
+            st.session_state.analysis_status = "complete"
+            status_widget.update(label="Analysis complete", state="complete", expanded=False)
+
+    progress.progress(100, text="Complete")
+    st.rerun()
+
+
+def run_dermoscopic_followup(derm_image: Image.Image) -> None:
+    """Run dermoscopic inference as a sequential follow-up; merges result into analysis_results."""
+    progress = st.progress(0, text="Starting dermoscopic follow-up...")
+    with st.status("Running dermoscopic follow-up analysis...", expanded=True) as sw:
+        st.write("Preparing dermoscopic model input")
+        progress.progress(30, text="Preparing dermoscopic model input")
+
+        st.write("Running dermoscopic model inference")
+        progress.progress(60, text="Running dermoscopic model inference")
+
+        try:
+            response = run_inference(
+                model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
+                image_input=derm_image,
+                top_k=4,
+            )
+        except Exception as error:
+            response = {
+                "error": True,
+                "error_code": "frontend_inference_error",
+                "message": "Dermoscopic follow-up inference could not be prepared. Please try again.",
+                "details": str(error),
+            }
+
+        st.write("Preparing output")
+        progress.progress(90, text="Preparing output")
+
+        results = dict(st.session_state.get("analysis_results", {}))
+        results["dermoscopic"] = response
+        st.session_state.analysis_results = results
+
+        if response.get("error") is True:
+            st.session_state.dermoscopic_followup_status = "error"
+            sw.update(label="Dermoscopic follow-up error", state="error", expanded=True)
+        else:
+            st.session_state.dermoscopic_followup_status = "complete"
+            sw.update(label="Dermoscopic follow-up complete", state="complete", expanded=False)
+
+    progress.progress(100, text="Complete")
+    st.rerun()
+
+
+def render_upload_card(
+    label: str,
+    upload_key: str,
+    preview_caption: str,
+    mode_note: str,
+    on_change=None,
+) -> tuple[Image.Image | None, str | None, bool]:
+    st.markdown(
+        f'<div class="section-label" style="margin-top:0.4rem">{label}</div>',
+        unsafe_allow_html=True,
+    )
+    cb = on_change if on_change is not None else reset_analysis_state
+    uploaded_file = st.file_uploader(
+        label,
+        type=["jpg", "jpeg", "png", "webp"],
+        help="Accepted formats: JPG, JPEG, PNG, WEBP.",
+        key=upload_key,
+        on_change=cb,
+        label_visibility="collapsed",
+    )
+    st.caption(mode_note)
+
+    if uploaded_file is None:
+        return None, None, False
+
+    try:
+        image = load_uploaded_image(uploaded_file)
+        st.image(image, caption=preview_caption, use_container_width=True)
+        render_upload_metadata(uploaded_file, image)
+        return image, None, True
+    except (UnidentifiedImageError, OSError):
+        st.error(
+            "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
+        )
+        return None, "invalid_image", False
+
+
+def render_right_panel(
+    case_type: str,
+    upload_valid: bool,
+    has_image_error: bool,
+    uploaded_image: Image.Image | None,
+) -> None:
+    st.markdown("#### Result")
+
+    if has_image_error:
+        st.markdown(
+            """
+            <div class="card">
+              <h3>Preview unavailable</h3>
+              <p>Please choose a different supported image file. No model inference has been run.</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if not upload_valid:
+        waiting_text = (
+            "Upload a clinical photo to prepare structured educational model output."
+            if case_type == "Clinical photo"
+            else "Upload a dermoscopic image to prepare educational dermoscopic review output."
+        )
+        st.markdown(
+            f"""
+            <div class="card">
+              <h3>Waiting for image</h3>
+              <p>{waiting_text}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    if st.session_state.analysis_status == "running":
+        if uploaded_image is None:
+            st.session_state.analysis_error = {
+                "message": "The uploaded image is unavailable. Please upload a supported image and try again."
+            }
+            st.session_state.analysis_status = "error"
+            st.rerun()
+            return
+        complete_analysis(case_type, uploaded_image)
+        return
+
+    if st.session_state.analysis_status == "error":
+        render_analysis_error(st.session_state.analysis_error)
+        return
+
+    received_text = (
+        "Select Analyze case to prepare structured educational model output for this image."
+        if case_type == "Clinical photo"
+        else "Select Analyze case to prepare educational dermoscopic review output for this image."
+    )
+    st.markdown(
+        f"""
+        <div class="card">
+          <h3>Image received</h3>
+          <p>{received_text}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_dermoscopic_followup_panel() -> None:
+    """Render follow-up upload card and analysis button on the final result screen."""
+    followup_status = st.session_state.get("dermoscopic_followup_status", "idle")
+
+    st.markdown(
+        """
+        <div class="followup-card">
+          <div class="section-label" style="margin-top:0">Dermoscopic follow-up image recommended for this learning case</div>
+          <p class="followup-card-text">
+            The clinical model routed this case to lesion review. You can upload a dermoscopic
+            or close-up lesion image to continue the educational review.
+            Model output is not diagnosis. Qualified review is required for real decisions.
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    derm_image, derm_err, derm_valid = render_upload_card(
+        label="Dermoscopic / close-up lesion image",
+        upload_key="upload_followup_derm",
+        preview_caption="Dermoscopic follow-up preview",
+        mode_note=(
+            "Dermoscopic or magnified lesion image. "
+            "Not a regular clinical photo. Model output is not diagnosis."
+        ),
+        on_change=reset_followup_state,
+    )
+
+    if followup_status == "running":
+        if derm_image is not None:
+            run_dermoscopic_followup(derm_image)
+        else:
+            st.session_state.dermoscopic_followup_status = "idle"
+            st.rerun()
+        return
+
+    if followup_status == "error":
+        results = st.session_state.get("analysis_results", {})
+        render_analysis_error(results.get("dermoscopic"))
+
+    if st.button(
+        "Analyze dermoscopic follow-up",
+        disabled=not derm_valid or bool(derm_err) or followup_status == "running",
+    ):
+        st.session_state.dermoscopic_followup_status = "running"
+        st.rerun()
+
+
+def load_uploaded_image(uploaded_file) -> Image.Image:
+    uploaded_file.seek(0)
+    with Image.open(uploaded_file) as image:
+        rgb_image = image.convert("RGB")
+    uploaded_file.seek(0)
+    return rgb_image
+
+
+def render_upload_metadata(uploaded_file, image: Image.Image) -> None:
+    st.markdown("##### Uploaded file")
+    name_col, type_col = st.columns(2)
+    with name_col:
+        st.metric("Filename", uploaded_file.name)
+    with type_col:
+        st.metric("File type", uploaded_file.type or "Unknown")
+
+    size_col, dimension_col = st.columns(2)
+    with size_col:
+        st.metric("File size", format_file_size(uploaded_file.size))
+    with dimension_col:
+        st.metric("Dimensions", f"{image.width} × {image.height}px")
+
+
+def format_file_size(num_bytes: int) -> str:
+    if num_bytes < 1024 * 1024:
+        return f"{num_bytes / 1024:.1f} KB"
+    return f"{num_bytes / (1024 * 1024):.2f} MB"
+
+
+def render_analysis_result(response: dict | None, mode_config: dict[str, str | int]) -> None:
+    if not response:
+        render_analysis_error({"message": "No analysis result is available. Please try again."})
+        return
+
+    top_prediction = response.get("top_prediction") or {}
+    uncertainty = response.get("uncertainty") or {}
+    predictions = response.get("predictions") or []
+
+    label = top_prediction.get("label", "Unavailable")
+    conf_pct = top_prediction.get("confidence_percent")
+    conf_str = format_percent(conf_pct)
+    conf_class = _confidence_color_class(conf_pct)
+
+    st.markdown(
+        f"""
+        <div class="section-label">{mode_config["result_heading"]}</div>
+        <div class="top-pred-card">
+          <div class="top-pred-header">
+            <span class="top-pred-label">{label}</span>
+            <span class="conf-badge {conf_class}">{conf_str}</span>
+          </div>
+          <p class="top-pred-note">Rank 1 output &mdash; {mode_config["result_note"]}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    unc_bucket = uncertainty.get("bucket", "")
+    unc_label = uncertainty.get("label", "Unavailable")
+    unc_explanation = uncertainty.get("explanation", "No uncertainty explanation returned.")
+    unc_class = _uncertainty_class(unc_bucket)
+
+    st.markdown(
+        f"""
+        <div class="section-label">Uncertainty</div>
+        <span class="unc-badge {unc_class}">{unc_label}</span>
+        <p class="unc-explanation">{unc_explanation}</p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if response.get("low_certainty") is True:
+        msg = response.get(
+            "low_certainty_message",
+            "The model output is uncertain. Use this only for educational review. "
+            "This is not a diagnosis and does not recommend treatment.",
+        )
+        reason = response.get("low_certainty_reason") or ""
+        reason_html = f"<br><small style='opacity:0.8'>{reason}</small>" if reason else ""
+        st.markdown(
+            f"""
+            <div class="low-certainty-card">
+              <div class="low-certainty-marker">!</div>
+              <div><strong>Low certainty</strong><br>{msg}{reason_html}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        f'<div class="section-label">{mode_config["top_outputs_heading"]}</div>',
+        unsafe_allow_html=True,
+    )
+    if predictions:
+        rows_html = ""
+        for pred in predictions[: int(mode_config["top_k"])]:
+            pred_label = pred.get("label", "Unavailable")
+            pred_conf_pct = pred.get("confidence_percent")
+            pred_conf_str = format_percent(pred_conf_pct)
+            bar_width = min(
+                max(float(pred_conf_pct) if isinstance(pred_conf_pct, (int, float)) else 0, 0),
+                100,
+            )
+            rank = pred.get("rank", "")
+            rows_html += (
+                f'<div class="pred-row">'
+                f'<span class="pred-rank">{rank}</span>'
+                f'<span class="pred-label-text">{pred_label}</span>'
+                f'<div class="pred-bar-outer">'
+                f'<div class="pred-bar-inner" style="width:{bar_width:.1f}%"></div>'
+                f'</div>'
+                f'<span class="pred-conf-text">{pred_conf_str}</span>'
+                f'</div>'
+            )
+        st.markdown(f'<div class="pred-list">{rows_html}</div>', unsafe_allow_html=True)
+    else:
+        st.write("No ranked outputs were returned.")
+
+    st.markdown('<div class="section-label">Safety Note</div>', unsafe_allow_html=True)
+    st.info(response.get("safety_note", "No safety note returned."))
+
+    limitations = response.get("model_limitations") or []
+    if limitations:
+        with st.expander("Model limitations", expanded=False):
+            for limitation in limitations:
+                st.markdown(f"- {limitation}")
+
+    next_step = response.get("recommended_next_step")
+    if next_step:
+        st.markdown(
+            f"""
+            <div class="next-step-card">
+              <div class="section-label" style="margin-top:0">Recommended next step</div>
+              <p class="next-step-text">{next_step}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+
+def _confidence_color_class(conf_pct: object) -> str:
+    if not isinstance(conf_pct, (int, float)):
+        return "conf-unknown"
+    if conf_pct >= 70.0:
+        return "conf-high"
+    if conf_pct >= 40.0:
+        return "conf-medium"
+    return "conf-low"
+
+
+def _uncertainty_class(bucket: str) -> str:
+    if bucket == "high_confidence":
+        return "unc-high"
+    if bucket == "medium_confidence":
+        return "unc-medium"
+    return "unc-low"
+
+
+def render_analysis_error(error_response: dict | None) -> None:
+    error_response = error_response or {}
+    message = error_response.get(
+        "message",
+        "The educational image review could not be prepared. Please try again.",
+    )
+    st.error(message)
+    if error_response.get("error_code"):
+        st.caption(f"Adapter error code: {error_response['error_code']}")
+
+
+def format_percent(value: object) -> str:
+    if isinstance(value, (int, float)):
+        return f"{value:.2f}%"
+    return "Unavailable"
+
+
+def render_safety_footer() -> None:
+    st.markdown(
+        """
+        <div class="safety-footer">
+          <strong>Prototype educational output only.</strong>
+          This is not a diagnosis and does not recommend treatment.
+          Confidence is model confidence, not clinical certainty.
+          Qualified review is required for real decisions.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _collect_learner_context() -> dict[str, str]:
+    return {
+        "body_location": st.session_state.get("ctx_body_location", "not provided"),
+        "duration": st.session_state.get("ctx_duration", "not provided"),
+        "itching": st.session_state.get("ctx_itching", "not provided"),
+        "pain_tenderness": st.session_state.get("ctx_pain_tenderness", "not provided"),
+        "change_over_time": st.session_state.get("ctx_change_over_time", "not provided"),
+        "bleeding_crusting_discharge": st.session_state.get(
+            "ctx_bleeding_crusting_discharge", "not provided"
+        ),
+        "prior_episodes": st.session_state.get("ctx_prior_episodes", "not provided"),
+        "image_quality_concern": st.session_state.get("ctx_image_quality_concern", "not provided"),
+        "learner_note": st.session_state.get("ctx_learner_note", "").strip(),
+    }
+
+
+def render_learner_context_form() -> None:
+    with st.expander("Learning context (optional)", expanded=True):
+        st.caption(
+            "Optional context for educational discussion. "
+            "This information is not used by the image model."
+        )
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.selectbox(
+                "Body location / anatomical site",
+                options=_CONTEXT_OPTIONS["body_location"],
+                key="ctx_body_location",
+            )
+            st.selectbox(
+                "Duration",
+                options=_CONTEXT_OPTIONS["duration"],
+                key="ctx_duration",
+            )
+            st.selectbox(
+                "Itching",
+                options=_CONTEXT_OPTIONS["itching"],
+                key="ctx_itching",
+            )
+            st.selectbox(
+                "Pain / tenderness",
+                options=_CONTEXT_OPTIONS["pain_tenderness"],
+                key="ctx_pain_tenderness",
+            )
+        with col_b:
+            st.selectbox(
+                "Change over time / spreading",
+                options=_CONTEXT_OPTIONS["change_over_time"],
+                key="ctx_change_over_time",
+            )
+            st.selectbox(
+                "Bleeding / crusting / discharge",
+                options=_CONTEXT_OPTIONS["bleeding_crusting_discharge"],
+                key="ctx_bleeding_crusting_discharge",
+            )
+            st.selectbox(
+                "Prior similar episodes",
+                options=_CONTEXT_OPTIONS["prior_episodes"],
+                key="ctx_prior_episodes",
+            )
+            st.selectbox(
+                "Image quality concern",
+                options=_CONTEXT_OPTIONS["image_quality_concern"],
+                key="ctx_image_quality_concern",
+            )
+        st.text_area(
+            "Learner note (optional)",
+            placeholder=(
+                "Optional: add any context you would share in an educational discussion of this case."
+            ),
+            key="ctx_learner_note",
+            height=80,
+        )
+
+
+def render_context_summary_card() -> None:
+    ctx = _collect_learner_context()
+    filled = {
+        _CONTEXT_LABELS[k]: v
+        for k, v in ctx.items()
+        if k in _CONTEXT_LABELS and k != "learner_note" and v != "not provided"
+    }
+    note = ctx.get("learner_note", "")
+
+    if not filled and not note:
+        st.caption("No learning context added yet. Context is optional.")
+        return
+
+    tags_html = ""
+    for label, value in filled.items():
+        tags_html += (
+            f'<span class="ctx-tag">'
+            f'<span class="ctx-tag-label">{label}:</span>'
+            f'<span class="ctx-tag-value">{value}</span>'
+            f'</span>'
+        )
+    if note:
+        truncated = note[:60] + ("..." if len(note) > 60 else "")
+        tags_html += (
+            f'<span class="ctx-tag">'
+            f'<span class="ctx-tag-label">Note:</span>'
+            f'<span class="ctx-tag-value">{truncated}</span>'
+            f'</span>'
+        )
+
+    st.markdown(
+        f"""
+        <div class="context-summary-card">
+          <div class="section-label" style="margin-top:0">Context for prompt export</div>
+          <div class="ctx-tags">{tags_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_result_context_summary(ctx: dict[str, str]) -> None:
+    has_any = any(v and v != "not provided" for k, v in ctx.items())
+    with st.expander("Learning context (collected for prompt export)", expanded=False):
+        st.caption(
+            "This context will be used to build a ChatGPT/Claude prompt export in a later step. "
+            "It was not used as input to the image model."
+        )
+        if has_any:
+            for key, label in _CONTEXT_LABELS.items():
+                val = ctx.get(key, "")
+                if val and val != "not provided":
+                    st.markdown(f"- **{label}:** {val}")
+        else:
+            st.caption("No context was provided for this analysis.")
+
+
+def render_final_result_screen(case_type: str) -> None:
+    results = st.session_state.get("analysis_results", {})
+    clinical_response = results.get("clinical")
+    derm_response = results.get("dermoscopic")
+    is_lesion_routing = _clinical_top_is_lesion_routing(clinical_response)
+    has_derm_result = bool(derm_response)
+
+    result_col, prompt_col = st.columns([1, 1], gap="large")
+
+    with result_col:
+        if case_type == "Dermoscopic image":
+            st.markdown("#### Revela model result")
+            if derm_response and not derm_response.get("error"):
+                render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
+            else:
+                render_analysis_error(derm_response)
+
+        elif has_derm_result:
+            # Clinical result with dermoscopic follow-up completed
+            st.markdown("#### Revela model results")
+            st.markdown("**Clinical model output**")
+            if clinical_response and not clinical_response.get("error"):
+                render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
+            else:
+                render_analysis_error(clinical_response)
+            st.markdown("---")
+            st.markdown("**Dermoscopic follow-up output**")
+            if derm_response and not derm_response.get("error"):
+                render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
+            else:
+                render_analysis_error(derm_response)
+
+        else:
+            # Clinical result only (follow-up may be offered below)
+            st.markdown("#### Revela model result")
+            if clinical_response and not clinical_response.get("error"):
+                render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
+            else:
+                render_analysis_error(clinical_response)
+
+            if is_lesion_routing:
+                render_dermoscopic_followup_panel()
+
+    with prompt_col:
+        st.markdown("#### Continue in ChatGPT / Claude")
+        render_prompt_export()
+        _render_result_context_summary(st.session_state.get("learner_context", {}))
+
+        if is_lesion_routing:
+            render_learner_rating_form()
+
+
+def _clinical_top_is_lesion_routing(clinical_response: dict | None) -> bool:
+    if not clinical_response or clinical_response.get("error"):
+        return False
+    top = clinical_response.get("top_prediction") or {}
+    return top.get("label") == LESION_ROUTING_LABEL
+
+
+def render_learner_rating_form() -> None:
+    with st.expander("Learner reflection — lesion routing flagged", expanded=True):
+        st.caption(
+            "The clinical model output suggests dermoscopic review. "
+            "This learning reflection is optional and does not change model output. "
+            "Confidence is model confidence, not clinical certainty."
+        )
+
+        st.slider(
+            "Educational concern level (1 = low concern, 5 = high concern)",
+            min_value=1,
+            max_value=5,
+            value=3,
+            step=1,
+            key="lrt_concern",
+        )
+
+        st.radio(
+            "Would you prioritize dermoscopic review for this case?",
+            options=["yes", "no", "unsure"],
+            index=2,
+            key="lrt_prioritize",
+            horizontal=True,
+        )
+
+        st.text_area(
+            "Visible cues that influenced your rating (optional)",
+            key="lrt_cues",
+            height=80,
+            placeholder=(
+                "Describe any features you noticed that informed your rating, "
+                "for educational discussion only."
+            ),
+        )
+
+        st.markdown(
+            """
+            <p class="rating-disclaimer">
+            This is a learning reflection, not a diagnosis.
+            The rating does not change model output.
+            Qualified review is required for real decisions.
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        st.session_state.learner_rating = {
+            "concern": st.session_state.get("lrt_concern", 3),
+            "prioritize_dermoscopy": st.session_state.get("lrt_prioritize", "unsure"),
+            "visible_cues": st.session_state.get("lrt_cues", "").strip(),
+        }
+
+
+def render_prompt_export() -> None:
+    results = st.session_state.get("analysis_results", {})
+    clinical_response = results.get("clinical")
+    derm_response = results.get("dermoscopic")
+    learner_context = st.session_state.get("learner_context") or None
+    learner_rating = st.session_state.get("learner_rating") or None
+
+    has_clinical = bool(clinical_response and not (clinical_response or {}).get("error"))
+    has_derm = bool(derm_response and not (derm_response or {}).get("error"))
+
+    if has_clinical and has_derm:
+        prompt_case_type = "Paired clinical + dermoscopic case"
+    elif has_derm:
+        prompt_case_type = "Dermoscopic image only"
+    else:
+        prompt_case_type = "Clinical photo only"
+
+    prompt = build_llm_transfer_prompt(
+        case_type=prompt_case_type,
+        clinical_response=clinical_response,
+        dermoscopic_response=derm_response,
+        learner_context=learner_context,
+        learner_rating=learner_rating,
+    )
+
+    st.caption(
+        "Copy this prompt into ChatGPT or Claude to continue the case "
+        "as an educational reasoning exercise."
+    )
+    st.text_area(
+        "Generated prompt",
+        value=prompt,
+        height=400,
+        label_visibility="collapsed",
+    )
+    st.download_button(
+        label="Download prompt (.txt)",
+        data=prompt,
+        file_name="revela_case_prompt.txt",
+        mime="text/plain",
     )
 
 
@@ -209,343 +1572,6 @@ def render_overview_tab() -> None:
             "Dermoscopic mode",
             "The improved dermoscopic model is available for educational local inference.",
         )
-
-
-def render_analyze_tab() -> None:
-    st.subheader("Analyze Image")
-    st.caption("Clinical-photo and dermoscopic modes use local educational inference adapters.")
-    initialize_analysis_state()
-
-    input_mode = st.radio(
-        "Choose image type",
-        ["Clinical photo", "Dermoscopic image"],
-        horizontal=True,
-        on_change=reset_analysis_state,
-    )
-    mode_config = get_mode_config(input_mode)
-
-    left, right = st.columns([0.95, 1.05], gap="large")
-    uploaded_image = None
-    image_error = None
-    valid_image_uploaded = False
-
-    with left:
-        uploaded_file = st.file_uploader(
-            mode_config["upload_label"],
-            type=["jpg", "jpeg", "png", "webp"],
-            help="Accepted formats: JPG, JPEG, PNG, WEBP.",
-            key=f"upload_{mode_config['input_mode']}",
-            on_change=reset_analysis_state,
-        )
-        st.info(mode_config["mode_note"])
-
-        if uploaded_file is None:
-            render_empty_upload_state(mode_config)
-        else:
-            try:
-                uploaded_image = load_uploaded_image(uploaded_file)
-                valid_image_uploaded = True
-                st.image(
-                    uploaded_image,
-                    caption=mode_config["preview_caption"],
-                    use_container_width=True,
-                )
-                render_upload_metadata(uploaded_file, uploaded_image)
-            except (UnidentifiedImageError, OSError):
-                image_error = (
-                    "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
-                )
-                st.error(image_error)
-
-        if st.button(
-            "Analyze case",
-            disabled=not valid_image_uploaded
-            or st.session_state.analysis_status == "running",
-        ):
-            start_analysis()
-            st.rerun()
-
-    with right:
-        st.markdown("#### Result Preview")
-        render_result_panel(
-            mode_config=mode_config,
-            has_upload=uploaded_file is not None,
-            image_error=image_error,
-            uploaded_image=uploaded_image,
-        )
-
-
-def get_mode_config(input_mode: str) -> dict[str, str | int]:
-    if input_mode == "Dermoscopic image":
-        return {
-            "input_mode": input_mode,
-            "model_id": "dermoscopic_cancer_risk_bcn_mnh_v1",
-            "top_k": 4,
-            "upload_label": "Upload a dermoscopic image",
-            "preview_caption": "Dermoscopic image preview",
-            "mode_note": (
-                "Dermoscopic mode shows educational dermoscopic review output from a local "
-                "prototype model. Model output is not diagnosis. Review by a qualified "
-                "clinician is required for real decisions."
-            ),
-            "waiting_text": (
-                "Upload a supported dermoscopic image to prepare educational dermoscopic review output."
-            ),
-            "received_text": (
-                "Select Analyze case to prepare educational dermoscopic review output for this image."
-            ),
-            "result_heading": "Educational Dermoscopic Review Output",
-            "top_outputs_heading": "Top-4 Outputs",
-            "result_note": (
-                "Model output, not diagnosis. Review by a qualified clinician is required for real decisions."
-            ),
-        }
-
-    return {
-        "input_mode": input_mode,
-        "model_id": "clinical_skin_condition_v1",
-        "top_k": 3,
-        "upload_label": "Upload a clinical photo",
-        "preview_caption": "Clinical photo preview",
-        "mode_note": (
-            "Clinical-photo mode runs a local prototype model and displays structured educational output."
-        ),
-        "waiting_text": (
-            "Upload a supported clinical photo to prepare structured educational model output."
-        ),
-        "received_text": (
-            "Select Analyze case to prepare structured educational model output for this image."
-        ),
-        "result_heading": "Educational Model Output",
-        "top_outputs_heading": "Top-3 Outputs",
-        "result_note": "Model output, not diagnosis.",
-    }
-
-
-def initialize_analysis_state() -> None:
-    if "analysis_status" not in st.session_state:
-        st.session_state.analysis_status = "idle"
-    if "analysis_result" not in st.session_state:
-        st.session_state.analysis_result = None
-    if "analysis_error" not in st.session_state:
-        st.session_state.analysis_error = None
-
-
-def reset_analysis_state() -> None:
-    st.session_state.analysis_status = "idle"
-    st.session_state.analysis_result = None
-    st.session_state.analysis_error = None
-
-
-def start_analysis() -> None:
-    st.session_state.analysis_status = "running"
-    st.session_state.analysis_result = None
-    st.session_state.analysis_error = None
-
-
-def complete_analysis(image: Image.Image, mode_config: dict[str, str | int]) -> None:
-    with st.spinner("Preparing educational image review..."):
-        try:
-            response = run_inference(
-                model_id=str(mode_config["model_id"]),
-                image_input=image,
-                top_k=int(mode_config["top_k"]),
-            )
-        except Exception as error:
-            response = {
-                "error": True,
-                "error_code": "frontend_inference_error",
-                "message": "The educational image review could not be prepared. Please try again.",
-                "details": str(error),
-            }
-
-        st.session_state.analysis_result = response
-
-        if response.get("error") is True:
-            st.session_state.analysis_error = response
-            st.session_state.analysis_status = "error"
-        else:
-            st.session_state.analysis_status = "complete"
-
-    st.rerun()
-
-
-def render_empty_upload_state(mode_config: dict[str, str | int]) -> None:
-    st.markdown(
-        f"""
-        <div class="card">
-          <h3>No image selected</h3>
-          <p>{mode_config["waiting_text"]}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def load_uploaded_image(uploaded_file) -> Image.Image:
-    uploaded_file.seek(0)
-    with Image.open(uploaded_file) as image:
-        rgb_image = image.convert("RGB")
-    uploaded_file.seek(0)
-    return rgb_image
-
-
-def render_upload_metadata(uploaded_file, image: Image.Image) -> None:
-    st.markdown("##### Uploaded file")
-    name_col, type_col = st.columns(2)
-    with name_col:
-        st.metric("Filename", uploaded_file.name)
-    with type_col:
-        st.metric("File type", uploaded_file.type or "Unknown")
-
-    size_col, dimension_col = st.columns(2)
-    with size_col:
-        st.metric("File size", format_file_size(uploaded_file.size))
-    with dimension_col:
-        st.metric("Dimensions", f"{image.width} × {image.height}px")
-
-
-def format_file_size(num_bytes: int) -> str:
-    if num_bytes < 1024 * 1024:
-        return f"{num_bytes / 1024:.1f} KB"
-    return f"{num_bytes / (1024 * 1024):.2f} MB"
-
-
-def render_result_panel(
-    mode_config: dict[str, str | int],
-    has_upload: bool,
-    image_error: str | None,
-    uploaded_image: Image.Image | None,
-) -> None:
-    if image_error is not None:
-        st.markdown(
-            """
-            <div class="card">
-              <h3>Preview unavailable</h3>
-              <p>Please choose a different supported image file. No model inference has been run.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    if not has_upload:
-        st.markdown(
-            f"""
-            <div class="card">
-              <h3>Waiting for image</h3>
-              <p>{mode_config["waiting_text"]}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        return
-
-    if st.session_state.analysis_status == "running":
-        if uploaded_image is None:
-            st.session_state.analysis_error = {
-                "message": "The uploaded image is unavailable. Please upload a supported image and try again."
-            }
-            st.session_state.analysis_status = "error"
-            st.rerun()
-            return
-        complete_analysis(uploaded_image, mode_config)
-        return
-
-    if st.session_state.analysis_status == "complete":
-        render_analysis_result(st.session_state.analysis_result, mode_config)
-        return
-
-    if st.session_state.analysis_status == "error":
-        render_analysis_error(st.session_state.analysis_error)
-        return
-
-    st.markdown(
-        f"""
-        <div class="card">
-          <h3>Image received</h3>
-          <p>{mode_config["received_text"]}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
-def render_analysis_result(response: dict | None, mode_config: dict[str, str | int]) -> None:
-    if not response:
-        render_analysis_error({"message": "No analysis result is available. Please try again."})
-        return
-
-    top_prediction = response.get("top_prediction") or {}
-    uncertainty = response.get("uncertainty") or {}
-    predictions = response.get("predictions") or []
-
-    st.markdown(f"##### {mode_config['result_heading']}")
-    st.caption(str(mode_config["result_note"]))
-    label_col, confidence_col = st.columns(2)
-    with label_col:
-        st.metric("Top output", top_prediction.get("label", "Unavailable"))
-    with confidence_col:
-        st.metric(
-            "Model confidence",
-            format_percent(top_prediction.get("confidence_percent")),
-        )
-
-    st.markdown("##### Uncertainty")
-    st.write(uncertainty.get("label", "Unavailable"))
-    st.caption(uncertainty.get("explanation", "No uncertainty explanation returned."))
-    if response.get("low_certainty") is True:
-        st.warning(
-            response.get(
-                "low_certainty_message",
-                "The model output is uncertain. Use this only for educational review. "
-                "Review the top outputs, image quality, and clinical context, and consider "
-                "additional image/context review. "
-                "This is not a diagnosis and does not recommend treatment.",
-            )
-        )
-        if response.get("low_certainty_reason"):
-            st.caption(response["low_certainty_reason"])
-
-    st.markdown(f"##### {mode_config['top_outputs_heading']}")
-    if predictions:
-        for index, prediction in enumerate(predictions[: int(mode_config["top_k"])], start=1):
-            label = prediction.get("label", "Unavailable")
-            confidence = format_percent(prediction.get("confidence_percent"))
-            st.write(f"{index}. {label} - {confidence}")
-    else:
-        st.write("No ranked outputs were returned.")
-
-    st.markdown("##### Safety Note")
-    st.info(response.get("safety_note", "No safety note returned."))
-
-    st.markdown("##### Model Limitations")
-    limitations = response.get("model_limitations") or []
-    if limitations:
-        for limitation in limitations:
-            st.markdown(f"- {limitation}")
-    else:
-        st.write("No model limitations returned.")
-
-    st.markdown("##### Recommended Next Step")
-    st.write(response.get("recommended_next_step", "No next-step guidance returned."))
-
-
-def render_analysis_error(error_response: dict | None) -> None:
-    error_response = error_response or {}
-    message = error_response.get(
-        "message",
-        "The educational image review could not be prepared. Please try again.",
-    )
-    st.error(message)
-    if error_response.get("error_code"):
-        st.caption(f"Adapter error code: {error_response['error_code']}")
-
-
-def format_percent(value: object) -> str:
-    if isinstance(value, (int, float)):
-        return f"{value:.2f}%"
-    return "Unavailable"
 
 
 def render_transparency_tab() -> None:

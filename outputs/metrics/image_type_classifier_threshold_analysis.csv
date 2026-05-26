@@ -1,0 +1,6 @@
+threshold,total,accepted_count,rejected_as_uncertain_or_unsupported_count,accepted_coverage,accepted_accuracy,accepted_macro_f1,wrong_accepted_clinical_to_dermoscopic,wrong_accepted_dermoscopic_to_clinical,rejected_correct_count,rejected_incorrect_count,notes
+0.7,4181,4179,2,0.999522,0.999521,0.999484,2,0,2,0,2 wrong accepted
+0.8,4181,4176,5,0.998804,0.999521,0.999484,2,0,5,0,2 wrong accepted
+0.85,4181,4174,7,0.998326,0.999521,0.999484,2,0,7,0,2 wrong accepted
+0.9,4181,4168,13,0.996891,0.99952,0.999483,2,0,13,0,2 wrong accepted
+0.95,4181,4151,30,0.992825,0.999759,0.99974,1,0,29,1,1 wrong accepted

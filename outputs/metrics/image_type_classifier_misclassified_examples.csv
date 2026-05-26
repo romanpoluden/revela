@@ -1,0 +1,3 @@
+image_path,source_dataset,true_image_type,predicted_image_type,confidence,clinical_macroscopic_probability,dermoscopic_probability,correct,width,height
+data/raw/fitzpatrick17k/images/f17773a2ee06fb5179ed0e56b7235c2a.jpg,fitzpatrick17k,clinical_macroscopic,dermoscopic,0.906446,0.093554,0.906446,False,653,848
+data/raw/fitzpatrick17k/images/c9a9e472488e0d3d62b1abda22bdec42.jpg,fitzpatrick17k,clinical_macroscopic,dermoscopic,0.986351,0.013649,0.986351,False,604,402

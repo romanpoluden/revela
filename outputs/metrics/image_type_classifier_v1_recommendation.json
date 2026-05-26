@@ -1,0 +1,74 @@
+{
+  "classifier": "image_type_classifier_v1",
+  "decision": "soft-gating candidate only / needs more data",
+  "ready_for_silent_routing": false,
+  "recommended_threshold": 0.9,
+  "stage1_dataset": {
+    "total_rows": 27658,
+    "clinical_macroscopic": 10019,
+    "dermoscopic": 17639,
+    "sources": {
+      "bcn20000": 17639,
+      "fitzpatrick17k": 6354,
+      "google_scin": 3665
+    },
+    "splits": {
+      "train": {"clinical_macroscopic": 6980, "dermoscopic": 12344},
+      "val": {"clinical_macroscopic": 1506, "dermoscopic": 2647},
+      "test": {"clinical_macroscopic": 1533, "dermoscopic": 2648}
+    }
+  },
+  "stage3_evaluation": {
+    "test_rows": 4181,
+    "accuracy": 0.9995,
+    "macro_f1": 0.9995,
+    "balanced_accuracy": 0.9993,
+    "false_clinical_to_dermoscopic": 2,
+    "false_dermoscopic_to_clinical": 0,
+    "confidence": {
+      "min": 0.5546,
+      "p5": 0.9953,
+      "median": 0.9998,
+      "p95": 1.0,
+      "max": 1.0
+    },
+    "threshold_analysis": [
+      {"threshold": 0.70, "coverage": 0.9995, "accuracy": 0.9995, "wrong_accepts": 2},
+      {"threshold": 0.80, "coverage": 0.9988, "accuracy": 0.9995, "wrong_accepts": 2},
+      {"threshold": 0.85, "coverage": 0.9983, "accuracy": 0.9995, "wrong_accepts": 2},
+      {"threshold": 0.90, "coverage": 0.9969, "accuracy": 0.9995, "wrong_accepts": 2},
+      {"threshold": 0.95, "coverage": 0.9928, "accuracy": 0.9998, "wrong_accepts": 1}
+    ],
+    "caveat": "One wrong-accepted misclassification had confidence ~0.986, exceeding even the 0.95 threshold. Thresholding alone cannot catch all wrong-routes."
+  },
+  "stage4_ood_rejection": {
+    "total_fixtures": 15,
+    "at_threshold_0_90": {
+      "validation_rejected": 9,
+      "threshold_rejected": 2,
+      "total_rejected": 11,
+      "total_rejected_rate": 0.7333,
+      "false_accepts": 4,
+      "false_accept_examples": [
+        {"fixture": "solid_green.jpg", "predicted": "clinical_macroscopic", "confidence": 0.937},
+        {"fixture": "random_noise.jpg", "predicted": "dermoscopic", "confidence": 1.0},
+        {"fixture": "underexposed_transformed.jpg", "predicted": "clinical_macroscopic", "confidence": 0.970},
+        {"fixture": "document_text_like.jpg", "predicted": "clinical_macroscopic", "confidence": 0.968}
+      ]
+    },
+    "caveat": "Programmatic fixtures only; real-world OOD distribution is broader. 3 of 4 false accepts exceed 0.95 confidence."
+  },
+  "recommended_integration": "D7.12 — Integrate image-type classifier as soft modality warning and confirmation gate",
+  "allowed_uses": [
+    "warn user when detected modality conflicts with selected mode",
+    "ask user to confirm before switching route",
+    "show confidence-based modality suggestion",
+    "reject clearly invalid files via validation checks"
+  ],
+  "disallowed_uses": [
+    "silent automatic routing without user confirmation",
+    "claiming robust unsupported-image detection",
+    "treating uncertain_or_unsupported as a clinically reliable output"
+  ],
+  "safety_statement": "This classifier predicts image modality only, not disease or risk. It does not provide diagnosis or treatment guidance."
+}

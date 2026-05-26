@@ -60,7 +60,7 @@ python3 -m src.model.train \
 
 Smoke-test result:
 
-<!-- Fill in after running -->
+Passed. Pipeline ran end-to-end: model loaded (EfficientNet-B0, MPS, 4 classes), 2 train batches + 2 val batches completed, best model saved. Image path fix applied — CSVs updated from `revela/BCN20000/` to `revela/Rehma_Revela/data/ISIC-images/`.
 
 ## Full Training Run
 
@@ -72,22 +72,33 @@ python3 -m src.model.train --config config/bcn20000_cancer_risk_config.yaml
 
 Training history:
 
-<!-- Fill in after training completes -->
-
 | Epoch | Train loss | Train acc | Val loss | Val acc | Val macro-F1 | Val bal. acc |
 |------:|-----------:|----------:|---------:|--------:|-------------:|-------------:|
+| 1 | 0.9434 | 62.71% | 0.8884 | 65.75% | 0.6445 | 65.64% |
+| 2 | 0.7695 | 69.37% | 0.8588 | 66.97% | 0.6606 | 66.49% |
+| 3 | 0.6678 | 74.55% | 0.8859 | 69.22% | 0.6768 | 67.75% |
+| 4 | 0.5911 | 77.36% | 0.8673 | 68.95% | 0.6813 | 68.52% |
+| 5 | 0.5198 | 80.68% | 0.9401 | 69.25% | 0.6787 | 68.28% |
+| **6** | **0.4454** | **83.61%** | **0.9895** | **70.09%** | **0.6924** | **69.42%** |
+| 7 | 0.3995 | 84.97% | 1.0091 | 67.39% | 0.6675 | 66.60% |
+| 8 | 0.3456 | 87.07% | 1.1550 | 69.86% | 0.6910 | 69.44% |
+| 9 | 0.3189 | 88.17% | 1.1390 | 66.48% | 0.6599 | 66.08% |
+| 10 | 0.2875 | 89.18% | 1.2279 | 67.54% | 0.6642 | 66.68% |
+
+Best epoch: **6** (Val macro-F1 0.6924, Val bal. acc 69.42%)
 
 ## Priority Metrics (Best Epoch)
 
-<!-- Fill in after training completes -->
+Per-class recall not captured in training loop — to be measured in #120 evaluation on test split.
 
 | Metric | Value |
 |--------|-------|
-| Val macro-F1 | — |
-| Melanoma recall | — |
-| Non-melanoma skin cancer recall | — |
-| Cancer / malignant recall | — |
-| Balanced accuracy | — |
+| Val macro-F1 (epoch 6) | 0.6924 |
+| Val balanced accuracy (epoch 6) | 69.42% |
+| Val accuracy (epoch 6) | 70.09% |
+| Melanoma recall | — (see #120) |
+| Non-melanoma skin cancer recall | — (see #120) |
+| Cancer / malignant recall | — (see #120) |
 
 ## Notes
 

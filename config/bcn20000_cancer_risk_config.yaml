@@ -1,6 +1,6 @@
 dataset:
   metadata_csv: revela/bcn20000_metadata_2026-05-11.csv
-  image_root: data/raw/bcn20000/images
+  image_root: revela/Rehma_Revela/data/ISIC-images
   output_dir: data/processed/bcn20000_cancer_risk
   summary_path: docs/model/bcn20000_cancer_risk_split_summary.md
   image_extension: .jpg

@@ -1,0 +1,78 @@
+{
+  "model_dir": "models/image_type_classifier_v1",
+  "checkpoint_path": "models/image_type_classifier_v1/best_model.pth",
+  "evaluated_split": "test",
+  "test_row_count": 4181,
+  "class_counts": {
+    "dermoscopic": 2648,
+    "clinical_macroscopic": 1533
+  },
+  "source_counts": {
+    "bcn20000": 2648,
+    "fitzpatrick17k": 991,
+    "google_scin": 542
+  },
+  "accuracy": 0.999522,
+  "macro_f1": 0.999485,
+  "balanced_accuracy": 0.999348,
+  "per_class": {
+    "clinical_macroscopic": {
+      "precision": 1.0,
+      "recall": 0.998695,
+      "f1": 0.999347
+    },
+    "dermoscopic": {
+      "precision": 0.999245,
+      "recall": 1.0,
+      "f1": 0.999622
+    }
+  },
+  "confusion_matrix": {
+    "true_clinical_pred_clinical": 1531,
+    "true_clinical_pred_dermoscopic": 2,
+    "true_dermoscopic_pred_clinical": 0,
+    "true_dermoscopic_pred_dermoscopic": 2648
+  },
+  "false_clinical_to_dermoscopic": 2,
+  "false_dermoscopic_to_clinical": 0,
+  "total_misclassified": 2,
+  "runtime_ms_per_image": 7.606,
+  "confidence_distribution_all": {
+    "min": 0.554616,
+    "p1": 0.968818,
+    "p5": 0.995309,
+    "p25": 0.999382,
+    "median": 0.999846,
+    "p75": 0.999974,
+    "p95": 1.0,
+    "p99": 1.0,
+    "max": 1.0,
+    "mean": 0.998079
+  },
+  "confidence_distribution_by_class": {
+    "clinical_macroscopic": {
+      "min": 0.554616,
+      "p1": 0.929966,
+      "p5": 0.991978,
+      "p25": 0.999726,
+      "median": 0.999982,
+      "p75": 0.999998,
+      "p95": 1.0,
+      "p99": 1.0,
+      "max": 1.0,
+      "mean": 0.997047
+    },
+    "dermoscopic": {
+      "min": 0.702265,
+      "p1": 0.984431,
+      "p5": 0.995821,
+      "p25": 0.999243,
+      "median": 0.999756,
+      "p75": 0.999917,
+      "p95": 0.999985,
+      "p99": 0.999995,
+      "max": 0.999999,
+      "mean": 0.998676
+    }
+  }
+}

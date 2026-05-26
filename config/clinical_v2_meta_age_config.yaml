@@ -1,0 +1,46 @@
+dataset:
+  name: clinical_v2
+  task: clinical_image_classification_with_lesion_routing
+  processed_dir: data/processed/clinical_v2
+  train_csv: data/processed/clinical_v2/train.csv
+  val_csv: data/processed/clinical_v2/val.csv
+  test_csv: data/processed/clinical_v2/test.csv
+  label_column: target_label
+  class_idx_column: class_idx
+  image_size: 224
+  num_classes: 5
+  class_names:
+  - Eczema / dermatitis
+  - Urticaria / allergic reaction
+  - Folliculitis / acne-like
+  - Psoriasis / papulosquamous
+  - Lesion — dermoscopic review recommended
+
+model:
+  architecture: efficientnet_b0
+  pretrained: true
+
+metadata:
+  logical_fields:
+  - age_group
+
+training:
+  batch_size: 16
+  epochs: 5
+  num_workers: 0
+  learning_rate: 0.0001
+  weight_decay: 0.01
+  use_class_weights: true
+  sampler:
+    mode: none
+    class_column: target_label
+    source_column: source_dataset
+    replacement: true
+  random_seed: 42
+  output_dir: models/clinical_v2_meta_age
+
+notes:
+  - V2.22 metadata experiment — image + age_group ordinal (2 dims).
+  - source_dataset is never used as model input.
+  - Missing metadata encoded as zeros vector — no samples dropped.
+  - Experiment only. No model promotion.

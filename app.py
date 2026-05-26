@@ -29,6 +29,33 @@ _CASE_TYPES = [
     "Dermoscopic image",
 ]
 
+_IMAGE_TYPE_CONFIRMATION_KEYS = {
+    "Clinical photo": "confirm_clinical_image_type",
+    "Dermoscopic image": "confirm_dermoscopic_image_type",
+}
+
+_IMAGE_TYPE_CONFIRMATION_TEXT = {
+    "Clinical photo": (
+        "I confirm this is a regular clinical skin photo, not a dermoscopic image."
+    ),
+    "Dermoscopic image": (
+        "I confirm this is a dermoscopic/magnified lesion image, not a regular clinical photo."
+    ),
+}
+
+_IMAGE_TYPE_INSTRUCTIONS = {
+    "Clinical photo": [
+        "Use regular, non-dermoscopic camera photos of visible skin conditions.",
+        "Do not use dermoscopic, microscope, or highly magnified lesion images.",
+        "Keep the relevant skin area visible and reasonably well lit.",
+    ],
+    "Dermoscopic image": [
+        "Use dermoscopic or magnified lesion images only.",
+        "Do not use regular phone/camera clinical photos.",
+        "The image should focus on the lesion/spot being reviewed.",
+    ],
+}
+
 _CONTEXT_OPTIONS: dict[str, list[str]] = {
     "body_location": [
         "not provided",
@@ -658,7 +685,12 @@ def render_analyze_tab() -> None:
         _CASE_TYPES,
         horizontal=True,
         key="case_type_radio",
-        on_change=reset_analysis_state,
+        on_change=reset_image_mode_state,
+    )
+    st.warning(
+        "Choose the image type carefully. The model does not automatically detect whether "
+        "your upload is clinical or dermoscopic. Uploading the wrong image type can produce "
+        "misleading outputs."
     )
 
     if status == "complete":
@@ -678,31 +710,33 @@ def render_analyze_tab() -> None:
     upload_valid = False
 
     with left:
+        confirmation_key = _IMAGE_TYPE_CONFIRMATION_KEYS[case_type]
         if case_type == "Clinical photo":
             uploaded_image, img_err, upload_valid = render_upload_card(
                 label="Clinical / macroscopic photo",
                 upload_key="upload_clinical",
                 preview_caption="Clinical photo preview",
-                mode_note=(
-                    "Regular camera photo of visible skin condition. "
-                    "Not dermoscopic, not microscope, not highly magnified."
-                ),
+                mode_instructions=_IMAGE_TYPE_INSTRUCTIONS[case_type],
+                on_change=lambda: reset_upload_state(confirmation_key),
             )
         else:
             uploaded_image, img_err, upload_valid = render_upload_card(
-                label="Dermoscopic / close-up lesion image",
+                label="Dermoscopic / magnified lesion image",
                 upload_key="upload_dermoscopic",
                 preview_caption="Dermoscopic image preview",
-                mode_note=(
-                    "Dermoscopic or magnified lesion image. "
-                    "Not a regular clinical photo. Model output is not diagnosis."
-                ),
+                mode_instructions=_IMAGE_TYPE_INSTRUCTIONS[case_type],
+                on_change=lambda: reset_upload_state(confirmation_key),
             )
 
         if img_err:
             has_image_error = True
 
         st.session_state.file_uploaded = upload_valid and not has_image_error
+        image_type_confirmed = st.checkbox(
+            _IMAGE_TYPE_CONFIRMATION_TEXT[case_type],
+            key=confirmation_key,
+            on_change=reset_analysis_state,
+        )
 
         if upload_valid and not has_image_error:
             render_learner_context_form()
@@ -710,7 +744,12 @@ def render_analyze_tab() -> None:
 
         if st.button(
             "Analyze case",
-            disabled=not upload_valid or has_image_error or status == "running",
+            disabled=(
+                not upload_valid
+                or has_image_error
+                or status == "running"
+                or not image_type_confirmed
+            ),
         ):
             start_analysis()
             st.rerun()
@@ -764,6 +803,9 @@ def initialize_analysis_state() -> None:
         st.session_state.learner_rating = {}
     if "dermoscopic_followup_status" not in st.session_state:
         st.session_state.dermoscopic_followup_status = "idle"
+    for key in _IMAGE_TYPE_CONFIRMATION_KEYS.values():
+        if key not in st.session_state:
+            st.session_state[key] = False
 
 
 def reset_analysis_state() -> None:
@@ -777,6 +819,17 @@ def reset_analysis_state() -> None:
             del st.session_state[key]
     st.session_state.learner_context = {}
     st.session_state.learner_rating = {}
+
+
+def reset_image_mode_state() -> None:
+    reset_analysis_state()
+    for key in _IMAGE_TYPE_CONFIRMATION_KEYS.values():
+        st.session_state[key] = False
+
+
+def reset_upload_state(confirmation_key: str) -> None:
+    reset_analysis_state()
+    st.session_state[confirmation_key] = False
 
 
 def reset_followup_state() -> None:
@@ -910,7 +963,7 @@ def render_upload_card(
     label: str,
     upload_key: str,
     preview_caption: str,
-    mode_note: str,
+    mode_instructions: list[str],
     on_change=None,
 ) -> tuple[Image.Image | None, str | None, bool]:
     st.markdown(
@@ -926,7 +979,9 @@ def render_upload_card(
         on_change=cb,
         label_visibility="collapsed",
     )
-    st.caption(mode_note)
+    st.markdown(
+        "\n".join(f"- {instruction}" for instruction in mode_instructions)
+    )
 
     if uploaded_file is None:
         return None, None, False
@@ -1021,7 +1076,7 @@ def render_dermoscopic_followup_panel() -> None:
           <div class="section-label" style="margin-top:0">Dermoscopic follow-up image recommended for this learning case</div>
           <p class="followup-card-text">
             The clinical model routed this case to lesion review. You can upload a dermoscopic
-            or close-up lesion image to continue the educational review.
+            or magnified lesion image to continue the educational review.
             Model output is not diagnosis. Qualified review is required for real decisions.
           </p>
         </div>
@@ -1030,13 +1085,10 @@ def render_dermoscopic_followup_panel() -> None:
     )
 
     derm_image, derm_err, derm_valid = render_upload_card(
-        label="Dermoscopic / close-up lesion image",
+        label="Dermoscopic / magnified lesion image",
         upload_key="upload_followup_derm",
         preview_caption="Dermoscopic follow-up preview",
-        mode_note=(
-            "Dermoscopic or magnified lesion image. "
-            "Not a regular clinical photo. Model output is not diagnosis."
-        ),
+        mode_instructions=_IMAGE_TYPE_INSTRUCTIONS["Dermoscopic image"],
         on_change=reset_followup_state,
     )
 

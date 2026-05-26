@@ -1,0 +1,5 @@
+image_path,ood_type,validation_status,validation_reason,model_ran,predicted_image_type,confidence,clinical_macroscopic_probability,dermoscopic_probability,accepted_at_0_70,accepted_at_0_80,accepted_at_0_85,accepted_at_0_90,accepted_at_0_95,final_state_at_0_90
+tests/fixtures/ood_image_type/solid_green.jpg,solid_color,ok,,True,clinical_macroscopic,0.936794,0.936794,0.063206,True,True,True,True,False,clinical_macroscopic
+tests/fixtures/ood_image_type/random_noise.jpg,random_noise,ok,,True,dermoscopic,1.0,0.0,1.0,True,True,True,True,True,dermoscopic
+tests/fixtures/ood_image_type/underexposed_transformed.jpg,unsupported_or_problematic_transformed,ok,,True,clinical_macroscopic,0.970354,0.970354,0.029646,True,True,True,True,True,clinical_macroscopic
+tests/fixtures/ood_image_type/document_text_like.jpg,document_screenshot,ok,,True,clinical_macroscopic,0.968433,0.968433,0.031567,True,True,True,True,True,clinical_macroscopic

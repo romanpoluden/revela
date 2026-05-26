@@ -9,13 +9,20 @@ import torch
 import yaml
 from torch import nn
 from torch.optim import AdamW
+from torch.optim.lr_scheduler import CosineAnnealingLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 
 from src.data.samplers import build_weighted_sampler, summarize_sampler_groups
 
 from src.data.dataset import ImageClassificationDataset
 from src.data.transforms import get_eval_transforms, get_train_transforms
-from src.model.model import build_model, count_trainable_parameters, create_model
+from src.model.model import (
+    build_model,
+    count_trainable_parameters,
+    create_model,
+    get_head_parameters,
+    set_backbone_requires_grad,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -127,6 +134,51 @@ def get_output_dir(config: dict) -> Path:
 
 def get_weight_decay(config: dict) -> float:
     return config["training"].get("weight_decay", 0.0)
+
+
+def get_scheduler_config(config: dict) -> dict:
+    """Scheduler block. Absent or type 'none' means no scheduler (baseline behavior)."""
+    return config["training"].get("scheduler", {}) or {}
+
+
+def get_staged_finetune_config(config: dict) -> dict:
+    """Staged fine-tuning block. Absent or enabled=False means single-phase (baseline)."""
+    return config["training"].get("staged_finetune", {}) or {}
+
+
+def build_optimizer(parameters, learning_rate: float, weight_decay: float) -> AdamW:
+    return AdamW(parameters, lr=learning_rate, weight_decay=weight_decay)
+
+
+def build_scheduler(optimizer, scheduler_config: dict, phase_epochs: int):
+    """Return (scheduler, step_mode).
+
+    step_mode is one of:
+      - "epoch":   call scheduler.step() once per epoch (cosine).
+      - "plateau": call scheduler.step(val_macro_f1) once per epoch.
+      - None:      no scheduler.
+    """
+    scheduler_type = (scheduler_config.get("type") or "none").lower()
+
+    if scheduler_type in ("", "none"):
+        return None, None
+
+    if scheduler_type == "cosine":
+        eta_min = scheduler_config.get("eta_min", 0.0)
+        return CosineAnnealingLR(optimizer, T_max=max(phase_epochs, 1), eta_min=eta_min), "epoch"
+
+    if scheduler_type in ("reduce_on_plateau", "reduce_lr_on_plateau", "plateau"):
+        return (
+            ReduceLROnPlateau(
+                optimizer,
+                mode="max",  # we monitor val_macro_f1, which we want to maximize
+                factor=scheduler_config.get("factor", 0.5),
+                patience=scheduler_config.get("patience", 1),
+            ),
+            "plateau",
+        )
+
+    raise ValueError(f"Unknown scheduler type: {scheduler_type}")
 
 
 def get_num_workers(config: dict, args: argparse.Namespace) -> int:
@@ -384,6 +436,8 @@ def save_training_history(output_dir: Path, history_rows: list[dict[str, float]]
     path = output_dir / "training_history.csv"
     fieldnames = [
         "epoch",
+        "phase",
+        "learning_rate",
         "train_loss",
         "train_accuracy",
         "val_loss",
@@ -441,75 +495,151 @@ def main() -> None:
         print("Using class weights:", [round(weight, 4) for weight in class_weights.cpu().tolist()])
 
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = AdamW(
-        model.parameters(),
-        lr=config["training"]["learning_rate"],
-        weight_decay=get_weight_decay(config),
-    )
 
+    weight_decay = get_weight_decay(config)
+    base_learning_rate = config["training"]["learning_rate"]
     epochs = args.epochs or config["training"]["epochs"]
+    scheduler_config = get_scheduler_config(config)
+    staged_config = get_staged_finetune_config(config)
+    staged_enabled = bool(staged_config.get("enabled", False))
+
     output_dir = get_output_dir(config)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     save_class_to_idx(output_dir, class_to_idx)
+
+    # Build the training phases. The default (non-staged) path is a single phase
+    # over the full model, reproducing the baseline schedule exactly.
+    phases: list[dict] = []
+    if staged_enabled:
+        head_epochs = staged_config.get("head_epochs", 2)
+        head_learning_rate = staged_config.get("head_learning_rate", base_learning_rate)
+        # Phase 1: freeze backbone, warm up the classifier head only.
+        set_backbone_requires_grad(model, backbone_name, requires_grad=False)
+        phases.append(
+            {
+                "name": "head",
+                "epochs": head_epochs,
+                "optimizer": build_optimizer(
+                    get_head_parameters(model, backbone_name), head_learning_rate, weight_decay
+                ),
+                "scheduler_config": {},  # no scheduler during the short head warmup
+                "learning_rate": head_learning_rate,
+                "unfreeze_first": False,
+            }
+        )
+        # Phase 2: unfreeze the full model and fine-tune at the base LR.
+        phases.append(
+            {
+                "name": "finetune",
+                "epochs": epochs,
+                "optimizer": None,  # built after unfreezing, below
+                "scheduler_config": scheduler_config,
+                "learning_rate": base_learning_rate,
+                "unfreeze_first": True,
+            }
+        )
+    else:
+        phases.append(
+            {
+                "name": "full",
+                "epochs": epochs,
+                "optimizer": build_optimizer(model.parameters(), base_learning_rate, weight_decay),
+                "scheduler_config": scheduler_config,
+                "learning_rate": base_learning_rate,
+                "unfreeze_first": False,
+            }
+        )
+
+    total_epochs = sum(phase["epochs"] for phase in phases)
 
     print("Training configuration:")
     print(f"  - device: {device}")
     print(f"  - num_classes: {num_classes}")
     print(f"  - train_examples: {len(train_dataset)}")
     print(f"  - val_examples: {len(val_dataset)}")
-    print(f"  - trainable_parameters: {count_trainable_parameters(model)}")
-    print(f"  - epochs: {epochs}")
+    print(f"  - staged_finetune: {staged_enabled}")
+    print(f"  - scheduler: {(scheduler_config.get('type') or 'none')}")
+    print(f"  - total_epochs: {total_epochs}")
     print(f"  - output_dir: {output_dir}")
     print("")
 
     history_rows: list[dict[str, float]] = []
     best_val_macro_f1 = float("-inf")
+    global_epoch = 0
 
-    for epoch in range(1, epochs + 1):
-        train_loss, train_accuracy = train_one_epoch(
-            model=model,
-            loader=train_loader,
-            criterion=criterion,
-            optimizer=optimizer,
-            device=device,
-            max_batches=args.max_train_batches,
-        )
-        val_loss, val_accuracy, val_macro_f1, val_balanced_accuracy = evaluate(
-            model=model,
-            loader=val_loader,
-            criterion=criterion,
-            device=device,
-            num_classes=num_classes,
-            max_batches=args.max_val_batches,
+    for phase in phases:
+        if phase["unfreeze_first"]:
+            set_backbone_requires_grad(model, backbone_name, requires_grad=True)
+            phase["optimizer"] = build_optimizer(
+                model.parameters(), phase["learning_rate"], weight_decay
+            )
+
+        optimizer = phase["optimizer"]
+        scheduler, scheduler_step_mode = build_scheduler(
+            optimizer, phase["scheduler_config"], phase["epochs"]
         )
 
-        history_row = {
-            "epoch": epoch,
-            "train_loss": round(train_loss, 6),
-            "train_accuracy": round(train_accuracy, 6),
-            "val_loss": round(val_loss, 6),
-            "val_accuracy": round(val_accuracy, 6),
-            "val_macro_f1": round(val_macro_f1, 6),
-            "val_balanced_accuracy": round(val_balanced_accuracy, 6),
-        }
-        history_rows.append(history_row)
-        save_training_history(output_dir, history_rows)
+        print(
+            f"=== Phase '{phase['name']}': {phase['epochs']} epoch(s), "
+            f"lr={phase['learning_rate']}, "
+            f"trainable_params={count_trainable_parameters(model)}, "
+            f"scheduler={(phase['scheduler_config'].get('type') or 'none')} ==="
+        )
 
-        print(f"Epoch {epoch}/{epochs}")
-        print(f"  Train loss:      {train_loss:.4f}")
-        print(f"  Train accuracy:  {train_accuracy:.4f}")
-        print(f"  Val loss:        {val_loss:.4f}")
-        print(f"  Val accuracy:    {val_accuracy:.4f}")
-        print(f"  Val macro-F1:    {val_macro_f1:.4f}")
-        print(f"  Val balanced acc:{val_balanced_accuracy:.4f}")
+        for _ in range(1, phase["epochs"] + 1):
+            global_epoch += 1
+            current_lr = optimizer.param_groups[0]["lr"]
 
-        if val_macro_f1 > best_val_macro_f1:
-            best_val_macro_f1 = val_macro_f1
-            save_best_model(output_dir, model, class_to_idx, epoch, val_macro_f1)
-            print("  Saved new best model.")
+            train_loss, train_accuracy = train_one_epoch(
+                model=model,
+                loader=train_loader,
+                criterion=criterion,
+                optimizer=optimizer,
+                device=device,
+                max_batches=args.max_train_batches,
+            )
+            val_loss, val_accuracy, val_macro_f1, val_balanced_accuracy = evaluate(
+                model=model,
+                loader=val_loader,
+                criterion=criterion,
+                device=device,
+                num_classes=num_classes,
+                max_batches=args.max_val_batches,
+            )
 
-        print("")
+            history_row = {
+                "epoch": global_epoch,
+                "phase": phase["name"],
+                "learning_rate": round(current_lr, 8),
+                "train_loss": round(train_loss, 6),
+                "train_accuracy": round(train_accuracy, 6),
+                "val_loss": round(val_loss, 6),
+                "val_accuracy": round(val_accuracy, 6),
+                "val_macro_f1": round(val_macro_f1, 6),
+                "val_balanced_accuracy": round(val_balanced_accuracy, 6),
+            }
+            history_rows.append(history_row)
+            save_training_history(output_dir, history_rows)
+
+            print(f"Epoch {global_epoch}/{total_epochs} [{phase['name']}] (lr={current_lr:.2e})")
+            print(f"  Train loss:      {train_loss:.4f}")
+            print(f"  Train accuracy:  {train_accuracy:.4f}")
+            print(f"  Val loss:        {val_loss:.4f}")
+            print(f"  Val accuracy:    {val_accuracy:.4f}")
+            print(f"  Val macro-F1:    {val_macro_f1:.4f}")
+            print(f"  Val balanced acc:{val_balanced_accuracy:.4f}")
+
+            if val_macro_f1 > best_val_macro_f1:
+                best_val_macro_f1 = val_macro_f1
+                save_best_model(output_dir, model, class_to_idx, global_epoch, val_macro_f1)
+                print("  Saved new best model.")
+
+            if scheduler_step_mode == "epoch":
+                scheduler.step()
+            elif scheduler_step_mode == "plateau":
+                scheduler.step(val_macro_f1)
+
+            print("")
 
     print("Training finished.")
     print(f"Best validation macro-F1: {best_val_macro_f1:.4f}")

@@ -202,3 +202,138 @@ class BCN20000Dataset(ImageClassificationDataset):
             image_column="image_path",
             label_column="class_label",
         )
+
+
+# ---------------------------------------------------------------------------
+# Metadata support
+# ---------------------------------------------------------------------------
+
+BODY_PARTS_COLUMNS = [
+    "body_parts_head_or_neck",
+    "body_parts_arm",
+    "body_parts_palm",
+    "body_parts_back_of_hand",
+    "body_parts_torso_front",
+    "body_parts_torso_back",
+    "body_parts_genitalia_or_groin",
+    "body_parts_buttocks",
+    "body_parts_leg",
+    "body_parts_foot_top_or_side",
+    "body_parts_foot_sole",
+    "body_parts_other",
+]
+
+_AGE_GROUP_ORDER = [
+    "AGE_UNDER_20",
+    "AGE_20_TO_29",
+    "AGE_30_TO_39",
+    "AGE_40_TO_49",
+    "AGE_50_TO_59",
+    "AGE_60_TO_69",
+    "AGE_70_TO_79",
+    "AGE_80_OR_OLDER",
+]
+
+_SEX_CATEGORIES = ["MALE", "FEMALE"]
+
+
+class MetadataEncoder:
+    """Fit-on-train encoder that converts raw CSV metadata to a fixed-length float vector.
+
+    Supported logical fields:
+      - "body_parts"  → 12-dim multi-hot (YES→1.0, else→0.0)
+      - "age_group"   → 2-dim: [normalised ordinal, unknown_flag]
+      - "sex_at_birth"→ 3-dim one-hot [MALE, FEMALE, unknown]
+
+    Encoders are derived entirely from the category lists above — no fitting on
+    data is required for body_parts. For age_group/sex, the ordinal/category
+    order is fixed at construction time; fit() only validates coverage.
+    """
+
+    _LOGICAL_TO_COLS = {
+        "body_parts": BODY_PARTS_COLUMNS,
+        "age_group": ["age_group"],
+        "sex_at_birth": ["sex_at_birth"],
+    }
+
+    def __init__(self, logical_fields: list[str]):
+        assert "source_dataset" not in logical_fields, (
+            "source_dataset must never be used as model input — STOP"
+        )
+        self.logical_fields = logical_fields
+        self._age_max = len(_AGE_GROUP_ORDER) - 1
+        self._fitted = False
+
+    def fit(self, rows: list[dict[str, str]]) -> "MetadataEncoder":
+        """Validate coverage; encoders are statically defined."""
+        self._fitted = True
+        return self
+
+    @property
+    def metadata_dim(self) -> int:
+        dim = 0
+        for field in self.logical_fields:
+            if field == "body_parts":
+                dim += len(BODY_PARTS_COLUMNS)
+            elif field == "age_group":
+                dim += 2
+            elif field == "sex_at_birth":
+                dim += 3
+            else:
+                raise ValueError(f"Unknown metadata field: {field}")
+        return dim
+
+    def encode_row(self, row: dict[str, str]) -> "torch.Tensor":
+        import torch
+        vec: list[float] = []
+        for field in self.logical_fields:
+            if field == "body_parts":
+                for col in BODY_PARTS_COLUMNS:
+                    vec.append(1.0 if (row.get(col) or "").strip().upper() == "YES" else 0.0)
+            elif field == "age_group":
+                val = (row.get("age_group") or "").strip().upper()
+                if val in _AGE_GROUP_ORDER:
+                    vec.append(_AGE_GROUP_ORDER.index(val) / self._age_max)
+                    vec.append(0.0)
+                else:
+                    vec.append(0.0)
+                    vec.append(1.0)
+            elif field == "sex_at_birth":
+                val = (row.get("sex_at_birth") or "").strip().upper()
+                vec.append(1.0 if val == "MALE" else 0.0)
+                vec.append(1.0 if val == "FEMALE" else 0.0)
+                vec.append(0.0 if val in ("MALE", "FEMALE") else 1.0)
+        return torch.tensor(vec, dtype=torch.float32)
+
+
+class MetadataImageClassificationDataset(ImageClassificationDataset):
+    """ImageClassificationDataset that additionally returns a metadata tensor.
+
+    __getitem__ returns (image_tensor, metadata_tensor, label_idx).
+    Missing metadata is encoded as zeros/unknown — no samples are dropped.
+    """
+
+    def __init__(
+        self,
+        csv_path,
+        class_to_idx,
+        encoder: MetadataEncoder,
+        transform=None,
+        image_column: str = "image_path",
+        label_column: str = "target_label",
+        class_idx_column: str | None = "class_idx",
+    ):
+        super().__init__(
+            csv_path=csv_path,
+            class_to_idx=class_to_idx,
+            transform=transform,
+            image_column=image_column,
+            label_column=label_column,
+            class_idx_column=class_idx_column,
+        )
+        self.encoder = encoder
+
+    def __getitem__(self, index):
+        image_tensor, label_idx = super().__getitem__(index)
+        metadata_tensor = self.encoder.encode_row(self.rows[index])
+        return image_tensor, metadata_tensor, label_idx

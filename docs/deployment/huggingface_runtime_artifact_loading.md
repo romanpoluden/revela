@@ -1,15 +1,30 @@
-# Hugging Face Runtime Artifact Loading
+# Hugging Face Artifact Loading for Local Fallback
 
 **Related issue:** #204  
-**Status:** Implemented in branch `d8-6-hf-fallback`
+**Architecture parent:** #222  
+**Status:** Supported local/development fallback, not the primary deployed demo inference path
 
 ---
 
 ## Purpose
 
-The Streamlit app should be able to run in a clean deployment environment where local `models/` folders do not already exist.
+This document describes the local fallback path for Revela model inference.
 
-This runtime fallback keeps inference local to the Streamlit process. Hugging Face is used only as artifact storage. The app does not call Hugging Face Inference Endpoints and does not use a remote prediction API.
+Primary D9 demo architecture:
+
+```text
+Streamlit frontend -> Hugging Face-hosted inference backend -> canonical JSON response
+```
+
+Local fallback architecture:
+
+```text
+Local app or CLI -> local PyTorch inference -> Hugging Face artifact download if local model files are missing
+```
+
+The fallback is useful for local development, debugging, backup demos, and validating that hosted artifacts can still be restored and loaded locally.
+
+It should not be presented as the primary public deployment architecture.
 
 ---
 
@@ -23,6 +38,8 @@ Model loading is local-first:
 4. The existing PyTorch model loader then loads the downloaded files from the local path.
 5. Prediction outputs and response schema remain unchanged.
 
+Hugging Face is used only as artifact storage in this fallback path.
+
 ---
 
 ## Implemented Files
@@ -31,13 +48,16 @@ Model loading is local-first:
 src/inference/artifact_resolver.py
 src/inference/model_loader.py
 requirements.txt
+requirements-dev.txt
 ```
 
-`src/inference/artifact_resolver.py` contains the hosted artifact mapping and the download logic.
+`src/inference/artifact_resolver.py` contains the hosted artifact mapping and download logic.
 
 `src/inference/model_loader.py` calls `resolve_model_artifacts(...)` before loading the checkpoint and class mapping.
 
-`requirements.txt` includes:
+`requirements.txt` contains runtime dependencies only. Notebook-only dependencies are kept in `requirements-dev.txt`.
+
+Runtime dependency added for the fallback:
 
 ```text
 huggingface_hub>=0.23.0
@@ -67,7 +87,7 @@ training_history.csv
 
 ---
 
-## Local Existing-Artifact Verification
+## Verification
 
 With local model folders present, run:
 
@@ -78,99 +98,17 @@ python -m py_compile src/inference/model_loader.py
 python -m py_compile src/prompting/llm_prompt_builder.py
 ```
 
-Then run inference with local artifacts:
-
-```bash
-python -m src.inference.adapter \
-  --model-id clinical_skin_condition_v1 \
-  --image <clinical_demo_image> \
-  --top-k 3 \
-  --debug
-
-python -m src.inference.adapter \
-  --model-id dermoscopic_cancer_risk_bcn_mnh_v1 \
-  --image <dermoscopic_demo_image> \
-  --top-k 4 \
-  --debug
-```
-
-Expected result: inference runs without needing to download files.
+To test missing-artifact fallback, move the model folders away and run the two inference commands again with valid local demo images. The resolver should restore the expected model folders from Hugging Face and return the canonical response schema.
 
 ---
 
-## Clean-Environment / Missing-Artifact Verification
+## Relationship to Remote Inference Work
 
-Temporarily move local artifact folders away:
+This fallback does not replace the D9 remote inference work:
 
-```bash
-mv models/clinical_v2_effnet_b0 models/clinical_v2_effnet_b0.local_backup
-mv models/bcn_mnh_cancer_risk_effnet_b0 models/bcn_mnh_cancer_risk_effnet_b0.local_backup
-```
+- #222 defines the architecture migration.
+- #223 builds the Hugging Face-hosted inference backend.
+- #224 updates Streamlit to call the remote backend.
+- #225 updates final deployment documentation.
 
-Then run inference again:
-
-```bash
-python -m src.inference.adapter \
-  --model-id clinical_skin_condition_v1 \
-  --image <clinical_demo_image> \
-  --top-k 3 \
-  --debug
-
-python -m src.inference.adapter \
-  --model-id dermoscopic_cancer_risk_bcn_mnh_v1 \
-  --image <dermoscopic_demo_image> \
-  --top-k 4 \
-  --debug
-```
-
-Expected result:
-
-- `models/clinical_v2_effnet_b0/best_model.pth` is restored from Hugging Face.
-- `models/clinical_v2_effnet_b0/class_to_idx.json` is restored from Hugging Face.
-- `models/bcn_mnh_cancer_risk_effnet_b0/best_model.pth` is restored from Hugging Face.
-- `models/bcn_mnh_cancer_risk_effnet_b0/class_to_idx.json` is restored from Hugging Face.
-- Both inference calls return the existing canonical response schema.
-
-Restore local backups if needed:
-
-```bash
-rm -rf models/clinical_v2_effnet_b0
-rm -rf models/bcn_mnh_cancer_risk_effnet_b0
-mv models/clinical_v2_effnet_b0.local_backup models/clinical_v2_effnet_b0
-mv models/bcn_mnh_cancer_risk_effnet_b0.local_backup models/bcn_mnh_cancer_risk_effnet_b0
-```
-
----
-
-## Streamlit Verification
-
-Run:
-
-```bash
-python -m streamlit run app.py
-```
-
-Verify:
-
-- app starts without pre-copied local model artifacts;
-- clinical-photo flow can run;
-- dermoscopic-image flow can run;
-- clinical-to-dermoscopic follow-up still works when a lesion-routing clinical image is available;
-- prompt export remains visible after inference.
-
----
-
-## Scope Boundaries
-
-This change does not:
-
-- change model weights;
-- retrain models;
-- change disease taxonomies;
-- change prediction schemas;
-- add Hugging Face Inference Endpoints;
-- add a public API server;
-- add direct ChatGPT or Claude API calls;
-- make diagnosis, treatment, clinical-readiness, or patient-use claims.
-
-Hugging Face is used only to restore model files before local PyTorch inference.
+After #224 is implemented, the deployed demo should use remote inference by default. This local fallback can remain available for development and backup.

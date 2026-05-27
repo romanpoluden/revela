@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
 from src.inference.model_registry import get_model_config
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -137,6 +141,7 @@ def _download_from_hugging_face(
                 repo_id=repo_id,
                 filename=filename,
                 local_dir=str(target_dir),
+                local_dir_use_symlinks=False,
             )
         except Exception as error:
             if required:
@@ -144,5 +149,10 @@ def _download_from_hugging_face(
                     f"Could not download required model artifact '{filename}' from "
                     f"Hugging Face repo '{repo_id}' into '{target_dir}'."
                 ) from error
-            # Optional artifacts are useful for documentation but not required for inference.
-            continue
+            LOGGER.warning(
+                "Optional model artifact '%s' could not be downloaded from Hugging Face repo '%s' into '%s': %s",
+                filename,
+                repo_id,
+                target_dir,
+                error,
+            )

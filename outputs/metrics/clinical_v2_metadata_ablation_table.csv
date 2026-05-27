@@ -1,0 +1,6 @@
+variant,meta_fields,combined_macro_f1,balanced_accuracy,google_scin_macro_f1,fitzpatrick17k_macro_f1,lesion_routing_fn,eczema_to_urticaria,urticaria_fp,delta_vs_baseline_mf1,shortcut_risk
+image_only,[],0.652662,0.661232,0.426731,0.664437,70,72,131,0.0,OK
+image_body_parts,['body_parts'],0.663068,0.680043,0.423753,0.663241,74,73,135,0.010406,CHECK
+image_age,['age_group'],0.645969,0.661706,0.413614,0.651797,70,100,163,-0.006693,OK
+image_body_parts_age,"['body_parts', 'age_group']",0.643968,0.666263,0.374299,0.649799,72,91,165,-0.008694,OK
+image_body_parts_age_sex,"['body_parts', 'age_group', 'sex_at_birth']",0.652027,0.66328,0.426566,0.645795,82,78,135,-0.000635,OK

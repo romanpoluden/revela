@@ -1,0 +1,540 @@
+{
+  "image_only": {
+    "combined_macro_f1": 0.6526617582830498,
+    "balanced_accuracy": 0.6612321105812641,
+    "google_scin_macro_f1": 0.4267311683759408,
+    "fitzpatrick17k_macro_f1": 0.6644371312050393,
+    "lesion_routing_fn": 70,
+    "eczema_to_urticaria": 72,
+    "urticaria_fp": 131,
+    "class_report": [
+      {
+        "class_name": "Eczema / dermatitis",
+        "precision": 0.6805896805896806,
+        "recall": 0.6252821670428894,
+        "f1": 0.6517647058823529,
+        "support": 443
+      },
+      {
+        "class_name": "Urticaria / allergic reaction",
+        "precision": 0.4018264840182648,
+        "recall": 0.55,
+        "f1": 0.46437994722955145,
+        "support": 160
+      },
+      {
+        "class_name": "Folliculitis / acne-like",
+        "precision": 0.6226415094339622,
+        "recall": 0.6991525423728814,
+        "f1": 0.6586826347305389,
+        "support": 236
+      },
+      {
+        "class_name": "Psoriasis / papulosquamous",
+        "precision": 0.6959706959706959,
+        "recall": 0.6209150326797386,
+        "f1": 0.6563039723661485,
+        "support": 306
+      },
+      {
+        "class_name": "Lesion \u2014 dermoscopic review recommended",
+        "precision": 0.8547008547008547,
+        "recall": 0.8108108108108109,
+        "f1": 0.8321775312066574,
+        "support": 370
+      }
+    ],
+    "confusion_matrix": [
+      [
+        277,
+        72,
+        35,
+        35,
+        24
+      ],
+      [
+        44,
+        88,
+        13,
+        11,
+        4
+      ],
+      [
+        38,
+        11,
+        165,
+        14,
+        8
+      ],
+      [
+        35,
+        37,
+        29,
+        190,
+        15
+      ],
+      [
+        13,
+        11,
+        23,
+        23,
+        300
+      ]
+    ],
+    "source": "re_evaluated"
+  },
+  "image_body_parts": {
+    "logical_fields": [
+      "body_parts"
+    ],
+    "combined_macro_f1": 0.6630680063538751,
+    "balanced_accuracy": 0.6800428264366669,
+    "google_scin_macro_f1": 0.42375300640006525,
+    "fitzpatrick17k_macro_f1": 0.6632410100165952,
+    "lesion_routing_fn": 74,
+    "eczema_to_urticaria": 73,
+    "urticaria_fp": 135,
+    "class_report": [
+      {
+        "class_name": "Eczema / dermatitis",
+        "precision": 0.6911392405063291,
+        "recall": 0.6162528216704289,
+        "f1": 0.6515513126491648,
+        "support": 443
+      },
+      {
+        "class_name": "Urticaria / allergic reaction",
+        "precision": 0.4375,
+        "recall": 0.65625,
+        "f1": 0.525,
+        "support": 160
+      },
+      {
+        "class_name": "Folliculitis / acne-like",
+        "precision": 0.648936170212766,
+        "recall": 0.7754237288135594,
+        "f1": 0.7065637065637066,
+        "support": 236
+      },
+      {
+        "class_name": "Psoriasis / papulosquamous",
+        "precision": 0.6926229508196722,
+        "recall": 0.5522875816993464,
+        "f1": 0.6145454545454546,
+        "support": 306
+      },
+      {
+        "class_name": "Lesion \u2014 dermoscopic review recommended",
+        "precision": 0.8361581920903954,
+        "recall": 0.8,
+        "f1": 0.8176795580110496,
+        "support": 370
+      }
+    ],
+    "confusion_matrix": [
+      [
+        273,
+        73,
+        40,
+        35,
+        22
+      ],
+      [
+        30,
+        105,
+        13,
+        9,
+        3
+      ],
+      [
+        26,
+        12,
+        183,
+        6,
+        9
+      ],
+      [
+        49,
+        39,
+        25,
+        169,
+        24
+      ],
+      [
+        17,
+        11,
+        21,
+        25,
+        296
+      ]
+    ],
+    "missing_metadata": {
+      "body_parts_any": 1016
+    },
+    "source_metrics": [
+      {
+        "source_dataset": "combined",
+        "support": 1515,
+        "accuracy": 0.6772277227722773,
+        "macro_f1": 0.6630680063538751,
+        "balanced_accuracy": 0.6800428264366669
+      },
+      {
+        "source_dataset": "google_scin",
+        "support": 561,
+        "accuracy": 0.6078431372549019,
+        "macro_f1": 0.42375300640006525,
+        "balanced_accuracy": 0.43951219887974524
+      },
+      {
+        "source_dataset": "fitzpatrick17k",
+        "support": 954,
+        "accuracy": 0.7180293501048218,
+        "macro_f1": 0.6632410100165952,
+        "balanced_accuracy": 0.6885356211429823
+      }
+    ]
+  },
+  "image_age": {
+    "logical_fields": [
+      "age_group"
+    ],
+    "combined_macro_f1": 0.6459689057441504,
+    "balanced_accuracy": 0.6617063012522909,
+    "google_scin_macro_f1": 0.41361391162516864,
+    "fitzpatrick17k_macro_f1": 0.6517973150451144,
+    "lesion_routing_fn": 70,
+    "eczema_to_urticaria": 100,
+    "urticaria_fp": 163,
+    "class_report": [
+      {
+        "class_name": "Eczema / dermatitis",
+        "precision": 0.660574412532637,
+        "recall": 0.5711060948081265,
+        "f1": 0.612590799031477,
+        "support": 443
+      },
+      {
+        "class_name": "Urticaria / allergic reaction",
+        "precision": 0.3895131086142322,
+        "recall": 0.65,
+        "f1": 0.48711943793911017,
+        "support": 160
+      },
+      {
+        "class_name": "Folliculitis / acne-like",
+        "precision": 0.6381322957198443,
+        "recall": 0.6949152542372882,
+        "f1": 0.6653144016227182,
+        "support": 236
+      },
+      {
+        "class_name": "Psoriasis / papulosquamous",
+        "precision": 0.6768060836501901,
+        "recall": 0.5816993464052288,
+        "f1": 0.6256590509666081,
+        "support": 306
+      },
+      {
+        "class_name": "Lesion \u2014 dermoscopic review recommended",
+        "precision": 0.8695652173913043,
+        "recall": 0.8108108108108109,
+        "f1": 0.8391608391608392,
+        "support": 370
+      }
+    ],
+    "confusion_matrix": [
+      [
+        253,
+        100,
+        37,
+        34,
+        19
+      ],
+      [
+        32,
+        104,
+        12,
+        9,
+        3
+      ],
+      [
+        28,
+        14,
+        164,
+        21,
+        9
+      ],
+      [
+        52,
+        36,
+        26,
+        178,
+        14
+      ],
+      [
+        18,
+        13,
+        18,
+        21,
+        300
+      ]
+    ],
+    "missing_metadata": {
+      "age_group": 954
+    },
+    "source_metrics": [
+      {
+        "source_dataset": "combined",
+        "support": 1515,
+        "accuracy": 0.6594059405940594,
+        "macro_f1": 0.6459689057441504,
+        "balanced_accuracy": 0.6617063012522909
+      },
+      {
+        "source_dataset": "google_scin",
+        "support": 561,
+        "accuracy": 0.5686274509803921,
+        "macro_f1": 0.41361391162516864,
+        "balanced_accuracy": 0.4347581197238811
+      },
+      {
+        "source_dataset": "fitzpatrick17k",
+        "support": 954,
+        "accuracy": 0.7127882599580713,
+        "macro_f1": 0.6517973150451144,
+        "balanced_accuracy": 0.6683499976050753
+      }
+    ]
+  },
+  "image_body_parts_age": {
+    "logical_fields": [
+      "body_parts",
+      "age_group"
+    ],
+    "combined_macro_f1": 0.643968196822953,
+    "balanced_accuracy": 0.6662633856221856,
+    "google_scin_macro_f1": 0.3742987358185448,
+    "fitzpatrick17k_macro_f1": 0.6497993712338058,
+    "lesion_routing_fn": 72,
+    "eczema_to_urticaria": 91,
+    "urticaria_fp": 165,
+    "class_report": [
+      {
+        "class_name": "Eczema / dermatitis",
+        "precision": 0.6947674418604651,
+        "recall": 0.5395033860045146,
+        "f1": 0.6073697585768743,
+        "support": 443
+      },
+      {
+        "class_name": "Urticaria / allergic reaction",
+        "precision": 0.39338235294117646,
+        "recall": 0.66875,
+        "f1": 0.4953703703703704,
+        "support": 160
+      },
+      {
+        "class_name": "Folliculitis / acne-like",
+        "precision": 0.6175438596491228,
+        "recall": 0.7457627118644068,
+        "f1": 0.6756238003838773,
+        "support": 236
+      },
+      {
+        "class_name": "Psoriasis / papulosquamous",
+        "precision": 0.6809338521400778,
+        "recall": 0.5718954248366013,
+        "f1": 0.6216696269982238,
+        "support": 306
+      },
+      {
+        "class_name": "Lesion \u2014 dermoscopic review recommended",
+        "precision": 0.834733893557423,
+        "recall": 0.8054054054054054,
+        "f1": 0.8198074277854196,
+        "support": 370
+      }
+    ],
+    "confusion_matrix": [
+      [
+        239,
+        91,
+        45,
+        36,
+        32
+      ],
+      [
+        27,
+        107,
+        13,
+        8,
+        5
+      ],
+      [
+        24,
+        13,
+        176,
+        13,
+        10
+      ],
+      [
+        43,
+        49,
+        27,
+        175,
+        12
+      ],
+      [
+        11,
+        12,
+        24,
+        25,
+        298
+      ]
+    ],
+    "missing_metadata": {
+      "body_parts_any": 1016,
+      "age_group": 954
+    },
+    "source_metrics": [
+      {
+        "source_dataset": "combined",
+        "support": 1515,
+        "accuracy": 0.6567656765676567,
+        "macro_f1": 0.643968196822953,
+        "balanced_accuracy": 0.6662633856221856
+      },
+      {
+        "source_dataset": "google_scin",
+        "support": 561,
+        "accuracy": 0.5543672014260249,
+        "macro_f1": 0.3742987358185448,
+        "balanced_accuracy": 0.3952095453980505
+      },
+      {
+        "source_dataset": "fitzpatrick17k",
+        "support": 954,
+        "accuracy": 0.7169811320754716,
+        "macro_f1": 0.6497993712338058,
+        "balanced_accuracy": 0.6790943675135097
+      }
+    ]
+  },
+  "image_body_parts_age_sex": {
+    "logical_fields": [
+      "body_parts",
+      "age_group",
+      "sex_at_birth"
+    ],
+    "combined_macro_f1": 0.6520270024550765,
+    "balanced_accuracy": 0.6632802684686536,
+    "google_scin_macro_f1": 0.4265655862519219,
+    "fitzpatrick17k_macro_f1": 0.6457948495174366,
+    "lesion_routing_fn": 82,
+    "eczema_to_urticaria": 78,
+    "urticaria_fp": 135,
+    "class_report": [
+      {
+        "class_name": "Eczema / dermatitis",
+        "precision": 0.675,
+        "recall": 0.6094808126410836,
+        "f1": 0.6405693950177936,
+        "support": 443
+      },
+      {
+        "class_name": "Urticaria / allergic reaction",
+        "precision": 0.4155844155844156,
+        "recall": 0.6,
+        "f1": 0.49104859335038364,
+        "support": 160
+      },
+      {
+        "class_name": "Folliculitis / acne-like",
+        "precision": 0.630188679245283,
+        "recall": 0.7076271186440678,
+        "f1": 0.6666666666666666,
+        "support": 236
+      },
+      {
+        "class_name": "Psoriasis / papulosquamous",
+        "precision": 0.6506849315068494,
+        "recall": 0.6209150326797386,
+        "f1": 0.6354515050167224,
+        "support": 306
+      },
+      {
+        "class_name": "Lesion \u2014 dermoscopic review recommended",
+        "precision": 0.8807339449541285,
+        "recall": 0.7783783783783784,
+        "f1": 0.8263988522238164,
+        "support": 370
+      }
+    ],
+    "confusion_matrix": [
+      [
+        270,
+        78,
+        39,
+        40,
+        16
+      ],
+      [
+        34,
+        96,
+        14,
+        13,
+        3
+      ],
+      [
+        30,
+        14,
+        167,
+        20,
+        5
+      ],
+      [
+        46,
+        32,
+        23,
+        190,
+        15
+      ],
+      [
+        20,
+        11,
+        22,
+        29,
+        288
+      ]
+    ],
+    "missing_metadata": {
+      "body_parts_any": 1016,
+      "age_group": 954,
+      "sex_at_birth": 954
+    },
+    "source_metrics": [
+      {
+        "source_dataset": "combined",
+        "support": 1515,
+        "accuracy": 0.6673267326732674,
+        "macro_f1": 0.6520270024550765,
+        "balanced_accuracy": 0.6632802684686536
+      },
+      {
+        "source_dataset": "google_scin",
+        "support": 561,
+        "accuracy": 0.5918003565062389,
+        "macro_f1": 0.4265655862519219,
+        "balanced_accuracy": 0.43372082530926886
+      },
+      {
+        "source_dataset": "fitzpatrick17k",
+        "support": 954,
+        "accuracy": 0.7117400419287212,
+        "macro_f1": 0.6457948495174366,
+        "balanced_accuracy": 0.659264820670858
+      }
+    ]
+  }
+}

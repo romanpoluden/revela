@@ -12,3 +12,6 @@ streamlit>=1.33.0
 
 # Model artifact fallback
 huggingface_hub>=0.23.0
+
+# Remote inference frontend client
+requests>=2.31.0

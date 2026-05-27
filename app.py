@@ -3,7 +3,7 @@ from __future__ import annotations
 from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
-from src.inference.adapter import run_inference
+from src.inference.remote_client import RemoteInferenceError, run_remote_inference
 from src.prompting.llm_prompt_builder import build_llm_transfer_prompt
 
 
@@ -813,16 +813,16 @@ def complete_analysis(
             st.write("Running clinical model inference")
             progress.progress(60, text="Running clinical model inference")
             try:
-                result = run_inference(
+                result = run_remote_inference(
                     model_id="clinical_skin_condition_v1",
                     image_input=uploaded_image,
                     top_k=3,
                 )
-            except Exception as error:
+            except RemoteInferenceError as error:
                 result = {
                     "error": True,
-                    "error_code": "frontend_inference_error",
-                    "message": "Clinical model inference could not be prepared. Please try again.",
+                    "error_code": "remote_inference_error",
+                    "message": "Remote clinical inference is currently unavailable. Please try again shortly.",
                     "details": str(error),
                 }
             results = {"clinical": result}
@@ -830,16 +830,16 @@ def complete_analysis(
             st.write("Running dermoscopic model inference")
             progress.progress(60, text="Running dermoscopic model inference")
             try:
-                result = run_inference(
+                result = run_remote_inference(
                     model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
                     image_input=uploaded_image,
                     top_k=4,
                 )
-            except Exception as error:
+            except RemoteInferenceError as error:
                 result = {
                     "error": True,
-                    "error_code": "frontend_inference_error",
-                    "message": "Dermoscopic model inference could not be prepared. Please try again.",
+                    "error_code": "remote_inference_error",
+                    "message": "Remote dermoscopic inference is currently unavailable. Please try again shortly.",
                     "details": str(error),
                 }
             results = {"dermoscopic": result}
@@ -875,16 +875,16 @@ def run_dermoscopic_followup(derm_image: Image.Image) -> None:
         progress.progress(60, text="Running dermoscopic model inference")
 
         try:
-            response = run_inference(
+            response = run_remote_inference(
                 model_id="dermoscopic_cancer_risk_bcn_mnh_v1",
                 image_input=derm_image,
                 top_k=4,
             )
-        except Exception as error:
+        except RemoteInferenceError as error:
             response = {
                 "error": True,
-                "error_code": "frontend_inference_error",
-                "message": "Dermoscopic follow-up inference could not be prepared. Please try again.",
+                "error_code": "remote_inference_error",
+                "message": "Remote dermoscopic follow-up inference is currently unavailable. Please try again shortly.",
                 "details": str(error),
             }
 

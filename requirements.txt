@@ -1,14 +1,14 @@
-# Training pipeline
+# App / inference runtime
 torch>=2.2.0
 torchvision>=0.17.0
 
 # Data / config
 Pillow>=10.0.0
 PyYAML>=6.0
-
-# Model artifact hosting
-huggingface_hub>=0.23.0
-
-# Notebooks
 pandas>=2.0.0
-jupyter>=1.0.0
+
+# Streamlit app
+streamlit>=1.33.0
+
+# Model artifact fallback
+huggingface_hub>=0.23.0

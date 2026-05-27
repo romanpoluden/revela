@@ -114,28 +114,33 @@ def main() -> None:
     inject_css()
     render_header()
 
-    tabs = st.tabs(
-        [
-            "Overview",
-            "Analyze Image",
-            "Model Transparency",
-            "Evaluation Metrics",
-            "Benchmark",
-            "About / Limitations",
-        ]
-    )
+    pages = [
+        "Overview",
+        "Analyze Image",
+        "Model Transparency",
+        "Evaluation Metrics",
+        "Benchmark",
+        "About / Limitations",
+    ]
 
-    with tabs[0]:
+    if "active_page" not in st.session_state:
+        st.session_state.active_page = "Landing"
+
+    render_top_navigation(pages)
+
+    if st.session_state.active_page == "Landing":
+        render_landing_page()
+    elif st.session_state.active_page == "Overview":
         render_overview_tab()
-    with tabs[1]:
+    elif st.session_state.active_page == "Analyze Image":
         render_analyze_tab()
-    with tabs[2]:
+    elif st.session_state.active_page == "Model Transparency":
         render_transparency_tab()
-    with tabs[3]:
+    elif st.session_state.active_page == "Evaluation Metrics":
         render_metrics_tab()
-    with tabs[4]:
+    elif st.session_state.active_page == "Benchmark":
         render_benchmark_tab()
-    with tabs[5]:
+    elif st.session_state.active_page == "About / Limitations":
         render_limitations_tab()
 
 
@@ -143,109 +148,234 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
+        :root {
+            --rv-ink: #261f1b;
+            --rv-muted: #817168;
+            --rv-soft: #fbf6ef;
+            --rv-panel: #fffaf4;
+            --rv-sand: #f2e6dc;
+            --rv-blush: #f4ded8;
+            --rv-rose: #ead1c7;
+            --rv-clay: #b98572;
+            --rv-clay-deep: #7b5144;
+            --rv-taupe: #cdb8aa;
+            --rv-line: #e4d3c7;
+            --rv-shadow: 0 22px 54px rgba(82, 55, 43, 0.09);
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at 18% 2%, rgba(244, 222, 216, 0.82), transparent 26rem),
+                radial-gradient(circle at 82% 12%, rgba(232, 205, 190, 0.42), transparent 22rem),
+                linear-gradient(180deg, #fbf6ef 0%, #f6ebe1 48%, #fbf6ef 100%);
+            color: var(--rv-ink);
+        }
+
         .block-container {
-            padding-top: 2.2rem;
+            padding-top: 2.4rem;
             padding-bottom: 3rem;
             max-width: 1180px;
         }
 
-        /* ── Hero header ─────────────────────────────── */
+        /* ── Minimal product header ──────────────────── */
         .hero {
-            padding: 2rem 2.2rem;
-            border: 1px solid #dbe3ea;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #f7fbfb 0%, #eef5f2 55%, #f8fafc 100%);
-            margin-bottom: 1.2rem;
+            padding: 1.95rem 0 0.9rem 0;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            margin-bottom: 0;
+            text-align: center;
         }
         .hero h1 {
-            font-size: 3rem;
-            line-height: 1.05;
-            margin: 0 0 0.3rem 0;
+            font-size: 3.65rem;
+            line-height: 1;
+            margin: 0 0 0.45rem 0;
             letter-spacing: 0;
-            color: #102a43;
+            color: var(--rv-ink);
+            font-weight: 650;
         }
         .hero-subtitle {
-            color: #184e52;
-            font-size: 1.12rem;
-            font-weight: 650;
-            margin: 0 0 0.2rem 0;
+            color: var(--rv-clay-deep);
+            font-size: 1.08rem;
+            font-weight: 620;
+            margin: 0;
         }
         .hero-tagline {
-            color: #52616b;
+            color: var(--rv-muted);
             font-size: 0.95rem;
             margin: 0;
         }
 
-        /* ── Status pill ─────────────────────────────── */
+        /* ── Plain prototype label ───────────────────── */
         .status-pill {
-            display: inline-block;
-            padding: 0.25rem 0.58rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 650;
-            color: #184e52;
-            background: #e3f4f1;
-            border: 1px solid #b9ded8;
-            margin-bottom: 0.45rem;
+            display: block;
+            padding: 0;
+            border-radius: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: var(--rv-muted);
+            background: transparent;
+            border: none;
+            margin: 0.22rem 0 0 0;
         }
 
         /* ── Note / disclaimer strip ─────────────────── */
         .note {
-            padding: 0.85rem 1rem;
-            border-left: 4px solid #2f6f73;
-            background: #f4f9f8;
+            padding: 0.9rem 1rem;
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay);
+            background: rgba(250, 239, 231, 0.78);
             border-radius: 8px;
-            color: #1f3f46;
+            color: #6f5045;
             margin: 0.8rem 0 1rem 0;
             font-size: 0.92rem;
         }
 
+        /* ── Custom navigation spacing ────────────────── */
+        .top-nav-wrap {
+            max-width: 960px;
+            margin: 1.7rem auto 1.45rem auto;
+            padding: 0.28rem;
+            border: none;
+            border-radius: 999px;
+            background: transparent;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+        .top-nav-wrap [data-testid="column"] {
+            padding: 0 !important;
+        }
+        .top-nav-wrap div.stButton > button {
+            min-height: 2.5rem;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--rv-muted);
+            font-weight: 600;
+            box-shadow: none;
+        }
+        .top-nav-wrap div.stButton > button:hover {
+            background: rgba(246, 231, 221, 0.82);
+            border-color: rgba(222, 197, 181, 0.8);
+            color: var(--rv-ink);
+        }
+        .top-nav-wrap div.stButton > button[kind="primary"] {
+            background: linear-gradient(180deg, #efd7cc 0%, #e8cabe 100%);
+            border-color: #d8b8a9;
+            color: var(--rv-ink);
+            box-shadow: inset 0 0 0 1px rgba(255, 250, 244, 0.5), 0 8px 18px rgba(133, 87, 67, 0.12);
+        }
+        .top-nav-wrap div.stButton > button[kind="primary"]:hover {
+            background: #e7c7ba;
+            border-color: #cfa897;
+            color: var(--rv-ink);
+        }
+
         /* ── Generic card ────────────────────────────── */
         .card {
-            border: 1px solid #dbe3ea;
-            border-radius: 10px;
+            border: 1px solid var(--rv-line);
+            border-radius: 8px;
             padding: 1.05rem 1.1rem;
-            background: #ffffff;
+            background: rgba(255, 253, 249, 0.9);
             min-height: 132px;
-            box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04);
+            box-shadow: var(--rv-shadow);
         }
         .card h3 {
             margin-top: 0;
             margin-bottom: 0.45rem;
-            color: #102a43;
+            color: var(--rv-ink);
             font-size: 1.05rem;
         }
         .card p, .card li {
-            color: #425466;
+            color: var(--rv-muted);
             font-size: 0.95rem;
+        }
+        .section-kicker {
+            color: var(--rv-clay);
+            font-size: 0.78rem;
+            font-weight: 650;
+            text-transform: uppercase;
+            letter-spacing: 0.09em;
+            margin-bottom: 0.35rem;
+        }
+        .section-heading {
+            color: var(--rv-ink);
+            font-size: 1.7rem;
+            line-height: 1.2;
+            font-weight: 650;
+            margin: 0 0 0.55rem 0;
+        }
+        .section-copy {
+            color: var(--rv-muted);
+            max-width: 760px;
+            line-height: 1.62;
+            margin-bottom: 1rem;
+        }
+        .flow-panel {
+            max-width: 760px;
+            margin: 0.95rem auto 1.25rem auto;
+            padding: 1.25rem;
+            border: 1px solid var(--rv-line);
+            border-radius: 10px;
+            background: rgba(255, 253, 249, 0.78);
+            box-shadow: var(--rv-shadow);
+        }
+        .mode-choice-title {
+            text-align: center;
+            color: var(--rv-ink);
+            font-weight: 650;
+            font-size: 1.15rem;
+            margin: 0 0 0.25rem 0;
+        }
+        .mode-choice-copy {
+            text-align: center;
+            color: var(--rv-muted);
+            margin: 0 0 1rem 0;
+            font-size: 0.92rem;
+        }
+        .selected-mode {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.34rem 0.7rem;
+            border-radius: 999px;
+            border: 1px solid #dfcabe;
+            background: #f6ede7;
+            color: var(--rv-ink);
+            font-size: 0.86rem;
+            font-weight: 650;
+            margin-bottom: 0.8rem;
         }
 
         /* ── Metric card ─────────────────────────────── */
         .metric-card {
-            border: 1px solid #dbe3ea;
-            border-radius: 10px;
+            border: 1px solid var(--rv-line);
+            border-radius: 8px;
             padding: 1rem;
-            background: #ffffff;
+            background: rgba(255, 253, 249, 0.88);
             min-height: 112px;
+            box-shadow: 0 10px 28px rgba(96, 73, 59, 0.05);
         }
         .metric-value {
             font-size: 1.7rem;
             font-weight: 700;
-            color: #184e52;
+            color: var(--rv-clay-deep);
             margin-bottom: 0.1rem;
         }
         .metric-label {
-            color: #52616b;
+            color: var(--rv-muted);
             font-size: 0.88rem;
         }
 
         /* ── Disabled panel ──────────────────────────── */
         .disabled-panel {
-            border: 1px dashed #aebdca;
+            border: 1px dashed #cfb7a6;
             border-radius: 10px;
             padding: 1rem;
-            background: #f8fafc;
-            color: #425466;
+            background: #fbf3eb;
+            color: var(--rv-muted);
         }
 
         /* ── Step indicator ──────────────────────────── */
@@ -253,10 +383,11 @@ def inject_css() -> None:
             display: flex;
             align-items: center;
             padding: 0.85rem 1.4rem;
-            background: #f8fafc;
-            border: 1px solid #dbe3ea;
+            background: rgba(255, 253, 249, 0.74);
+            border: 1px solid var(--rv-line);
             border-radius: 12px;
             margin-bottom: 1.4rem;
+            box-shadow: 0 10px 28px rgba(96, 73, 59, 0.05);
         }
         .step-item {
             display: flex;
@@ -275,27 +406,27 @@ def inject_css() -> None:
             font-weight: 700;
             flex-shrink: 0;
         }
-        .step-done   { background: #184e52; color: #ffffff; }
-        .step-active { background: #2f6f73; color: #ffffff;
-                       box-shadow: 0 0 0 3px rgba(47,111,115,0.18); }
-        .step-pending { background: #e8edf2; color: #8a9ab0;
-                        border: 1.5px solid #c8d4de; }
-        .step-text-done    { font-size: 0.83rem; font-weight: 600; color: #184e52; }
-        .step-text-active  { font-size: 0.83rem; font-weight: 700; color: #102a43; }
-        .step-text-pending { font-size: 0.83rem; color: #8a9ab0; }
+        .step-done   { background: var(--rv-clay); color: #fffaf4; }
+        .step-active { background: #ead1c7; color: var(--rv-ink);
+                       box-shadow: 0 0 0 3px rgba(185,133,114,0.15); }
+        .step-pending { background: #f5eee8; color: #a18f83;
+                        border: 1.5px solid #e4d5c9; }
+        .step-text-done    { font-size: 0.83rem; font-weight: 600; color: var(--rv-clay-deep); }
+        .step-text-active  { font-size: 0.83rem; font-weight: 700; color: var(--rv-ink); }
+        .step-text-pending { font-size: 0.83rem; color: #a18f83; }
         .step-connector {
             height: 2px; width: 40px;
-            background: #dbe3ea;
+            background: #e4d5c9;
             flex-shrink: 0;
             margin: 0 0.3rem;
         }
-        .conn-done { background: #184e52; }
+        .conn-done { background: var(--rv-clay); }
 
         /* ── Mode selector (targets Streamlit radio widget) ── */
         div[data-testid="stRadio"] {
-            background: #f8fafc;
-            border: 1px solid #dbe3ea;
-            border-radius: 10px;
+            background: rgba(255, 253, 249, 0.7);
+            border: 1px solid var(--rv-line);
+            border-radius: 8px;
             padding: 0.75rem 1rem 0.65rem 1rem;
             margin-bottom: 1rem;
         }
@@ -306,17 +437,17 @@ def inject_css() -> None:
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06em;
-            color: #52616b;
+            color: var(--rv-muted);
             margin: 1rem 0 0.4rem 0;
         }
 
         /* ── Top prediction card ─────────────────────── */
         .top-pred-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #2f6f73;
-            border-radius: 10px;
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay);
+            border-radius: 8px;
             padding: 1rem 1.1rem 0.85rem 1.1rem;
-            background: #f4faf9;
+            background: rgba(255, 250, 244, 0.86);
         }
         .top-pred-header {
             display: flex;
@@ -327,11 +458,11 @@ def inject_css() -> None:
         .top-pred-label {
             font-size: 1.08rem;
             font-weight: 700;
-            color: #102a43;
+            color: var(--rv-ink);
         }
         .top-pred-note {
             font-size: 0.78rem;
-            color: #52616b;
+            color: var(--rv-muted);
             margin: 0.3rem 0 0 0;
         }
 
@@ -343,10 +474,10 @@ def inject_css() -> None:
             font-size: 0.83rem;
             font-weight: 700;
         }
-        .conf-high    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .conf-medium  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .conf-low     { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .conf-unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
+        .conf-high    { background: #f2e6dc; color: #6f5045; border: 1px solid #dfc5b6; }
+        .conf-medium  { background: #fbf1df; color: #76553e; border: 1px solid #ead1ad; }
+        .conf-low     { background: #f7e8e3; color: #805244; border: 1px solid #e8cabe; }
+        .conf-unknown { background: #f2ede8; color: #756963; border: 1px solid #ded1c6; }
 
         /* ── Uncertainty badge ───────────────────────── */
         .unc-badge {
@@ -356,12 +487,12 @@ def inject_css() -> None:
             font-size: 0.82rem;
             font-weight: 600;
         }
-        .unc-high   { background: #d1fae5; color: #065f46; }
-        .unc-medium { background: #fef3c7; color: #92400e; }
-        .unc-low    { background: #fee2e2; color: #991b1b; }
+        .unc-high   { background: #f2e6dc; color: #6f5045; }
+        .unc-medium { background: #fbf1df; color: #76553e; }
+        .unc-low    { background: #f7e8e3; color: #805244; }
         .unc-explanation {
             font-size: 0.87rem;
-            color: #425466;
+            color: var(--rv-muted);
             margin: 0.4rem 0 0 0;
             line-height: 1.45;
         }
@@ -371,14 +502,14 @@ def inject_css() -> None:
             display: flex;
             gap: 0.7rem;
             align-items: flex-start;
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
-            border-left: 4px solid #f59e0b;
-            border-radius: 10px;
+            background: #fbf1df;
+            border: 1px solid #ead1ad;
+            border-left: 4px solid var(--rv-clay);
+            border-radius: 8px;
             padding: 0.85rem 1rem;
             margin: 0.75rem 0;
             font-size: 0.87rem;
-            color: #78350f;
+            color: #76553e;
             line-height: 1.5;
         }
         .low-certainty-marker {
@@ -386,7 +517,7 @@ def inject_css() -> None:
             font-weight: 700;
             flex-shrink: 0;
             margin-top: 0.1rem;
-            background: #f59e0b;
+            background: var(--rv-clay);
             color: white;
             width: 20px;
             height: 20px;
@@ -403,7 +534,7 @@ def inject_css() -> None:
             align-items: center;
             gap: 0.55rem;
             padding: 0.45rem 0;
-            border-bottom: 1px solid #f0f4f7;
+            border-bottom: 1px solid #f0e7df;
             font-size: 0.87rem;
         }
         .pred-row:last-child { border-bottom: none; }
@@ -411,8 +542,8 @@ def inject_css() -> None:
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: #e8edf2;
-            color: #52616b;
+            background: #f2e8df;
+            color: var(--rv-muted);
             font-size: 0.73rem;
             font-weight: 700;
             display: inline-flex;
@@ -422,41 +553,41 @@ def inject_css() -> None:
         }
         .pred-label-text {
             flex: 1;
-            color: #102a43;
+            color: var(--rv-ink);
             font-weight: 500;
             min-width: 0;
         }
         .pred-bar-outer {
             width: 72px;
             height: 5px;
-            background: #e8edf2;
+            background: #f0e7df;
             border-radius: 4px;
             overflow: hidden;
             flex-shrink: 0;
         }
         .pred-bar-inner {
             height: 100%;
-            background: #2f6f73;
+            background: var(--rv-clay);
             border-radius: 4px;
         }
         .pred-conf-text {
             width: 50px;
             text-align: right;
-            color: #52616b;
+            color: var(--rv-muted);
             font-size: 0.8rem;
             flex-shrink: 0;
         }
 
         /* ── Next step card ──────────────────────────── */
         .next-step-card {
-            background: #f4f9f8;
-            border: 1px solid #b9ded8;
-            border-radius: 10px;
+            background: rgba(250, 239, 231, 0.82);
+            border: 1px solid #e7d5ca;
+            border-radius: 8px;
             padding: 0.85rem 1rem;
             margin-top: 1rem;
         }
         .next-step-text {
-            color: #1f3f46;
+            color: #6f5045;
             font-size: 0.9rem;
             margin: 0.25rem 0 0 0;
             line-height: 1.5;
@@ -464,9 +595,9 @@ def inject_css() -> None:
 
         /* ── Context summary card ───────────────────────── */
         .context-summary-card {
-            background: #f8fafc;
-            border: 1px solid #dbe3ea;
-            border-radius: 10px;
+            background: rgba(255, 253, 249, 0.78);
+            border: 1px solid var(--rv-line);
+            border-radius: 8px;
             padding: 0.75rem 1rem;
             margin: 0.75rem 0 0.5rem 0;
         }
@@ -480,71 +611,71 @@ def inject_css() -> None:
             display: inline-flex;
             align-items: center;
             gap: 0.3rem;
-            background: #e8f4f3;
-            border: 1px solid #b9ded8;
+            background: #f4e8df;
+            border: 1px solid #dfc9ba;
             border-radius: 6px;
             padding: 0.18rem 0.5rem;
             font-size: 0.8rem;
         }
         .ctx-tag-label {
-            color: #52616b;
+            color: var(--rv-muted);
             font-weight: 600;
         }
         .ctx-tag-value {
-            color: #184e52;
+            color: var(--rv-clay-deep);
         }
 
         /* ── Staged loading messages ─────────────────── */
         .loading-stage-msg {
             padding: 0.35rem 0.7rem;
-            background: #f4f9f8;
-            border-left: 3px solid #2f6f73;
+            background: #fbf3eb;
+            border-left: 3px solid var(--rv-clay);
             border-radius: 0 6px 6px 0;
-            color: #1f3f46;
+            color: #6f5045;
             font-size: 0.87rem;
             margin: 0.25rem 0;
         }
 
         /* ── Prompt export card ──────────────────────── */
         .prompt-export-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #184e52;
-            border-radius: 10px;
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay-deep);
+            border-radius: 8px;
             padding: 1rem 1.1rem 1rem 1.1rem;
-            background: #f4faf9;
+            background: rgba(255, 250, 244, 0.86);
             margin-bottom: 1rem;
             min-height: 160px;
         }
 
         /* ── Learner rating card ─────────────────────── */
         .rating-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #2f6f73;
-            border-radius: 10px;
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay);
+            border-radius: 8px;
             padding: 1rem 1.1rem;
-            background: #f4faf9;
+            background: rgba(255, 250, 244, 0.86);
             margin-top: 1rem;
         }
         .rating-disclaimer {
             font-size: 0.82rem;
-            color: #52616b;
+            color: var(--rv-muted);
             font-style: italic;
             margin: 0.6rem 0 0 0;
-            border-top: 1px solid #d0e8e5;
+            border-top: 1px solid #ead9ce;
             padding-top: 0.5rem;
         }
 
         /* ── Dermoscopic follow-up card ──────────────── */
         .followup-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #2f6f73;
-            border-radius: 10px;
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay);
+            border-radius: 8px;
             padding: 0.9rem 1.1rem;
-            background: #f4faf9;
+            background: rgba(255, 250, 244, 0.86);
             margin-top: 1.5rem;
         }
         .followup-card-text {
-            color: #1f3f46;
+            color: #6f5045;
             font-size: 0.9rem;
             line-height: 1.55;
             margin: 0.3rem 0 0.5rem 0;
@@ -553,7 +684,7 @@ def inject_css() -> None:
         /* ── Upload section divider ──────────────────── */
         .upload-divider {
             border: none;
-            border-top: 1px dashed #dbe3ea;
+            border-top: 1px dashed var(--rv-line);
             margin: 1.2rem 0;
         }
 
@@ -561,13 +692,101 @@ def inject_css() -> None:
         .safety-footer {
             margin-top: 2rem;
             padding: 1rem 1.2rem;
-            border: 1px solid #dbe3ea;
-            border-top: 3px solid #2f6f73;
-            border-radius: 0 0 10px 10px;
-            background: #f4f9f8;
-            color: #1f3f46;
+            border: 1px solid #e7d5ca;
+            border-top: 3px solid var(--rv-clay);
+            border-radius: 0 0 8px 8px;
+            background: rgba(250, 239, 231, 0.82);
+            color: #6f5045;
             font-size: 0.87rem;
             line-height: 1.6;
+        }
+
+        div[data-testid="stExpander"] {
+            border: 1px solid var(--rv-line);
+            border-radius: 8px;
+            background: rgba(255, 253, 249, 0.74);
+            box-shadow: 0 10px 28px rgba(96, 73, 59, 0.04);
+            overflow: hidden;
+        }
+        div[data-testid="stExpander"] details summary {
+            color: var(--rv-ink);
+            font-weight: 650;
+        }
+        div.stButton > button {
+            border-radius: 8px;
+            border-color: #dfcabe;
+            color: var(--rv-ink);
+            background: rgba(255, 253, 249, 0.88);
+            box-shadow: 0 8px 18px rgba(96, 73, 59, 0.05);
+            font-weight: 600;
+        }
+        div.stButton > button:hover {
+            border-color: #cdb0a0;
+            background: #f6ede7;
+            color: var(--rv-ink);
+        }
+        div.stButton > button[kind="primary"] {
+            background: #efe1d8;
+            border-color: #d9c0b2;
+            color: var(--rv-ink);
+        }
+        div.stButton > button[kind="primary"]:hover {
+            background: #ead8cd;
+            border-color: #cdb0a0;
+            color: var(--rv-ink);
+        }
+        div[data-testid="stFileUploader"] {
+            background: rgba(255, 253, 249, 0.72);
+            border: 1px dashed #d9c0b2;
+            border-radius: 10px;
+            padding: 0.6rem;
+        }
+        div[data-testid="stFileUploader"] section {
+            background: #fbf6ef !important;
+            border: 1px dashed #cdb0a0 !important;
+            border-radius: 12px !important;
+        }
+        div[data-testid="stFileUploader"] section > div {
+            background: #fbf6ef !important;
+            color: var(--rv-muted) !important;
+        }
+        div[data-testid="stFileUploader"] button {
+            background: #fffaf4 !important;
+            border: 1px solid #cdb0a0 !important;
+            color: var(--rv-ink) !important;
+            border-radius: 10px !important;
+            box-shadow: 0 6px 14px rgba(96, 73, 59, 0.05) !important;
+        }
+        div[data-testid="stFileUploader"] button:hover {
+            background: #f2e6dc !important;
+            border-color: var(--rv-clay) !important;
+            color: var(--rv-ink) !important;
+        }
+        div[data-testid="stFileUploader"] svg {
+            color: var(--rv-clay-deep) !important;
+            fill: var(--rv-clay-deep) !important;
+        }
+        div[data-testid="stAlert"] {
+            background: rgba(250, 239, 231, 0.86);
+            border: 1px solid #e7d5ca;
+            border-left: 4px solid var(--rv-clay);
+            border-radius: 8px;
+            color: #6f5045;
+        }
+        div[data-testid="stAlert"] svg {
+            fill: var(--rv-clay);
+        }
+        code {
+            color: #70483b;
+            background: rgba(242, 230, 220, 0.86);
+            border: 1px solid rgba(215, 190, 174, 0.75);
+            border-radius: 6px;
+            padding: 0.1rem 0.32rem;
+        }
+        pre {
+            background: rgba(255, 250, 244, 0.88) !important;
+            border: 1px solid var(--rv-line);
+            border-radius: 10px;
         }
         </style>
         """,
@@ -575,22 +794,31 @@ def inject_css() -> None:
     )
 
 
+def render_top_navigation(pages: list[str]) -> None:
+    st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
+
+    cols = st.columns([1, 1, 1.35, 1.25, 0.85, 1.25], gap="small")
+    for col, page in zip(cols, pages):
+        is_active = st.session_state.active_page == page
+        button_type = "primary" if is_active else "secondary"
+        if col.button(page, key=f"nav_{page}", type=button_type, use_container_width=True):
+            st.session_state.active_page = page
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_landing_page() -> None:
+    st.empty()
+
+
 def render_header() -> None:
     st.markdown(
         """
         <div class="hero">
-          <div class="status-pill">Prototype</div>
           <h1>Revela</h1>
           <p class="hero-subtitle">Educational dermatology AI training aid</p>
-          <p class="hero-tagline">Structured image review for learning. Model output, not diagnosis.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <div class="note">
-        Revela is not a diagnostic product. It does not provide treatment advice, clinical certainty, or clinical validation.
+          <p class="status-pill">Prototype · Educational use only</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -618,8 +846,7 @@ def render_step_indicator(current_step: int) -> None:
     steps = [
         (1, "Choose image type"),
         (2, "Upload image"),
-        (3, "Learning context"),
-        (4, "Review model output"),
+        (3, "Review educational model output"),
     ]
 
     parts: list[str] = []
@@ -644,30 +871,69 @@ def render_step_indicator(current_step: int) -> None:
 def render_analyze_tab() -> None:
     initialize_analysis_state()
     status = st.session_state.analysis_status
+    case_type = st.session_state.get("selected_case_type")
 
-    if status in ("complete", "error", "running"):
-        _step = 4
-    elif st.session_state.get("file_uploaded", False):
+    if status in ("complete", "error", "running") or st.session_state.get("file_uploaded", False):
         _step = 3
-    else:
+    elif case_type:
         _step = 2
+    else:
+        _step = 1
     render_step_indicator(_step)
 
-    case_type = st.radio(
-        "Choose image type",
-        _CASE_TYPES,
-        horizontal=True,
-        key="case_type_radio",
-        on_change=reset_analysis_state,
+    st.markdown(
+        """
+        <div class="section-kicker">Analyze image</div>
+        <h2 class="section-heading">Guided educational image review</h2>
+        <p class="section-copy">
+          Select the image type first. Upload and model-output areas appear only when they
+          are relevant to the current step.
+        </p>
+        """,
+        unsafe_allow_html=True,
     )
 
+    render_case_type_choice(case_type)
+
+    if case_type is None:
+        render_safety_footer()
+        return
+
     if status == "complete":
+        uploaded_image = load_selected_upload_preview(case_type)
         _col, _ = st.columns([1, 5])
         with _col:
             if st.button("Start over"):
-                reset_analysis_state()
+                reset_analysis_state(clear_case_type=True, clear_uploads=True)
                 st.rerun()
-        render_final_result_screen(case_type)
+        render_final_result_screen(case_type, uploaded_image)
+        render_safety_footer()
+        return
+
+    upload_key = _upload_key_for_case_type(case_type)
+    if st.session_state.get(upload_key) is None and status not in ("running", "error"):
+        _, upload_col, _ = st.columns([0.8, 1.4, 0.8], gap="large")
+        with upload_col:
+            if case_type == "Clinical photo":
+                render_upload_card(
+                    label="Clinical / macroscopic photo",
+                    upload_key="upload_clinical",
+                    preview_caption="Clinical photo preview",
+                    mode_note=(
+                        "Regular camera photo of visible skin condition. "
+                        "Not dermoscopic, not microscope, not highly magnified."
+                    ),
+                )
+            else:
+                render_upload_card(
+                    label="Dermoscopic / close-up lesion image",
+                    upload_key="upload_dermoscopic",
+                    preview_caption="Dermoscopic image preview",
+                    mode_note=(
+                        "Dermoscopic or magnified lesion image. "
+                        "Not a regular clinical photo. Model output is not diagnosis."
+                    ),
+                )
         render_safety_footer()
         return
 
@@ -726,6 +992,42 @@ def render_analyze_tab() -> None:
     render_safety_footer()
 
 
+def render_case_type_choice(case_type: str | None) -> None:
+    if case_type:
+        st.markdown(
+            f'<div class="selected-mode">Image type: {case_type}</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    st.markdown(
+        """
+        <div class="flow-panel">
+          <p class="mode-choice-title">Choose image type</p>
+          <p class="mode-choice-copy">
+            This keeps the workflow aligned with the appropriate educational model.
+          </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    col_a, col_b, col_c, col_d = st.columns([1.2, 1.25, 1.25, 1.2], gap="medium")
+    with col_b:
+        if st.button("Clinical photo", use_container_width=True):
+            set_case_type("Clinical photo")
+            st.rerun()
+    with col_c:
+        if st.button("Dermoscopic image", use_container_width=True):
+            set_case_type("Dermoscopic image")
+            st.rerun()
+
+
+def set_case_type(case_type: str) -> None:
+    if st.session_state.get("selected_case_type") != case_type:
+        reset_analysis_state(clear_case_type=False, clear_uploads=True)
+        st.session_state.selected_case_type = case_type
+
+
 def get_mode_config(input_mode: str) -> dict[str, str | int]:
     if input_mode == "Dermoscopic image":
         return {
@@ -750,6 +1052,8 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
 
 
 def initialize_analysis_state() -> None:
+    if "selected_case_type" not in st.session_state:
+        st.session_state.selected_case_type = None
     if "analysis_status" not in st.session_state:
         st.session_state.analysis_status = "idle"
     if "analysis_results" not in st.session_state:
@@ -766,15 +1070,19 @@ def initialize_analysis_state() -> None:
         st.session_state.dermoscopic_followup_status = "idle"
 
 
-def reset_analysis_state() -> None:
+def reset_analysis_state(clear_case_type: bool = False, clear_uploads: bool = False) -> None:
     st.session_state.analysis_status = "idle"
     st.session_state.analysis_results = {}
     st.session_state.analysis_error = None
     st.session_state.file_uploaded = False
     st.session_state.dermoscopic_followup_status = "idle"
     for key in list(st.session_state.keys()):
-        if key.startswith("ctx_") or key.startswith("lrt_"):
+        if key.startswith("ctx_") or key.startswith("lrt_") or (
+            clear_uploads and key.startswith("upload_")
+        ):
             del st.session_state[key]
+    if clear_case_type:
+        st.session_state.selected_case_type = None
     st.session_state.learner_context = {}
     st.session_state.learner_rating = {}
 
@@ -1066,6 +1374,20 @@ def load_uploaded_image(uploaded_file) -> Image.Image:
         rgb_image = image.convert("RGB")
     uploaded_file.seek(0)
     return rgb_image
+
+
+def _upload_key_for_case_type(case_type: str) -> str:
+    return "upload_clinical" if case_type == "Clinical photo" else "upload_dermoscopic"
+
+
+def load_selected_upload_preview(case_type: str) -> Image.Image | None:
+    uploaded_file = st.session_state.get(_upload_key_for_case_type(case_type))
+    if uploaded_file is None:
+        return None
+    try:
+        return load_uploaded_image(uploaded_file)
+    except (UnidentifiedImageError, OSError):
+        return None
 
 
 def render_upload_metadata(uploaded_file, image: Image.Image) -> None:
@@ -1381,7 +1703,7 @@ def _render_result_context_summary(ctx: dict[str, str]) -> None:
             st.caption("No context was provided for this analysis.")
 
 
-def render_final_result_screen(case_type: str) -> None:
+def render_final_result_screen(case_type: str, uploaded_image: Image.Image | None = None) -> None:
     results = st.session_state.get("analysis_results", {})
     clinical_response = results.get("clinical")
     derm_response = results.get("dermoscopic")
@@ -1391,6 +1713,10 @@ def render_final_result_screen(case_type: str) -> None:
     result_col, prompt_col = st.columns([1, 1], gap="large")
 
     with result_col:
+        if uploaded_image is not None:
+            st.markdown("#### Uploaded image")
+            st.image(uploaded_image, caption=f"{case_type} preview", use_container_width=True)
+
         if case_type == "Dermoscopic image":
             st.markdown("#### Revela model result")
             if derm_response and not derm_response.get("error"):
@@ -1537,76 +1863,132 @@ def render_prompt_export() -> None:
 
 
 def render_overview_tab() -> None:
-    st.subheader("Product Overview")
-    st.write(
-        "Revela is a portfolio-ready prototype for educational dermatology image review. "
-        "The app is designed to show model outputs, uncertainty, limitations, and evaluation context in one calm workflow."
+    st.markdown(
+        """
+        <div class="section-kicker">Overview</div>
+        <h2 class="section-heading">Structured image review for learning</h2>
+        <p class="section-copy">
+          Revela is a demo-ready prototype for educational dermatology image review.
+          It presents model output alongside uncertainty, limitations, and evaluation
+          context. Model output is not diagnosis, and confidence is not clinical certainty.
+        </p>
+        """,
+        unsafe_allow_html=True,
     )
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        render_card(
-            "Clinical Photo Mode",
-            "Uses the current clinical-image model for common condition-oriented outputs and lesion-routing review.",
+    with st.expander("Clinical Photo Mode", expanded=False):
+        st.write(
+            "Educational review for regular camera photos of visible skin findings, "
+            "including condition-oriented outputs and lesion-routing review."
         )
-    with col2:
-        render_card(
-            "Dermoscopic Mode",
-            "Uses the dermoscopic BCN+MNH model for educational dermoscopic image review.",
+    with st.expander("Dermoscopic Mode", expanded=False):
+        st.write(
+            "Educational dermoscopic image review using the current dermoscopic model. "
+            "Qualified review is required for real decisions."
         )
-    with col3:
-        render_card(
-            "Transparent Results",
-            "Inference uses the canonical schema with top outputs, uncertainty, safety notes, and limitations.",
+    with st.expander("Transparent Results", expanded=False):
+        st.write(
+            "Outputs include top ranked labels, confidence, uncertainty framing, "
+            "safety notes, limitations, and prompt export for learning."
         )
 
-    st.markdown("### Current Build Status")
-    status_col1, status_col2 = st.columns(2)
-    with status_col1:
-        render_card(
-            "Available now",
-            "Clinical-photo mode is available for educational local inference with transparent model outputs.",
-        )
-    with status_col2:
-        render_card(
-            "Dermoscopic mode",
-            "The improved dermoscopic model is available for educational local inference.",
-        )
+    st.markdown(
+        """
+        <div class="note">
+        Prototype · Educational use only. Revela is not a diagnostic product and does not
+        recommend treatment.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_transparency_tab() -> None:
-    st.subheader("Model Transparency")
-    st.write("The app uses explicit model roles rather than one hidden universal classifier.")
-
-    col1, col2 = st.columns(2, gap="large")
-    with col1:
-        st.markdown("#### Clinical model")
-        st.markdown("`clinical_skin_condition_v1` backed by `clinical_v2_effnet_b0`")
-        st.markdown("Role: clinical-photo condition and lesion-routing prototype.")
-        st.markdown("Classes:")
-        for label in CLINICAL_CLASSES:
-            st.markdown(f"- `{label}`")
-        st.info("The lesion-routing class is not cancer detection.")
-
-    with col2:
-        st.markdown("#### Dermoscopic model")
-        st.markdown("`dermoscopic_cancer_risk_bcn_mnh_v1`")
-        st.markdown("Role: dermoscopic educational review prototype.")
-        st.markdown("Classes:")
-        for label in DERMOSCOPIC_CLASSES:
-            st.markdown(f"- `{label}`")
-        st.info("Model confidence is not clinical certainty.")
-
-    st.markdown("---")
     st.markdown(
-        "`dermoscopic_baseline_v1` is a developer smoke-test model only. "
-        "It should not drive public product behavior, UI copy, or demo claims."
+        """
+        <div class="section-kicker">Model Transparency</div>
+        <h2 class="section-heading">Explicit model roles</h2>
+        <p class="section-copy">
+          Revela separates clinical-photo review and dermoscopic review into explicit model roles.
+          This keeps educational boundaries visible and avoids presenting one hidden universal classifier.
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("Clinical model", expanded=False):
+        st.markdown(
+            """
+            <p class="section-copy">
+              Used for clinical-photo condition review and lesion-routing prototype output.
+            </p>
+            <p>
+              <span class="model-chip">clinical_skin_condition_v1</span>
+              <span class="chip-connector">backed by</span>
+              <span class="model-chip">clinical_v2_effnet_b0</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("##### Classes")
+        for label in CLINICAL_CLASSES:
+            st.markdown(f"- {label}")
+        st.markdown(
+            """
+            <div class="note">
+            The lesion-routing class is not cancer detection.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    with st.expander("Dermoscopic model", expanded=False):
+        st.markdown(
+            """
+            <p class="section-copy">
+              Used for educational dermoscopic image review and cancer-risk oriented model output.
+            </p>
+            <p>
+              <span class="model-chip">dermoscopic_cancer_risk_bcn_mnh_v1</span>
+            </p>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown("##### Classes")
+        for label in DERMOSCOPIC_CLASSES:
+            st.markdown(f"- {label}")
+        st.markdown(
+            """
+            <div class="note">
+            Model confidence is not clinical certainty.
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    st.markdown(
+        """
+        <div class="note">
+        <span class="model-chip">dermoscopic_baseline_v1</span> is a developer smoke-test model only.
+        It should not drive public product behavior, UI copy, or demo claims.
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
 
 def render_metrics_tab() -> None:
-    st.subheader("Evaluation Metrics")
-    st.caption("Prototype held-out evaluation metrics. These are not clinical validation.")
+    st.markdown(
+        """
+        <div class="section-kicker">Evaluation Metrics</div>
+        <h2 class="section-heading">Prototype evaluation context</h2>
+        <p class="section-copy">
+          Held-out evaluation metrics for transparency and model-improvement planning.
+          These are not evidence of clinical readiness.
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
 
     metric_rows = [
         ("Accuracy", "0.6554"),
@@ -1632,10 +2014,17 @@ def render_metrics_tab() -> None:
 
 
 def render_benchmark_tab() -> None:
-    st.subheader("Benchmark")
-    st.write(
-        "This area is reserved for a future qualitative portfolio benchmark. "
-        "It may compare structured model outputs with selected multimodal AI responses for educational review."
+    st.markdown(
+        """
+        <div class="section-kicker">Benchmark</div>
+        <h2 class="section-heading">Qualitative review workspace</h2>
+        <p class="section-copy">
+          This area is reserved for a future qualitative portfolio benchmark. It may
+          compare structured model outputs with selected multimodal AI responses for
+          educational review.
+        </p>
+        """,
+        unsafe_allow_html=True,
     )
     col1, col2 = st.columns(2)
     with col1:
@@ -1646,12 +2035,22 @@ def render_benchmark_tab() -> None:
     with col2:
         render_card(
             "Boundary",
-            "The benchmark is not clinical validation and should not be presented as diagnostic performance.",
+            "The benchmark is not evidence of clinical readiness and should not be presented as real-world medical performance.",
         )
 
 
 def render_limitations_tab() -> None:
-    st.subheader("About / Limitations")
+    st.markdown(
+        """
+        <div class="section-kicker">About / Limitations</div>
+        <h2 class="section-heading">Educational boundaries</h2>
+        <p class="section-copy">
+          Revela is intended for learning and prototype demonstration, with qualified
+          review required for real decisions.
+        </p>
+        """,
+        unsafe_allow_html=True,
+    )
     limitations = [
         "Revela is not a diagnostic product.",
         "The app does not provide treatment advice.",
@@ -1663,7 +2062,7 @@ def render_limitations_tab() -> None:
     for item in limitations:
         st.markdown(f"- {item}")
 
-    st.markdown("### Run Locally")
+    st.markdown("#### Run Locally")
     st.code("streamlit run app.py", language="bash")
 
 

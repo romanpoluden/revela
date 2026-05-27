@@ -8,6 +8,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 
+from src.inference.artifact_resolver import resolve_model_artifacts
 from src.inference.model_registry import get_model_config
 from src.model.model import create_model
 
@@ -57,11 +58,17 @@ def load_model_from_registry(
     Resolves all paths relative to project_root (defaults to the repo root
     inferred from this file's location). Supports CUDA, MPS, and CPU.
 
+    Runtime artifact resolution is local-first. If a registered checkpoint or
+    class mapping is missing and the model has a configured Hugging Face repo,
+    the artifact resolver downloads required files into the expected local
+    models/ path before loading.
+
     Returns a LoadedModel carrying the loaded nn.Module plus all registry
     metadata (model_id, input_type, architecture, num_classes, checkpoint_path,
     class_to_idx_path, image_size, class_names).
 
-    Raises FileNotFoundError if the checkpoint or class_to_idx file is missing.
+    Raises FileNotFoundError if the checkpoint or class_to_idx file is missing
+    and no fallback can provide it.
     Raises KeyError if model_id is not in the registry.
     """
     config = get_model_config(model_id)
@@ -73,15 +80,10 @@ def load_model_from_registry(
         )
 
     root = project_root or Path(__file__).resolve().parents[2]
+    resolved_paths = resolve_model_artifacts(model_id, project_root=root)
 
-    checkpoint_path = root / config["checkpoint_path"]
-    class_to_idx_path = root / config["class_to_idx_path"]
-
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(
-            f"Checkpoint not found for '{model_id}': {checkpoint_path}\n"
-            "Run training before loading this model."
-        )
+    checkpoint_path = resolved_paths["checkpoint_path"]
+    class_to_idx_path = resolved_paths["class_to_idx_path"]
 
     class_to_idx = _load_class_to_idx(class_to_idx_path)
     class_names = [name for name, _ in sorted(class_to_idx.items(), key=lambda x: x[1])]

@@ -114,28 +114,33 @@ def main() -> None:
     inject_css()
     render_header()
 
-    tabs = st.tabs(
-        [
-            "Overview",
-            "Analyze Image",
-            "Model Transparency",
-            "Evaluation Metrics",
-            "Benchmark",
-            "About / Limitations",
-        ]
-    )
+    pages = [
+        "Overview",
+        "Analyze Image",
+        "Model Transparency",
+        "Evaluation Metrics",
+        "Benchmark",
+        "About / Limitations",
+    ]
 
-    with tabs[0]:
+    if "active_page" not in st.session_state:
+        st.session_state.active_page = "Landing"
+
+    render_top_navigation(pages)
+
+    if st.session_state.active_page == "Landing":
+        render_landing_page()
+    elif st.session_state.active_page == "Overview":
         render_overview_tab()
-    with tabs[1]:
+    elif st.session_state.active_page == "Analyze Image":
         render_analyze_tab()
-    with tabs[2]:
+    elif st.session_state.active_page == "Model Transparency":
         render_transparency_tab()
-    with tabs[3]:
+    elif st.session_state.active_page == "Evaluation Metrics":
         render_metrics_tab()
-    with tabs[4]:
+    elif st.session_state.active_page == "Benchmark":
         render_benchmark_tab()
-    with tabs[5]:
+    elif st.session_state.active_page == "About / Limitations":
         render_limitations_tab()
 
 
@@ -149,26 +154,26 @@ def inject_css() -> None:
             max-width: 1180px;
         }
 
-        /* ── Hero header ─────────────────────────────── */
+        /* ── Minimal product header ──────────────────── */
         .hero {
-            padding: 2rem 2.2rem;
-            border: 1px solid #dbe3ea;
-            border-radius: 12px;
-            background: linear-gradient(135deg, #f7fbfb 0%, #eef5f2 55%, #f8fafc 100%);
-            margin-bottom: 1.2rem;
+            padding: 1.35rem 0 1.1rem 0;
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            margin-bottom: 0.4rem;
         }
         .hero h1 {
-            font-size: 3rem;
-            line-height: 1.05;
-            margin: 0 0 0.3rem 0;
-            letter-spacing: 0;
+            font-size: 3.8rem;
+            line-height: 0.98;
+            margin: 0 0 0.45rem 0;
+            letter-spacing: -0.045em;
             color: #102a43;
         }
         .hero-subtitle {
             color: #184e52;
-            font-size: 1.12rem;
+            font-size: 1.08rem;
             font-weight: 650;
-            margin: 0 0 0.2rem 0;
+            margin: 0;
         }
         .hero-tagline {
             color: #52616b;
@@ -176,17 +181,19 @@ def inject_css() -> None:
             margin: 0;
         }
 
-        /* ── Status pill ─────────────────────────────── */
+        /* ── Plain prototype label ───────────────────── */
         .status-pill {
-            display: inline-block;
-            padding: 0.25rem 0.58rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 650;
-            color: #184e52;
-            background: #e3f4f1;
-            border: 1px solid #b9ded8;
-            margin-bottom: 0.45rem;
+            display: block;
+            padding: 0;
+            border-radius: 0;
+            font-size: 0.95rem;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+            color: #6b7c8f;
+            background: transparent;
+            border: none;
+            margin: 0.22rem 0 0 0;
         }
 
         /* ── Note / disclaimer strip ─────────────────── */
@@ -198,6 +205,11 @@ def inject_css() -> None:
             color: #1f3f46;
             margin: 0.8rem 0 1rem 0;
             font-size: 0.92rem;
+        }
+
+        /* ── Custom navigation spacing ────────────────── */
+        .top-nav-wrap {
+            margin: 2.6rem auto 0 auto;
         }
 
         /* ── Generic card ────────────────────────────── */
@@ -575,22 +587,31 @@ def inject_css() -> None:
     )
 
 
+def render_top_navigation(pages: list[str]) -> None:
+    st.markdown('<div class="top-nav-wrap">', unsafe_allow_html=True)
+
+    cols = st.columns([1, 1, 1.35, 1.25, 0.85, 1.25], gap="small")
+    for col, page in zip(cols, pages):
+        is_active = st.session_state.active_page == page
+        button_type = "primary" if is_active else "secondary"
+        if col.button(page, key=f"nav_{page}", type=button_type, use_container_width=True):
+            st.session_state.active_page = page
+            st.rerun()
+
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+def render_landing_page() -> None:
+    st.markdown('<div class="landing-spacer"></div>', unsafe_allow_html=True)
+
+
 def render_header() -> None:
     st.markdown(
         """
         <div class="hero">
-          <div class="status-pill">Prototype</div>
           <h1>Revela</h1>
           <p class="hero-subtitle">Educational dermatology AI training aid</p>
-          <p class="hero-tagline">Structured image review for learning. Model output, not diagnosis.</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        """
-        <div class="note">
-        Revela is not a diagnostic product. It does not provide treatment advice, clinical certainty, or clinical validation.
+          <p class="status-pill">Prototype · Educational use only</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1539,8 +1560,9 @@ def render_prompt_export() -> None:
 def render_overview_tab() -> None:
     st.subheader("Product Overview")
     st.write(
-        "Revela is a portfolio-ready prototype for educational dermatology image review. "
-        "The app is designed to show model outputs, uncertainty, limitations, and evaluation context in one calm workflow."
+        "Revela is a demo-ready prototype for educational dermatology image review. "
+        "The app is designed to show model outputs, uncertainty, limitations, and evaluation context in one calm workflow. "
+        "It supports learning only: model output is not diagnosis, and confidence is not clinical certainty."
     )
 
     col1, col2, col3 = st.columns(3)

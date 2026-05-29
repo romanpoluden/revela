@@ -457,6 +457,157 @@ def inject_css() -> None:
             padding: 0.6rem 0.75rem;
             text-align: center;
         }
+        .education-result-card {
+            border: 1px solid var(--revela-border);
+            border-radius: 12px;
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-md);
+            margin: 0.75rem 0 1.1rem 0;
+            overflow: hidden;
+        }
+        .education-result-header {
+            background: linear-gradient(180deg, #f4faf9 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--revela-border);
+            padding: 1rem 1.1rem;
+        }
+        .education-result-title {
+            color: var(--revela-ink);
+            font-size: 1.08rem;
+            font-weight: 780;
+            line-height: 1.25;
+            margin: 0.25rem 0 0 0;
+        }
+        .education-result-body {
+            padding: 1rem 1.1rem 1.1rem 1.1rem;
+        }
+        .education-synthesis-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
+            gap: 0.85rem;
+            margin-bottom: 0.9rem;
+        }
+        .education-synthesis-panel {
+            border: 1px solid var(--revela-border);
+            border-radius: 10px;
+            background: var(--revela-surface-soft);
+            padding: 0.9rem 1rem;
+        }
+        .education-synthesis-panel.is-primary {
+            border-color: #b9ded8;
+            background: #f4faf9;
+        }
+        .education-result-label {
+            color: var(--revela-muted);
+            font-size: 0.72rem;
+            font-weight: 760;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+            text-transform: uppercase;
+        }
+        .education-top-output {
+            color: var(--revela-ink);
+            font-size: 1.22rem;
+            font-weight: 780;
+            line-height: 1.25;
+            margin: 0;
+        }
+        .education-confidence-value {
+            color: var(--revela-primary-strong);
+            font-size: 1.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin: 0;
+        }
+        .education-uncertainty-copy {
+            color: var(--revela-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0.35rem 0 0 0;
+        }
+        .education-low-certainty {
+            border: 1px solid #fed7aa;
+            border-radius: 10px;
+            background: #fff7ed;
+            color: #7c2d12;
+            font-size: 0.88rem;
+            line-height: 1.5;
+            margin: 0.85rem 0;
+            padding: 0.75rem 0.85rem;
+        }
+        .education-output-list {
+            display: grid;
+            gap: 0.5rem;
+            margin-top: 0.45rem;
+        }
+        .education-output-row {
+            align-items: center;
+            border: 1px solid var(--revela-border);
+            border-radius: 8px;
+            display: grid;
+            gap: 0.55rem;
+            grid-template-columns: 2rem minmax(0, 1fr) 4.5rem;
+            padding: 0.55rem 0.65rem;
+        }
+        .education-output-rank {
+            align-items: center;
+            background: var(--revela-primary-soft);
+            border-radius: 50%;
+            color: var(--revela-primary-strong);
+            display: inline-flex;
+            font-size: 0.75rem;
+            font-weight: 780;
+            height: 1.6rem;
+            justify-content: center;
+            width: 1.6rem;
+        }
+        .education-output-name {
+            color: var(--revela-ink);
+            font-size: 0.9rem;
+            font-weight: 650;
+            line-height: 1.35;
+        }
+        .education-output-confidence {
+            color: var(--revela-muted);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-align: right;
+        }
+        .education-result-section {
+            border-top: 1px solid var(--revela-border);
+            margin-top: 0.95rem;
+            padding-top: 0.85rem;
+        }
+        .education-safe-copy,
+        .education-result-section li {
+            color: var(--revela-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .education-meta-grid {
+            display: grid;
+            gap: 0.45rem;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            margin-top: 0.5rem;
+        }
+        .education-meta-item {
+            border: 1px solid var(--revela-border);
+            border-radius: 8px;
+            background: var(--revela-surface-soft);
+            padding: 0.55rem 0.65rem;
+        }
+        .education-meta-value {
+            color: var(--revela-ink);
+            font-size: 0.86rem;
+            font-weight: 650;
+            line-height: 1.35;
+            margin-top: 0.12rem;
+        }
+        @media (max-width: 760px) {
+            .education-synthesis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
 
         /* ── Hero header ─────────────────────────────── */
         .hero {
@@ -1692,106 +1843,135 @@ def render_analysis_result(response: dict | None, mode_config: dict[str, str | i
     uncertainty = response.get("uncertainty") or {}
     predictions = response.get("predictions") or []
 
-    label = top_prediction.get("label", "Unavailable")
+    label = top_prediction.get("label") or "Unavailable"
     conf_pct = top_prediction.get("confidence_percent")
     conf_str = format_percent(conf_pct)
-    conf_class = _confidence_color_class(conf_pct)
+    unc_label = uncertainty.get("label") or "Unavailable"
+    unc_explanation = uncertainty.get("explanation") or "No uncertainty explanation returned."
+
+    output_rows = ""
+    if predictions:
+        for pred in predictions[: int(mode_config["top_k"])]:
+            pred_label = pred.get("label") or "Unavailable"
+            pred_conf_pct = pred.get("confidence_percent")
+            pred_conf_str = format_percent(pred_conf_pct)
+            rank = pred.get("rank") or ""
+            output_rows += (
+                '<div class="education-output-row">'
+                f'<span class="education-output-rank">{_escape_html(rank)}</span>'
+                f'<span class="education-output-name">{_escape_html(pred_label)}</span>'
+                f'<span class="education-output-confidence">{_escape_html(pred_conf_str)}</span>'
+                '</div>'
+            )
+    else:
+        output_rows = '<p class="education-safe-copy">No ranked outputs were returned.</p>'
+
+    low_certainty_html = ""
+    if response.get("low_certainty") is True:
+        msg = response.get("low_certainty_message") or (
+            "The model output has lower certainty. Use this for educational review only."
+        )
+        reason = response.get("low_certainty_reason")
+        reason_html = (
+            f'<br><span>{_escape_html(reason)}</span>' if reason else ""
+        )
+        low_certainty_html = (
+            '<div class="education-low-certainty">'
+            f'<strong>Uncertainty</strong><br>{_escape_html(msg)}{reason_html}'
+            '</div>'
+        )
+
+    safety_note = response.get("safety_note") or (
+        "Model output remains educational only. Qualified review is required for real decisions."
+    )
+    limitations_html = _render_limitations_html(response.get("model_limitations"))
+    next_step = response.get("recommended_next_step") or (
+        "Review the model output, uncertainty, and limitations as part of an educational discussion."
+    )
+    meta_html = _render_model_metadata_html(response)
 
     st.markdown(
         f"""
-        <div class="section-label">{mode_config["result_heading"]}</div>
-        <div class="top-pred-card">
-          <div class="top-pred-header">
-            <span class="top-pred-label">{label}</span>
-            <span class="conf-badge {conf_class}">{conf_str}</span>
+        <div class="education-result-card">
+          <div class="education-result-header">
+            <div class="revela-card-kicker">Model Output Review</div>
+            <h3 class="education-result-title">Educational Model Output</h3>
           </div>
-          <p class="top-pred-note">Rank 1 output &mdash; {mode_config["result_note"]}</p>
+          <div class="education-result-body">
+            <div class="education-synthesis-grid">
+              <div class="education-synthesis-panel is-primary">
+                <div class="education-result-label">Top output</div>
+                <p class="education-top-output">{_escape_html(label)}</p>
+              </div>
+              <div class="education-synthesis-panel">
+                <div class="education-result-label">Model confidence</div>
+                <p class="education-confidence-value">{_escape_html(conf_str)}</p>
+              </div>
+            </div>
+            <div class="education-synthesis-panel">
+              <div class="education-result-label">Uncertainty</div>
+              <p class="education-top-output">{_escape_html(unc_label)}</p>
+              <p class="education-uncertainty-copy">{_escape_html(unc_explanation)}</p>
+            </div>
+            {low_certainty_html}
+            <div class="education-result-section">
+              <div class="education-result-label">Top outputs</div>
+              <div class="education-output-list">{output_rows}</div>
+            </div>
+            <div class="education-result-section">
+              <div class="education-result-label">Safety note</div>
+              <p class="education-safe-copy">{_escape_html(safety_note)}</p>
+            </div>
+            <div class="education-result-section">
+              <div class="education-result-label">Model limitations</div>
+              {limitations_html}
+            </div>
+            <div class="education-result-section">
+              <div class="education-result-label">Recommended educational next step</div>
+              <p class="education-safe-copy">{_escape_html(next_step)}</p>
+            </div>
+            {meta_html}
+          </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    unc_bucket = uncertainty.get("bucket", "")
-    unc_label = uncertainty.get("label", "Unavailable")
-    unc_explanation = uncertainty.get("explanation", "No uncertainty explanation returned.")
-    unc_class = _uncertainty_class(unc_bucket)
 
-    st.markdown(
+def _render_limitations_html(limitations: object) -> str:
+    if not limitations:
+        return '<p class="education-safe-copy">No model limitations were returned.</p>'
+    if not isinstance(limitations, list):
+        return f'<p class="education-safe-copy">{_escape_html(limitations)}</p>'
+    items = "".join(f"<li>{_escape_html(item)}</li>" for item in limitations)
+    return f'<ul class="education-safe-copy">{items}</ul>'
+
+
+def _render_model_metadata_html(response: dict) -> str:
+    fields = [
+        ("Input type", response.get("input_type")),
+        ("Model ID", response.get("model_id")),
+        ("Architecture", response.get("architecture")),
+        ("Image size", response.get("image_size")),
+    ]
+    visible = [(label, value) for label, value in fields if value]
+    if not visible:
+        return ""
+    items = "".join(
         f"""
-        <div class="section-label">Uncertainty</div>
-        <span class="unc-badge {unc_class}">{unc_label}</span>
-        <p class="unc-explanation">{unc_explanation}</p>
-        """,
-        unsafe_allow_html=True,
+        <div class="education-meta-item">
+          <div class="education-result-label">{_escape_html(label)}</div>
+          <div class="education-meta-value">{_escape_html(value)}</div>
+        </div>
+        """
+        for label, value in visible
     )
-
-    if response.get("low_certainty") is True:
-        msg = response.get(
-            "low_certainty_message",
-            "The model output is uncertain. Use this only for educational review. "
-            "This is not a diagnosis and does not recommend treatment.",
-        )
-        reason = response.get("low_certainty_reason") or ""
-        reason_html = f"<br><small style='opacity:0.8'>{reason}</small>" if reason else ""
-        st.markdown(
-            f"""
-            <div class="low-certainty-card">
-              <div class="low-certainty-marker">!</div>
-              <div><strong>Low certainty</strong><br>{msg}{reason_html}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown(
-        f'<div class="section-label">{mode_config["top_outputs_heading"]}</div>',
-        unsafe_allow_html=True,
+    return (
+        '<div class="education-result-section">'
+        '<div class="education-result-label">Model details</div>'
+        f'<div class="education-meta-grid">{items}</div>'
+        '</div>'
     )
-    if predictions:
-        rows_html = ""
-        for pred in predictions[: int(mode_config["top_k"])]:
-            pred_label = pred.get("label", "Unavailable")
-            pred_conf_pct = pred.get("confidence_percent")
-            pred_conf_str = format_percent(pred_conf_pct)
-            bar_width = min(
-                max(float(pred_conf_pct) if isinstance(pred_conf_pct, (int, float)) else 0, 0),
-                100,
-            )
-            rank = pred.get("rank", "")
-            rows_html += (
-                f'<div class="pred-row">'
-                f'<span class="pred-rank">{rank}</span>'
-                f'<span class="pred-label-text">{pred_label}</span>'
-                f'<div class="pred-bar-outer">'
-                f'<div class="pred-bar-inner" style="width:{bar_width:.1f}%"></div>'
-                f'</div>'
-                f'<span class="pred-conf-text">{pred_conf_str}</span>'
-                f'</div>'
-            )
-        st.markdown(f'<div class="pred-list">{rows_html}</div>', unsafe_allow_html=True)
-    else:
-        st.write("No ranked outputs were returned.")
-
-    st.markdown('<div class="section-label">Safety Note</div>', unsafe_allow_html=True)
-    st.info(response.get("safety_note", "No safety note returned."))
-
-    limitations = response.get("model_limitations") or []
-    if limitations:
-        with st.expander("Model limitations", expanded=False):
-            for limitation in limitations:
-                st.markdown(f"- {limitation}")
-
-    next_step = response.get("recommended_next_step")
-    if next_step:
-        st.markdown(
-            f"""
-            <div class="next-step-card">
-              <div class="section-label" style="margin-top:0">Recommended next step</div>
-              <p class="next-step-text">{next_step}</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
 
 def _confidence_color_class(conf_pct: object) -> str:

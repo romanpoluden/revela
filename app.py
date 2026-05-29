@@ -31,6 +31,29 @@ _CASE_TYPES = [
     "Dermoscopic image",
 ]
 
+_DEFAULT_CASE_TYPE = _CASE_TYPES[0]
+
+_MODALITY_CARD_CONFIG = {
+    "Clinical photo": {
+        "title": "Clinical / macroscopic photo",
+        "description": (
+            "Regular camera photo of a visible skin condition. "
+            "Not dermoscopic, not microscope, not highly magnified."
+        ),
+        "step_label": "Clinical flow",
+        "button_label": "Select clinical photo",
+    },
+    "Dermoscopic image": {
+        "title": "Dermoscopic / magnified lesion image",
+        "description": (
+            "Dermoscopic or magnified lesion image. "
+            "Model output is educational only and not diagnosis."
+        ),
+        "step_label": "Dermoscopic flow",
+        "button_label": "Select dermoscopic image",
+    },
+}
+
 _CONTEXT_OPTIONS: dict[str, list[str]] = {
     "body_location": [
         "not provided",
@@ -800,6 +823,43 @@ def render_revela_step_header(step_number: int, title: str, description: str) ->
     )
 
 
+def select_case_type(case_type: str) -> None:
+    if st.session_state.get("case_type_radio", _DEFAULT_CASE_TYPE) == case_type:
+        return
+    reset_analysis_state()
+    st.session_state.case_type_radio = case_type
+
+
+def render_modality_selection_cards() -> str:
+    case_type = st.session_state.get("case_type_radio", _DEFAULT_CASE_TYPE)
+    if case_type not in _CASE_TYPES:
+        case_type = _DEFAULT_CASE_TYPE
+        st.session_state.case_type_radio = case_type
+
+    cols = st.columns(2, gap="medium")
+    for col, option in zip(cols, _CASE_TYPES, strict=True):
+        config = _MODALITY_CARD_CONFIG[option]
+        selected = option == case_type
+        with col:
+            render_revela_workflow_card(
+                title=config["title"],
+                body=config["description"],
+                step_label=config["step_label"],
+                selected=selected,
+            )
+            st.button(
+                "Selected" if selected else config["button_label"],
+                key=f"select_modality_{option}",
+                type="primary" if selected else "secondary",
+                use_container_width=True,
+                disabled=selected,
+                on_click=select_case_type,
+                args=(option,),
+            )
+
+    return st.session_state.get("case_type_radio", case_type)
+
+
 def render_step_indicator(current_step: int) -> None:
     def _dot(step: int) -> tuple[str, str]:
         if step < current_step:
@@ -864,13 +924,7 @@ def render_analyze_tab() -> None:
         "Modality Selection",
         "Choose the educational review flow that matches the image you plan to upload.",
     )
-    case_type = st.radio(
-        "Choose image type",
-        _CASE_TYPES,
-        horizontal=True,
-        key="case_type_radio",
-        on_change=reset_analysis_state,
-    )
+    case_type = render_modality_selection_cards()
 
     uploaded_image: Image.Image | None = None
     has_image_error = False

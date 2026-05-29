@@ -346,6 +346,84 @@ def inject_css() -> None:
             margin: 0.9rem 0 0.25rem 0;
             text-transform: uppercase;
         }
+        .image-type-check-card {
+            border: 1px solid var(--revela-border);
+            border-radius: var(--revela-radius);
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-sm);
+            padding: 1rem 1.1rem;
+            margin: 0.75rem 0 1rem 0;
+        }
+        .image-type-check-card[data-status="unavailable"] {
+            background: var(--revela-surface-soft);
+            border-style: dashed;
+        }
+        .image-type-check-card[data-status="match"] {
+            border-color: #b9ded8;
+            background: #f4faf9;
+        }
+        .image-type-check-card[data-status="mismatch"],
+        .image-type-check-card[data-status="uncertain"] {
+            border-color: #fed7aa;
+            background: #fff7ed;
+        }
+        .image-type-check-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-bottom: 0.85rem;
+        }
+        .image-type-check-title {
+            color: var(--revela-ink);
+            font-size: 1.02rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0;
+        }
+        .image-type-status-pill {
+            border: 1px solid var(--revela-border-strong);
+            border-radius: 999px;
+            background: #ffffff;
+            color: var(--revela-muted);
+            flex-shrink: 0;
+            font-size: 0.76rem;
+            font-weight: 750;
+            padding: 0.22rem 0.62rem;
+        }
+        .image-type-check-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.65rem;
+        }
+        .image-type-check-item {
+            border: 1px solid var(--revela-border);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.72);
+            padding: 0.7rem 0.8rem;
+        }
+        .image-type-check-label {
+            color: var(--revela-muted);
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+        }
+        .image-type-check-value {
+            color: var(--revela-ink);
+            font-size: 0.92rem;
+            font-weight: 650;
+            line-height: 1.35;
+        }
+        .image-type-safety-note {
+            border-top: 1px solid var(--revela-border);
+            color: var(--revela-muted);
+            font-size: 0.86rem;
+            line-height: 1.5;
+            margin-top: 0.9rem;
+            padding-top: 0.75rem;
+        }
 
         /* ── Hero header ─────────────────────────────── */
         .hero {
@@ -862,6 +940,76 @@ def render_revela_step_header(step_number: int, title: str, description: str) ->
     )
 
 
+def render_image_type_check_card(
+    case_type: str,
+    *,
+    check_result: dict | None = None,
+) -> None:
+    workflow_label = _MODALITY_CARD_CONFIG.get(case_type, {}).get("title", case_type)
+    detected_type = "Not available"
+    confidence = "Not available"
+    threshold = "Not available"
+    status = "unavailable"
+    status_label = "Unavailable"
+
+    if check_result:
+        detected_type = str(check_result.get("detected_image_type") or "Not available")
+        confidence_value = check_result.get("confidence_percent")
+        threshold_value = check_result.get("threshold")
+        raw_status = str(check_result.get("status") or "unavailable").lower()
+        if raw_status in {"match", "mismatch", "uncertain", "unavailable"}:
+            status = raw_status
+        status_label = status.capitalize()
+        if confidence_value is not None:
+            confidence = f"{confidence_value}%"
+        if threshold_value is not None:
+            threshold = str(threshold_value)
+
+    rows = [
+        ("Selected workflow", workflow_label),
+        ("Detected image type", detected_type),
+        ("Confidence percentage", confidence),
+        ("Threshold", threshold),
+        ("Status", status_label),
+    ]
+    items_html = "".join(
+        f"""
+        <div class="image-type-check-item">
+          <div class="image-type-check-label">{_escape_html(label)}</div>
+          <div class="image-type-check-value">{_escape_html(value)}</div>
+        </div>
+        """
+        for label, value in rows
+    )
+    inactive_note = (
+        " Image-type check is not active yet in this workflow."
+        if check_result is None
+        else ""
+    )
+
+    st.markdown(
+        f"""
+        <div class="image-type-check-card" data-status="{_escape_html(status)}">
+          <div class="image-type-check-header">
+            <div>
+              <div class="revela-card-kicker">Image-type check</div>
+              <p class="image-type-check-title">Selected workflow and image-type status</p>
+            </div>
+            <span class="image-type-status-pill">{_escape_html(status_label)}</span>
+          </div>
+          <div class="image-type-check-grid">
+            {items_html}
+          </div>
+          <div class="image-type-safety-note">
+            <strong>Soft warning only.</strong> Image-type check is a soft warning only.
+            Not clinical validation. Model output remains educational only and not diagnosis.{_escape_html(inactive_note)}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def select_case_type(case_type: str) -> None:
     if st.session_state.get("case_type_radio", _DEFAULT_CASE_TYPE) == case_type:
         return
@@ -920,7 +1068,7 @@ def render_step_indicator(current_step: int) -> None:
     steps = [
         (1, "Modality"),
         (2, "Upload"),
-        (3, "Image type check"),
+        (3, "Image-type check"),
         (4, "Analyze"),
         (5, "Review output"),
     ]
@@ -1006,18 +1154,10 @@ def render_analyze_tab() -> None:
 
     render_revela_step_header(
         3,
-        "Image Type Check",
-        "Reserved for the image-type status step. This ticket keeps analysis behavior unchanged.",
+        "Image-type check",
+        "Review the selected workflow against image-type check status when that signal is available.",
     )
-    render_revela_section_card(
-        title="Image type check placeholder",
-        body=(
-            "No automatic image-type gate is active in this branch. Later D10 work can attach "
-            "the status card here without changing the workflow layout."
-        ),
-        kicker="Workflow status",
-        state="subtle" if upload_valid and not has_image_error else "default",
-    )
+    render_image_type_check_card(case_type)
 
     render_revela_step_header(
         4,

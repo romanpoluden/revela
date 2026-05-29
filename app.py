@@ -1082,7 +1082,7 @@ def render_header() -> None:
     st.markdown(
         """
         <div class="note">
-        Revela is not a diagnostic product. It does not provide treatment advice, clinical certainty, or clinical validation.
+        Revela is an educational prototype: not diagnosis, not treatment advice, and not clinical validation.
         </div>
         """,
         unsafe_allow_html=True,
@@ -1475,7 +1475,7 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
             "result_heading": "Educational Dermoscopic Review Output",
             "top_outputs_heading": "Top-4 Outputs",
             "result_note": (
-                "Model output, not diagnosis. Review by a qualified clinician is required for real decisions."
+                "Model output, not diagnosis. Qualified review required for real decisions."
             ),
         }
 
@@ -1793,9 +1793,9 @@ def render_dermoscopic_followup_panel() -> None:
         <div class="followup-card">
           <div class="section-label" style="margin-top:0">Dermoscopic follow-up image recommended for this learning case</div>
           <p class="followup-card-text">
-            The clinical model routed this case to lesion review. You can upload a dermoscopic
+            The image model routed this case to lesion review. You can upload a dermoscopic
             or close-up lesion image to continue the educational review.
-            Model output is not diagnosis. Qualified review is required for real decisions.
+            Model output is not diagnosis. Qualified review required for real decisions.
           </p>
         </div>
         """,
@@ -2046,9 +2046,9 @@ def render_safety_footer() -> None:
         """
         <div class="safety-footer">
           <strong>Prototype educational output only.</strong>
-          This is not a diagnosis and does not recommend treatment.
-          Confidence is model confidence, not clinical certainty.
-          Qualified review is required for real decisions.
+          Not diagnosis. Not treatment advice.
+          Model confidence is not clinical certainty.
+          Qualified review required for real decisions.
         </div>
         """,
         unsafe_allow_html=True,
@@ -2247,9 +2247,9 @@ def _clinical_top_is_lesion_routing(clinical_response: dict | None) -> bool:
 def render_learner_rating_form() -> None:
     with st.expander("Learner reflection — lesion routing flagged", expanded=True):
         st.caption(
-            "The clinical model output suggests dermoscopic review. "
+            "The image model output suggests dermoscopic review. "
             "This learning reflection is optional and does not change model output. "
-            "Confidence is model confidence, not clinical certainty."
+            "Model confidence is not clinical certainty."
         )
 
         st.slider(
@@ -2282,9 +2282,9 @@ def render_learner_rating_form() -> None:
         st.markdown(
             """
             <p class="rating-disclaimer">
-            This is a learning reflection, not a diagnosis.
+            This is a learning reflection, not diagnosis.
             The rating does not change model output.
-            Qualified review is required for real decisions.
+            Qualified review required for real decisions.
             </p>
             """,
             unsafe_allow_html=True,
@@ -2337,7 +2337,7 @@ def render_prompt_export() -> None:
     st.markdown(
         """
         <div class="prompt-export-safety">
-          Do not use the output as diagnosis or treatment advice.
+          Output is not diagnosis and not treatment advice.
           Model confidence is not clinical certainty.
         </div>
         """,
@@ -2449,7 +2449,7 @@ def render_metrics_tab() -> None:
     st.markdown(
         """
         <div class="note">
-        Metrics describe prototype model behavior on held-out data. They should be used for transparency and model-improvement planning, not as clinical-readiness claims.
+        Metrics describe prototype model behavior on held-out data. They should be used for transparency and model-improvement planning, not readiness claims.
         </div>
         """,
         unsafe_allow_html=True,
@@ -2471,18 +2471,18 @@ def render_benchmark_tab() -> None:
     with col2:
         render_card(
             "Boundary",
-            "The benchmark is not clinical validation and should not be presented as diagnostic performance.",
+            "The benchmark is not clinical validation and should not be presented as deployment-ready performance.",
         )
 
 
 def render_limitations_tab() -> None:
     st.subheader("About / Limitations")
     limitations = [
-        "Revela is not a diagnostic product.",
-        "The app does not provide treatment advice.",
+        "Revela is an educational prototype, not diagnosis.",
+        "The app is not treatment advice.",
         "Model confidence is not clinical certainty.",
         "Performance can vary with image quality, lighting, skin tone, and dataset source.",
-        "Dermoscopic model output is educational and requires qualified review for real decisions.",
+        "Dermoscopic model output is educational. Qualified review required for real decisions.",
         "The clinical lesion-routing class is not cancer detection.",
     ]
     for item in limitations:

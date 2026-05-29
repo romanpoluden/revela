@@ -424,6 +424,39 @@ def inject_css() -> None:
             margin-top: 0.9rem;
             padding-top: 0.75rem;
         }
+        .analysis-cta-card {
+            border: 1px solid #b9ded8;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #f4faf9 0%, #ffffff 100%);
+            box-shadow: var(--revela-shadow-md);
+            margin: 0.75rem auto 1rem auto;
+            max-width: 680px;
+            padding: 1.25rem 1.35rem;
+            text-align: center;
+        }
+        .analysis-cta-card h3 {
+            color: var(--revela-ink);
+            font-size: 1.1rem;
+            line-height: 1.25;
+            margin: 0 0 0.4rem 0;
+        }
+        .analysis-cta-card p {
+            color: var(--revela-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .analysis-disabled-reason {
+            border: 1px dashed var(--revela-border-strong);
+            border-radius: 8px;
+            background: var(--revela-surface-soft);
+            color: var(--revela-muted);
+            font-size: 0.86rem;
+            margin: 0.75rem auto 0 auto;
+            max-width: 520px;
+            padding: 0.6rem 0.75rem;
+            text-align: center;
+        }
 
         /* ── Hero header ─────────────────────────────── */
         .hero {
@@ -1010,6 +1043,59 @@ def render_image_type_check_card(
     )
 
 
+def get_analysis_disabled_reason(
+    *,
+    upload_valid: bool,
+    has_image_error: bool,
+    status: str,
+) -> str | None:
+    if not upload_valid:
+        return "Disabled reason: no valid upload."
+    if has_image_error:
+        return "Disabled reason: image error."
+    if status == "running":
+        return "Disabled reason: analysis already running."
+    return None
+
+
+def render_analysis_cta(
+    *,
+    upload_valid: bool,
+    has_image_error: bool,
+    status: str,
+) -> bool:
+    disabled_reason = get_analysis_disabled_reason(
+        upload_valid=upload_valid,
+        has_image_error=has_image_error,
+        status=status,
+    )
+    st.markdown(
+        """
+        <div class="analysis-cta-card">
+          <div class="revela-card-kicker">Educational analysis</div>
+          <h3>Run educational analysis</h3>
+          <p>Model output only. Not diagnosis. Qualified review is required for real decisions.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _left, center, _right = st.columns([1.4, 1, 1.4])
+    with center:
+        clicked = st.button(
+            "Run educational analysis",
+            disabled=disabled_reason is not None,
+            type="primary",
+            use_container_width=True,
+        )
+
+    if disabled_reason:
+        st.markdown(
+            f'<div class="analysis-disabled-reason">{_escape_html(disabled_reason)}</div>',
+            unsafe_allow_html=True,
+        )
+    return clicked
+
+
 def select_case_type(case_type: str) -> None:
     if st.session_state.get("case_type_radio", _DEFAULT_CASE_TYPE) == case_type:
         return
@@ -1164,10 +1250,10 @@ def render_analyze_tab() -> None:
         "Educational Analysis CTA",
         "Run the selected Revela model only after a valid image is available.",
     )
-    if st.button(
-        "Analyze case",
-        disabled=not upload_valid or has_image_error or status == "running",
-        type="primary",
+    if render_analysis_cta(
+        upload_valid=upload_valid,
+        has_image_error=has_image_error,
+        status=status,
     ):
         start_analysis()
         st.rerun()

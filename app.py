@@ -967,13 +967,45 @@ def inject_css() -> None:
 
         /* ── Prompt export card ──────────────────────── */
         .prompt-export-card {
+            border: 1px solid var(--revela-border);
+            border-radius: 12px;
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-md);
+            margin: 0.75rem 0 1rem 0;
+            overflow: hidden;
+        }
+        .prompt-export-header {
+            background: linear-gradient(180deg, #f4faf9 0%, #ffffff 100%);
+            border-bottom: 1px solid var(--revela-border);
+            padding: 1rem 1.1rem;
+        }
+        .prompt-export-header h3 {
+            color: var(--revela-ink);
+            font-size: 1.08rem;
+            line-height: 1.25;
+            margin: 0.25rem 0 0.35rem 0;
+        }
+        .prompt-export-header p {
+            color: var(--revela-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .prompt-export-safety {
             border: 1px solid #b9ded8;
-            border-left: 4px solid #184e52;
             border-radius: 10px;
-            padding: 1rem 1.1rem 1rem 1.1rem;
             background: #f4faf9;
-            margin-bottom: 1rem;
-            min-height: 160px;
+            color: var(--revela-primary-strong);
+            font-size: 0.88rem;
+            line-height: 1.5;
+            margin: 0.75rem 0;
+            padding: 0.75rem 0.85rem;
+        }
+        .prompt-export-action-note {
+            color: var(--revela-muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin: 0.45rem 0 0.75rem 0;
         }
 
         /* ── Learner rating card ─────────────────────── */
@@ -2199,9 +2231,7 @@ def render_final_result_screen(case_type: str) -> None:
                 render_dermoscopic_followup_panel()
 
     with prompt_col:
-        st.markdown("#### Continue in ChatGPT / Claude")
         render_prompt_export()
-        _render_result_context_summary(st.session_state.get("learner_context", {}))
 
         if is_lesion_routing:
             render_learner_rating_form()
@@ -2292,15 +2322,35 @@ def render_prompt_export() -> None:
         learner_rating=learner_rating,
     )
 
-    st.caption(
-        "Copy this prompt into ChatGPT or Claude to continue the case "
-        "as an educational reasoning exercise."
+    st.markdown(
+        """
+        <div class="prompt-export-card">
+          <div class="prompt-export-header">
+            <div class="revela-card-kicker">Prompt export</div>
+            <h3>Continue learning with an LLM</h3>
+            <p>Use this prompt to continue educational review in ChatGPT or Claude.</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div class="prompt-export-safety">
+          Do not use the output as diagnosis or treatment advice.
+          Model confidence is not clinical certainty.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<p class="prompt-export-action-note">Copy the generated prompt, or download it as a text file.</p>',
+        unsafe_allow_html=True,
     )
     st.text_area(
         "Generated prompt",
         value=prompt,
         height=400,
-        label_visibility="collapsed",
     )
     st.download_button(
         label="Download prompt (.txt)",
@@ -2308,6 +2358,7 @@ def render_prompt_export() -> None:
         file_name="revela_case_prompt.txt",
         mime="text/plain",
     )
+    _render_result_context_summary(st.session_state.get("learner_context", {}))
 
 
 def render_overview_tab() -> None:

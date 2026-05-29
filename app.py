@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import html
+
 from PIL import Image, UnidentifiedImageError
 import streamlit as st
 
@@ -143,10 +145,144 @@ def inject_css() -> None:
     st.markdown(
         """
         <style>
+        :root {
+            --revela-bg: #f5f7f8;
+            --revela-surface: #ffffff;
+            --revela-surface-soft: #f8fafc;
+            --revela-ink: #102a43;
+            --revela-muted: #52616b;
+            --revela-border: #dbe3ea;
+            --revela-border-strong: #b8c8d8;
+            --revela-primary: #2f6f73;
+            --revela-primary-strong: #184e52;
+            --revela-primary-soft: #e8f4f3;
+            --revela-accent: #b85c38;
+            --revela-warning-soft: #fff7ed;
+            --revela-radius: 10px;
+            --revela-shadow-sm: 0 1px 2px rgba(16, 42, 67, 0.05);
+            --revela-shadow-md: 0 10px 24px rgba(16, 42, 67, 0.08);
+        }
+
+        .stApp {
+            background:
+                radial-gradient(circle at top left, rgba(47,111,115,0.08), transparent 30rem),
+                linear-gradient(180deg, #f8fbfb 0%, var(--revela-bg) 38%, #eef2f4 100%);
+            color: var(--revela-ink);
+        }
+
         .block-container {
             padding-top: 2.2rem;
             padding-bottom: 3rem;
             max-width: 1180px;
+        }
+
+        /* -- D10 layout foundation hooks ---------------- */
+        .revela-workspace {
+            border: 1px solid rgba(184, 200, 216, 0.72);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.78);
+            box-shadow: var(--revela-shadow-md);
+            padding: 1rem;
+        }
+        .revela-section-card {
+            border: 1px solid var(--revela-border);
+            border-radius: var(--revela-radius);
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-sm);
+            padding: 1rem 1.1rem;
+            margin: 0.75rem 0;
+        }
+        .revela-section-card[data-state="subtle"] {
+            background: var(--revela-surface-soft);
+        }
+        .revela-section-card[data-state="warning"] {
+            background: var(--revela-warning-soft);
+            border-color: #fed7aa;
+        }
+        .revela-workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+            margin: 0.75rem 0 1rem 0;
+        }
+        .revela-workflow-card {
+            border: 1px solid var(--revela-border);
+            border-radius: var(--revela-radius);
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-sm);
+            padding: 0.95rem 1rem;
+            min-height: 118px;
+        }
+        .revela-workflow-card.is-selected {
+            border-color: var(--revela-primary);
+            background: linear-gradient(180deg, #f4faf9 0%, #ffffff 100%);
+            box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.12);
+        }
+        .revela-workflow-card.is-unselected {
+            color: var(--revela-muted);
+        }
+        .revela-workflow-card.is-disabled {
+            background: #f3f6f8;
+            border-style: dashed;
+            color: #7b8b9d;
+        }
+        .revela-step-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 1rem 0 0.7rem 0;
+        }
+        .revela-step-index {
+            width: 1.8rem;
+            height: 1.8rem;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: var(--revela-primary-soft);
+            color: var(--revela-primary-strong);
+            border: 1px solid #b9ded8;
+            font-size: 0.82rem;
+            font-weight: 750;
+        }
+        .revela-step-copy h3,
+        .revela-section-card h3,
+        .revela-workflow-card h3 {
+            margin: 0 0 0.3rem 0;
+            color: var(--revela-ink);
+            font-size: 1.02rem;
+            line-height: 1.25;
+        }
+        .revela-step-copy p,
+        .revela-section-card p,
+        .revela-workflow-card p {
+            color: var(--revela-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .revela-card-kicker {
+            margin: 0 0 0.35rem 0;
+            color: var(--revela-primary-strong);
+            font-size: 0.73rem;
+            font-weight: 750;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .revela-primary-cta,
+        div.stButton > button[kind="primary"],
+        div.stButton > button[data-testid="baseButton-primary"] {
+            border-color: var(--revela-primary-strong);
+            background: var(--revela-primary-strong);
+            color: #ffffff;
+            box-shadow: 0 6px 16px rgba(24, 78, 82, 0.18);
+        }
+        div.stButton > button[kind="primary"]:hover,
+        div.stButton > button[data-testid="baseButton-primary"]:hover {
+            border-color: #103f43;
+            background: #103f43;
+            color: #ffffff;
         }
 
         /* ── Hero header ─────────────────────────────── */
@@ -597,6 +733,73 @@ def render_header() -> None:
     )
 
 
+def _escape_html(value: str | int | float | None) -> str:
+    return html.escape("" if value is None else str(value), quote=True)
+
+
+def render_revela_section_card(
+    title: str,
+    body: str,
+    *,
+    kicker: str | None = None,
+    state: str = "default",
+) -> None:
+    kicker_html = (
+        f'<div class="revela-card-kicker">{_escape_html(kicker)}</div>' if kicker else ""
+    )
+    st.markdown(
+        f"""
+        <div class="revela-section-card" data-state="{_escape_html(state)}">
+          {kicker_html}
+          <h3>{_escape_html(title)}</h3>
+          <p>{_escape_html(body)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_revela_workflow_card(
+    title: str,
+    body: str,
+    *,
+    step_label: str | None = None,
+    selected: bool = False,
+    disabled: bool = False,
+) -> None:
+    state_class = "is-disabled" if disabled else "is-selected" if selected else "is-unselected"
+    step_html = (
+        f'<div class="revela-card-kicker">{_escape_html(step_label)}</div>'
+        if step_label
+        else ""
+    )
+    st.markdown(
+        f"""
+        <div class="revela-workflow-card {state_class}">
+          {step_html}
+          <h3>{_escape_html(title)}</h3>
+          <p>{_escape_html(body)}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_revela_step_header(step_number: int, title: str, description: str) -> None:
+    st.markdown(
+        f"""
+        <div class="revela-step-header">
+          <div class="revela-step-index">{_escape_html(step_number)}</div>
+          <div class="revela-step-copy">
+            <h3>{_escape_html(title)}</h3>
+            <p>{_escape_html(description)}</p>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def render_step_indicator(current_step: int) -> None:
     def _dot(step: int) -> tuple[str, str]:
         if step < current_step:
@@ -711,6 +914,7 @@ def render_analyze_tab() -> None:
         if st.button(
             "Analyze case",
             disabled=not upload_valid or has_image_error or status == "running",
+            type="primary",
         ):
             start_analysis()
             st.rerun()
@@ -1055,6 +1259,7 @@ def render_dermoscopic_followup_panel() -> None:
     if st.button(
         "Analyze dermoscopic follow-up",
         disabled=not derm_valid or bool(derm_err) or followup_status == "running",
+        type="primary",
     ):
         st.session_state.dermoscopic_followup_status = "running"
         st.rerun()

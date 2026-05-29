@@ -307,6 +307,45 @@ def inject_css() -> None:
             background: #103f43;
             color: #ffffff;
         }
+        .revela-upload-instructions {
+            border: 1px solid var(--revela-border);
+            border-radius: var(--revela-radius);
+            background: var(--revela-surface);
+            box-shadow: var(--revela-shadow-sm);
+            padding: 1rem 1.1rem;
+            min-height: 150px;
+            margin-bottom: 0.75rem;
+        }
+        .revela-upload-instructions h3,
+        .revela-preview-heading h3 {
+            margin: 0 0 0.35rem 0;
+            color: var(--revela-ink);
+            font-size: 1.02rem;
+            line-height: 1.25;
+        }
+        .revela-upload-instructions p,
+        .revela-preview-heading p {
+            margin: 0;
+            color: var(--revela-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+        .revela-preview-heading {
+            border: 1px solid var(--revela-border);
+            border-radius: var(--revela-radius);
+            background: var(--revela-surface-soft);
+            box-shadow: var(--revela-shadow-sm);
+            padding: 1rem 1.1rem;
+            margin-bottom: 0.75rem;
+        }
+        .revela-upload-meta-label {
+            color: var(--revela-primary-strong);
+            font-size: 0.73rem;
+            font-weight: 750;
+            letter-spacing: 0.06em;
+            margin: 0.9rem 0 0.25rem 0;
+            text-transform: uppercase;
+        }
 
         /* ── Hero header ─────────────────────────────── */
         .hero {
@@ -1205,33 +1244,66 @@ def render_upload_card(
     mode_note: str,
     on_change=None,
 ) -> tuple[Image.Image | None, str | None, bool]:
-    st.markdown(
-        f'<div class="section-label" style="margin-top:0.4rem">{label}</div>',
-        unsafe_allow_html=True,
-    )
+    upload_col, preview_col = st.columns([0.95, 1.05], gap="large")
     cb = on_change if on_change is not None else reset_analysis_state
-    uploaded_file = st.file_uploader(
-        label,
-        type=["jpg", "jpeg", "png", "webp"],
-        help="Accepted formats: JPG, JPEG, PNG, WEBP.",
-        key=upload_key,
-        on_change=cb,
-        label_visibility="collapsed",
-    )
-    st.caption(mode_note)
+
+    with upload_col:
+        st.markdown(
+            f"""
+            <div class="revela-upload-instructions">
+              <div class="revela-card-kicker">{_escape_html(label)}</div>
+              <h3>Upload image</h3>
+              <p>{_escape_html(mode_note)}</p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        uploaded_file = st.file_uploader(
+            label,
+            type=["jpg", "jpeg", "png", "webp"],
+            help="Accepted formats: JPG, JPEG, PNG, WEBP.",
+            key=upload_key,
+            on_change=cb,
+            label_visibility="collapsed",
+        )
 
     if uploaded_file is None:
+        with preview_col:
+            render_revela_section_card(
+                title="Preview pending",
+                body="Upload a supported JPG, JPEG, PNG, or WEBP image to show the preview and file details.",
+                kicker="Preview and metadata",
+                state="subtle",
+            )
         return None, None, False
 
     try:
         image = load_uploaded_image(uploaded_file)
-        st.image(image, caption=preview_caption, use_container_width=True)
-        render_upload_metadata(uploaded_file, image)
+        with preview_col:
+            st.markdown(
+                f"""
+                <div class="revela-preview-heading">
+                  <div class="revela-card-kicker">Preview and metadata</div>
+                  <h3>{_escape_html(preview_caption)}</h3>
+                  <p>Review the uploaded image and file details before running educational analysis.</p>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            st.image(image, caption=preview_caption, use_container_width=True)
+            render_upload_metadata(uploaded_file, image)
         return image, None, True
     except (UnidentifiedImageError, OSError):
-        st.error(
-            "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
-        )
+        with preview_col:
+            st.error(
+                "We could not open this image. Please upload a valid JPG, JPEG, PNG, or WEBP file."
+            )
+            render_revela_section_card(
+                title="Preview unavailable",
+                body="Choose a different supported image file to continue the educational workflow.",
+                kicker="Preview and metadata",
+                state="warning",
+            )
         return None, "invalid_image", False
 
 
@@ -1362,12 +1434,15 @@ def load_uploaded_image(uploaded_file) -> Image.Image:
 
 
 def render_upload_metadata(uploaded_file, image: Image.Image) -> None:
-    st.markdown("##### Uploaded file")
+    st.markdown(
+        '<div class="revela-upload-meta-label">Uploaded image details</div>',
+        unsafe_allow_html=True,
+    )
     name_col, type_col = st.columns(2)
     with name_col:
         st.metric("Filename", uploaded_file.name)
     with type_col:
-        st.metric("File type", uploaded_file.type or "Unknown")
+        st.metric("File type / MIME type", uploaded_file.type or "Unknown")
 
     size_col, dimension_col = st.columns(2)
     with size_col:

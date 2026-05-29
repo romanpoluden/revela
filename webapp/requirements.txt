@@ -1,0 +1,10 @@
+# Revela Web App
+streamlit>=1.35.0
+Pillow>=10.0.0
+huggingface_hub>=0.23.0
+python-dotenv>=1.0.0
+
+# Model inference (required for real predictions)
+torch>=2.2.0
+torchvision>=0.17.0
+PyYAML>=6.0

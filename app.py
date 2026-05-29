@@ -819,10 +819,11 @@ def render_step_indicator(current_step: int) -> None:
         return "step-connector conn-done" if after_step < current_step else "step-connector"
 
     steps = [
-        (1, "Choose image type"),
-        (2, "Upload image"),
-        (3, "Learning context"),
-        (4, "Review model output"),
+        (1, "Modality"),
+        (2, "Upload"),
+        (3, "Image type check"),
+        (4, "Analyze"),
+        (5, "Review output"),
     ]
 
     parts: list[str] = []
@@ -848,14 +849,21 @@ def render_analyze_tab() -> None:
     initialize_analysis_state()
     status = st.session_state.analysis_status
 
-    if status in ("complete", "error", "running"):
+    if status in ("complete", "error"):
+        _step = 5
+    elif status == "running":
         _step = 4
     elif st.session_state.get("file_uploaded", False):
         _step = 3
     else:
-        _step = 2
+        _step = 1
     render_step_indicator(_step)
 
+    render_revela_step_header(
+        1,
+        "Modality Selection",
+        "Choose the educational review flow that matches the image you plan to upload.",
+    )
     case_type = st.radio(
         "Choose image type",
         _CASE_TYPES,
@@ -864,6 +872,78 @@ def render_analyze_tab() -> None:
         on_change=reset_analysis_state,
     )
 
+    uploaded_image: Image.Image | None = None
+    has_image_error = False
+    upload_valid = False
+
+    render_revela_step_header(
+        2,
+        "Image Upload",
+        "Add one supported image for the selected flow. Existing preview and file details remain available here.",
+    )
+    if case_type == "Clinical photo":
+        uploaded_image, img_err, upload_valid = render_upload_card(
+            label="Clinical / macroscopic photo",
+            upload_key="upload_clinical",
+            preview_caption="Clinical photo preview",
+            mode_note=(
+                "Regular camera photo of visible skin condition. "
+                "Not dermoscopic, not microscope, not highly magnified."
+            ),
+        )
+    else:
+        uploaded_image, img_err, upload_valid = render_upload_card(
+            label="Dermoscopic / close-up lesion image",
+            upload_key="upload_dermoscopic",
+            preview_caption="Dermoscopic image preview",
+            mode_note=(
+                "Dermoscopic or magnified lesion image. "
+                "Not a regular clinical photo. Model output is not diagnosis."
+            ),
+        )
+
+    if img_err:
+        has_image_error = True
+
+    st.session_state.file_uploaded = upload_valid and not has_image_error
+
+    if upload_valid and not has_image_error:
+        render_learner_context_form()
+        render_context_summary_card()
+
+    render_revela_step_header(
+        3,
+        "Image Type Check",
+        "Reserved for the image-type status step. This ticket keeps analysis behavior unchanged.",
+    )
+    render_revela_section_card(
+        title="Image type check placeholder",
+        body=(
+            "No automatic image-type gate is active in this branch. Later D10 work can attach "
+            "the status card here without changing the workflow layout."
+        ),
+        kicker="Workflow status",
+        state="subtle" if upload_valid and not has_image_error else "default",
+    )
+
+    render_revela_step_header(
+        4,
+        "Educational Analysis CTA",
+        "Run the selected Revela model only after a valid image is available.",
+    )
+    if st.button(
+        "Analyze case",
+        disabled=not upload_valid or has_image_error or status == "running",
+        type="primary",
+    ):
+        start_analysis()
+        st.rerun()
+
+    render_revela_step_header(
+        5,
+        "Model Output Review",
+        "Review the educational model output, uncertainty notes, and safety guidance.",
+    )
     if status == "complete":
         _col, _ = st.columns([1, 5])
         with _col:
@@ -874,58 +954,12 @@ def render_analyze_tab() -> None:
         render_safety_footer()
         return
 
-    left, right = st.columns([0.95, 1.05], gap="large")
-
-    uploaded_image: Image.Image | None = None
-    has_image_error = False
-    upload_valid = False
-
-    with left:
-        if case_type == "Clinical photo":
-            uploaded_image, img_err, upload_valid = render_upload_card(
-                label="Clinical / macroscopic photo",
-                upload_key="upload_clinical",
-                preview_caption="Clinical photo preview",
-                mode_note=(
-                    "Regular camera photo of visible skin condition. "
-                    "Not dermoscopic, not microscope, not highly magnified."
-                ),
-            )
-        else:
-            uploaded_image, img_err, upload_valid = render_upload_card(
-                label="Dermoscopic / close-up lesion image",
-                upload_key="upload_dermoscopic",
-                preview_caption="Dermoscopic image preview",
-                mode_note=(
-                    "Dermoscopic or magnified lesion image. "
-                    "Not a regular clinical photo. Model output is not diagnosis."
-                ),
-            )
-
-        if img_err:
-            has_image_error = True
-
-        st.session_state.file_uploaded = upload_valid and not has_image_error
-
-        if upload_valid and not has_image_error:
-            render_learner_context_form()
-            render_context_summary_card()
-
-        if st.button(
-            "Analyze case",
-            disabled=not upload_valid or has_image_error or status == "running",
-            type="primary",
-        ):
-            start_analysis()
-            st.rerun()
-
-    with right:
-        render_right_panel(
-            case_type=case_type,
-            upload_valid=upload_valid,
-            has_image_error=has_image_error,
-            uploaded_image=uploaded_image,
-        )
+    render_right_panel(
+        case_type=case_type,
+        upload_valid=upload_valid,
+        has_image_error=has_image_error,
+        uploaded_image=uploaded_image,
+    )
 
     render_safety_footer()
 

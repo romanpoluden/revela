@@ -699,15 +699,6 @@ def inject_css() -> None:
             font-size: 0.88rem;
         }
 
-        /* ── Disabled panel ──────────────────────────── */
-        .disabled-panel {
-            border: 1px dashed #aebdca;
-            border-radius: 10px;
-            padding: 1rem;
-            background: #f8fafc;
-            color: #425466;
-        }
-
         /* ── Step indicator ──────────────────────────── */
         .step-bar {
             display: flex;
@@ -751,15 +742,6 @@ def inject_css() -> None:
         }
         .conn-done { background: #184e52; }
 
-        /* ── Mode selector (targets Streamlit radio widget) ── */
-        div[data-testid="stRadio"] {
-            background: #f8fafc;
-            border: 1px solid #dbe3ea;
-            border-radius: 10px;
-            padding: 0.75rem 1rem 0.65rem 1rem;
-            margin-bottom: 1rem;
-        }
-
         /* ── Result section label ────────────────────── */
         .section-label {
             font-size: 0.76rem;
@@ -768,158 +750,6 @@ def inject_css() -> None:
             letter-spacing: 0.06em;
             color: #52616b;
             margin: 1rem 0 0.4rem 0;
-        }
-
-        /* ── Top prediction card ─────────────────────── */
-        .top-pred-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #2f6f73;
-            border-radius: 10px;
-            padding: 1rem 1.1rem 0.85rem 1.1rem;
-            background: #f4faf9;
-        }
-        .top-pred-header {
-            display: flex;
-            align-items: baseline;
-            gap: 0.65rem;
-            flex-wrap: wrap;
-        }
-        .top-pred-label {
-            font-size: 1.08rem;
-            font-weight: 700;
-            color: #102a43;
-        }
-        .top-pred-note {
-            font-size: 0.78rem;
-            color: #52616b;
-            margin: 0.3rem 0 0 0;
-        }
-
-        /* ── Confidence badge ────────────────────────── */
-        .conf-badge {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 999px;
-            font-size: 0.83rem;
-            font-weight: 700;
-        }
-        .conf-high    { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-        .conf-medium  { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
-        .conf-low     { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-        .conf-unknown { background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db; }
-
-        /* ── Uncertainty badge ───────────────────────── */
-        .unc-badge {
-            display: inline-block;
-            padding: 0.2rem 0.6rem;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 600;
-        }
-        .unc-high   { background: #d1fae5; color: #065f46; }
-        .unc-medium { background: #fef3c7; color: #92400e; }
-        .unc-low    { background: #fee2e2; color: #991b1b; }
-        .unc-explanation {
-            font-size: 0.87rem;
-            color: #425466;
-            margin: 0.4rem 0 0 0;
-            line-height: 1.45;
-        }
-
-        /* ── Low-certainty warning card ──────────────── */
-        .low-certainty-card {
-            display: flex;
-            gap: 0.7rem;
-            align-items: flex-start;
-            background: #fffbeb;
-            border: 1px solid #fcd34d;
-            border-left: 4px solid #f59e0b;
-            border-radius: 10px;
-            padding: 0.85rem 1rem;
-            margin: 0.75rem 0;
-            font-size: 0.87rem;
-            color: #78350f;
-            line-height: 1.5;
-        }
-        .low-certainty-marker {
-            font-size: 0.78rem;
-            font-weight: 700;
-            flex-shrink: 0;
-            margin-top: 0.1rem;
-            background: #f59e0b;
-            color: white;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* ── Prediction list ─────────────────────────── */
-        .pred-list { margin: 0.2rem 0 0.5rem 0; }
-        .pred-row {
-            display: flex;
-            align-items: center;
-            gap: 0.55rem;
-            padding: 0.45rem 0;
-            border-bottom: 1px solid #f0f4f7;
-            font-size: 0.87rem;
-        }
-        .pred-row:last-child { border-bottom: none; }
-        .pred-rank {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #e8edf2;
-            color: #52616b;
-            font-size: 0.73rem;
-            font-weight: 700;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .pred-label-text {
-            flex: 1;
-            color: #102a43;
-            font-weight: 500;
-            min-width: 0;
-        }
-        .pred-bar-outer {
-            width: 72px;
-            height: 5px;
-            background: #e8edf2;
-            border-radius: 4px;
-            overflow: hidden;
-            flex-shrink: 0;
-        }
-        .pred-bar-inner {
-            height: 100%;
-            background: #2f6f73;
-            border-radius: 4px;
-        }
-        .pred-conf-text {
-            width: 50px;
-            text-align: right;
-            color: #52616b;
-            font-size: 0.8rem;
-            flex-shrink: 0;
-        }
-
-        /* ── Next step card ──────────────────────────── */
-        .next-step-card {
-            background: #f4f9f8;
-            border: 1px solid #b9ded8;
-            border-radius: 10px;
-            padding: 0.85rem 1rem;
-            margin-top: 1rem;
-        }
-        .next-step-text {
-            color: #1f3f46;
-            font-size: 0.9rem;
-            margin: 0.25rem 0 0 0;
-            line-height: 1.5;
         }
 
         /* ── Context summary card ───────────────────────── */
@@ -952,17 +782,6 @@ def inject_css() -> None:
         }
         .ctx-tag-value {
             color: #184e52;
-        }
-
-        /* ── Staged loading messages ─────────────────── */
-        .loading-stage-msg {
-            padding: 0.35rem 0.7rem;
-            background: #f4f9f8;
-            border-left: 3px solid #2f6f73;
-            border-radius: 0 6px 6px 0;
-            color: #1f3f46;
-            font-size: 0.87rem;
-            margin: 0.25rem 0;
         }
 
         /* ── Prompt export card ──────────────────────── */
@@ -1008,15 +827,6 @@ def inject_css() -> None:
             margin: 0.45rem 0 0.75rem 0;
         }
 
-        /* ── Learner rating card ─────────────────────── */
-        .rating-card {
-            border: 1px solid #b9ded8;
-            border-left: 4px solid #2f6f73;
-            border-radius: 10px;
-            padding: 1rem 1.1rem;
-            background: #f4faf9;
-            margin-top: 1rem;
-        }
         .rating-disclaimer {
             font-size: 0.82rem;
             color: #52616b;
@@ -1040,13 +850,6 @@ def inject_css() -> None:
             font-size: 0.9rem;
             line-height: 1.55;
             margin: 0.3rem 0 0.5rem 0;
-        }
-
-        /* ── Upload section divider ──────────────────── */
-        .upload-divider {
-            border: none;
-            border-top: 1px dashed #dbe3ea;
-            margin: 1.2rem 0;
         }
 
         /* ── Safety footer ───────────────────────────── */
@@ -1472,20 +1275,12 @@ def get_mode_config(input_mode: str) -> dict[str, str | int]:
             "input_mode": input_mode,
             "model_id": "dermoscopic_cancer_risk_bcn_mnh_v1",
             "top_k": 4,
-            "result_heading": "Educational Dermoscopic Review Output",
-            "top_outputs_heading": "Top-4 Outputs",
-            "result_note": (
-                "Model output, not diagnosis. Qualified review required for real decisions."
-            ),
         }
 
     return {
         "input_mode": input_mode,
         "model_id": "clinical_skin_condition_v1",
         "top_k": 3,
-        "result_heading": "Educational Model Output",
-        "top_outputs_heading": "Top-3 Outputs",
-        "result_note": "Model output, not diagnosis.",
     }
 
 
@@ -1722,8 +1517,6 @@ def render_right_panel(
     has_image_error: bool,
     uploaded_image: Image.Image | None,
 ) -> None:
-    st.markdown("#### Result")
-
     if has_image_error:
         st.markdown(
             """
@@ -1769,9 +1562,9 @@ def render_right_panel(
         return
 
     received_text = (
-        "Select Analyze case to prepare structured educational model output for this image."
+        "Select Run educational analysis to prepare structured educational model output for this image."
         if case_type == "Clinical photo"
-        else "Select Analyze case to prepare educational dermoscopic review output for this image."
+        else "Select Run educational analysis to prepare educational dermoscopic review output for this image."
     )
     st.markdown(
         f"""
@@ -1826,7 +1619,7 @@ def render_dermoscopic_followup_panel() -> None:
         render_analysis_error(results.get("dermoscopic"))
 
     if st.button(
-        "Analyze dermoscopic follow-up",
+        "Run dermoscopic follow-up analysis",
         disabled=not derm_valid or bool(derm_err) or followup_status == "running",
         type="primary",
     ):
@@ -2006,24 +1799,6 @@ def _render_model_metadata_html(response: dict) -> str:
     )
 
 
-def _confidence_color_class(conf_pct: object) -> str:
-    if not isinstance(conf_pct, (int, float)):
-        return "conf-unknown"
-    if conf_pct >= 70.0:
-        return "conf-high"
-    if conf_pct >= 40.0:
-        return "conf-medium"
-    return "conf-low"
-
-
-def _uncertainty_class(bucket: str) -> str:
-    if bucket == "high_confidence":
-        return "unc-high"
-    if bucket == "medium_confidence":
-        return "unc-medium"
-    return "unc-low"
-
-
 def render_analysis_error(error_response: dict | None) -> None:
     error_response = error_response or {}
     message = error_response.get(
@@ -2198,30 +1973,30 @@ def render_final_result_screen(case_type: str) -> None:
 
     with result_col:
         if case_type == "Dermoscopic image":
-            st.markdown("#### Revela model result")
             if derm_response and not derm_response.get("error"):
                 render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
             else:
                 render_analysis_error(derm_response)
 
         elif has_derm_result:
-            # Clinical result with dermoscopic follow-up completed
-            st.markdown("#### Revela model results")
-            st.markdown("**Clinical model output**")
             if clinical_response and not clinical_response.get("error"):
+                st.markdown(
+                    '<div class="section-label">Clinical model output</div>',
+                    unsafe_allow_html=True,
+                )
                 render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
             else:
                 render_analysis_error(clinical_response)
-            st.markdown("---")
-            st.markdown("**Dermoscopic follow-up output**")
             if derm_response and not derm_response.get("error"):
+                st.markdown(
+                    '<div class="section-label">Dermoscopic follow-up output</div>',
+                    unsafe_allow_html=True,
+                )
                 render_analysis_result(derm_response, get_mode_config("Dermoscopic image"))
             else:
                 render_analysis_error(derm_response)
 
         else:
-            # Clinical result only (follow-up may be offered below)
-            st.markdown("#### Revela model result")
             if clinical_response and not clinical_response.get("error"):
                 render_analysis_result(clinical_response, get_mode_config("Clinical photo"))
             else:

@@ -1,8 +1,8 @@
-import { AIAnalysisResult } from "../types";
+import { AIAnalysisResult, ImageWorkflow } from "../types";
 import { runMockEducationalAnalysis } from "./mockAnalysis";
 
 export interface AnalyzeCaseInput {
-  caseId: string;
+  workflow: ImageWorkflow;
   answers: Record<number, string>;
   customImage: string | null;
 }

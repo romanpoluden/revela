@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PRESET_CASES, QUIZ_QUESTIONS, PresetCase, AIAnalysisResult } from "../types";
+import { analyzeCase } from "../lib/inferenceClient";
 
 export default function DiagnosticWorkbench() {
   // Navigation / View states
@@ -138,37 +139,22 @@ export default function DiagnosticWorkbench() {
     }
   };
 
-  // Server API request handler
+  // Frontend-only analysis handler. Production inference will use the HF backend API client.
   const handleInitiateAnalysis = async () => {
     setSessionState('analyzing');
     setIsAnalyzing(true);
     
     try {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          caseId: selectedCase.id,
-          answers: {
-            q1: quizAnswers[1],
-            q2: quizAnswers[2],
-            q3: quizAnswers[3],
-            q4: quizAnswers[4],
-            q5: quizAnswers[5]
-          },
-          customImage: customImage
-        })
+      const data = await analyzeCase({
+        caseId: selectedCase.id,
+        answers: quizAnswers,
+        customImage,
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setAnalysisResult(data.analysis);
-        setDiagnosticMode(data.mode);
-      } else {
-        throw new Error(data.message || "Unknown error during pathology synthesis.");
-      }
+      setAnalysisResult(data.analysis);
+      setDiagnosticMode(data.mode);
     } catch (e) {
-      console.error("AI engine query failed. Falling back to dynamic client synthesis.", e);
+      console.error("Frontend mock analysis failed. Falling back to static client synthesis.", e);
       // Construct fallback values in case server route breaks
       setAnalysisResult({
         topFindings: [
@@ -657,7 +643,7 @@ export default function DiagnosticWorkbench() {
                           <div className="flex items-center gap-2 px-3 py-1 bg-brand-accent-light/35 border border-brand-accent/10 rounded-full">
                             <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping"></span>
                             <span className="text-[9px] font-bold uppercase tracking-tight text-brand-accent">
-                              Optimized for Clinical GPT-4 / Gemini
+                              Prepared for HF backend client
                             </span>
                           </div>
                         </div>

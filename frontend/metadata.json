@@ -1,0 +1,6 @@
+{
+  "name": "Revela Dermatology AI",
+  "description": "An experimental dermatology AI learning lab designed for clinical education, case analysis, and diagnostic simulation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

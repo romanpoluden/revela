@@ -4,31 +4,31 @@ const STATIC_MOCK_ANALYSES: Record<string, AIAnalysisResult> = {
   "case-882-d": {
     topFindings: [
       {
-        diagnosis: "Nodular Melanoma",
+        label: "Nodular Melanoma",
         probability: 94.2,
-        description: "Asymmetric pigmentation showing an active blue-white veil, irregular borders, and polymorphic atypical clinical vasculature. High concern for aggressive deep-tissue replication.",
+        description: "Example educational output noting asymmetric pigmentation, irregular borders, and varied visual structures for guided discussion.",
         category: "Malignant",
       },
       {
-        diagnosis: "Pigmented Basal Cell Carcinoma",
+        label: "Pigmented Basal Cell Carcinoma",
         probability: 4.2,
-        description: "May present with shiny waxy nodules and hyperpigmented globules resembling a nest, though vascular patterns favor melanocytic tumor.",
+        description: "Example alternative label included to support comparison of look-alike image patterns in a learning setting.",
         category: "Malignant",
       },
       {
-        diagnosis: "Dysplastic Union Nevus",
+        label: "Dysplastic Union Nevus",
         probability: 1.6,
-        description: "Severely atypical nevus. Exhibits structural variability but generally lacks the profound architectural disruption seen in high-grade melanoma.",
+        description: "Example learning label describing structural variability for comparison only.",
         category: "Premalignant",
       },
     ],
     confidenceScore: 94.2,
-    confidenceTier: "High Certainty",
-    timelineInsight: "Rapid evolution within a 1-6 month timeframe in a 64-year-old male is highly correlation-indicative of clinical malignancy. Melanosomes demonstrate accelerated, uncontrolled epidermal-dermal penetration.",
-    clinicalAction: "Immediate excisional biopsy with 1-2mm margins is recommended. Urgent referral to clinical neuro/dermatological oncology within 48 hours is vital.",
-    structuredPrompt: `[SYSTEM: CLINICAL PATHOLOGY ANALYST]
+    confidenceTier: "High Model Confidence",
+    timelineInsight: "Recent visible change is treated here as an educational discussion cue only. Real-world interpretation requires qualified review.",
+    safetyNote: "Educational review only. This is not diagnosis or treatment advice, and qualified review is required for any real decision.",
+    structuredPrompt: `[SYSTEM: EDUCATIONAL IMAGE REVIEW]
 CASE ID: 882-D
-SUBJECT: Dermoscopic assessment of asymmetric pigmented lesion.
+SUBJECT: Educational review of an asymmetric pigmented lesion image.
 FINDINGS:
 - Morphology: 8mm nodular elevation, irregular borders.
 - Pigmentation: Blue-white veil presence, atypical network.
@@ -36,37 +36,37 @@ FINDINGS:
 DIFFERENTIALS:
 1. Nodular Melanoma (High Confidence)
 2. Pigmented Basal Cell Carcinoma
-REQUEST: Provide a comparative analysis of these differentials focusing on atypical vascular patterns observed in high-resolution specimen imagery.
+REQUEST: Provide an educational comparison of these labels. Do not provide diagnosis, treatment advice, triage, or clinical validation.
 `,
   },
   "case-8214": {
     topFindings: [
       {
-        diagnosis: "Dysplastic Nevus",
+        label: "Dysplastic Nevus",
         probability: 88.5,
-        description: "Significant structural asymmetry, bridging of nests, and minor irregular peripheral pigment streaks. Mild to moderate keratinocyte atypia.",
+        description: "Example educational output noting structural asymmetry and peripheral pigment variation for discussion.",
         category: "Premalignant",
       },
       {
-        diagnosis: "Superficial Spreading Melanoma",
+        label: "Superficial Spreading Melanoma",
         probability: 9.8,
-        description: "Early phase superficial spread. Features marginal regression but retains structured peripheral networks.",
+        description: "Example comparison label included to support model-output literacy.",
         category: "Malignant",
       },
       {
-        diagnosis: "Severely Irritated Lentigo",
+        label: "Severely Irritated Lentigo",
         probability: 1.7,
-        description: "Inflammatory infiltration mimicking early melanocytic proliferation, but dermoscopy reveals intact follicular preservation.",
+        description: "Example alternative label for comparing visually similar learning patterns.",
         category: "Benign",
       },
     ],
     confidenceScore: 88.5,
-    confidenceTier: "Moderate Certainty",
-    timelineInsight: "Steady alteration over 1-4 weeks coupled with a positive family history of melanoma calls for careful diagnostic tracking. Marked architectural disarray is present.",
-    clinicalAction: "Complete narrow excisional biopsy is prudent to rule out early superficial melanocytic proliferation. Routine dermoscopic mapping of active satellite lesions.",
-    structuredPrompt: `[SYSTEM: PATHOLOGY EXPERT ASSIST]
+    confidenceTier: "Moderate Model Confidence",
+    timelineInsight: "Timeline and history details are shown as educational context only and must not be used for real-world decisions without qualified review.",
+    safetyNote: "Educational review only. This is not diagnosis or treatment advice, and qualified review is required for any real decision.",
+    structuredPrompt: `[SYSTEM: EDUCATIONAL IMAGE REVIEW]
 CASE ID: 8214
-SUBJECT: Dermoscopic evaluation of atypical melanocytic proliferation on dorsal hand.
+SUBJECT: Educational review of a dermatology learning image on dorsal hand.
 FINDINGS:
 - Margin: Ill-defined, showing early pigment dusting.
 - Network: Bridging nests with peripheral progression.
@@ -74,37 +74,37 @@ FINDINGS:
 DIFFERENTIAL DIAGNOSES:
 1. Severely Atypical Dysplastic Nevus (Primary)
 2. Early-stage Superficial Spreading Melanoma (Secondary)
-REQUEST: Synthesize histopathological criteria distinguishing these two conditions in a 42-year-old patient.
+REQUEST: Compare these labels for education only. Do not provide diagnosis, treatment advice, triage, or clinical validation.
 `,
   },
   "case-304": {
     topFindings: [
       {
-        diagnosis: "Seborrheic Keratosis",
+        label: "Seborrheic Keratosis",
         probability: 96.8,
-        description: "Classic stuck-on hyperkeratotic plaque, with prominent fat-like keratin cysts, comedo-like openings, and fingerprint-like epidermal ridges.",
+        description: "Example educational output noting a stuck-on appearance and surface texture for discussion.",
         category: "Benign",
       },
       {
-        diagnosis: "Pigmented Basal Cell Carcinoma",
+        label: "Pigmented Basal Cell Carcinoma",
         probability: 2.1,
-        description: "Could present with stuck-on appearance but lacks the typical keratin plugs and horn cysts characteristic of seborrheic entities.",
+        description: "Example alternative label included to support comparison of look-alike image patterns.",
         category: "Malignant",
       },
       {
-        diagnosis: "Verrucous Melanoma",
+        label: "Verrucous Melanoma",
         probability: 1.1,
-        description: "Rare architectural mimic showing verrucous surface, though vascular patterns remain regular and quiet.",
+        description: "Example comparison label for educational model-output literacy.",
         category: "Malignant",
       },
     ],
     confidenceScore: 96.8,
-    confidenceTier: "High Certainty",
-    timelineInsight: "Long-standing, non-evolving lesion showing zero progression over several months is highly reassuring. Typical benign maturation of squamous cells is observed.",
-    clinicalAction: "No immediate clinical treatment is required unless symptomatic (irritated by belt). Cryotherapy or light curettage can be performed for patient relief.",
-    structuredPrompt: `[SYSTEM: CLINICAL EDUCATION LAB]
+    confidenceTier: "High Model Confidence",
+    timelineInsight: "A longer, unchanged timeline is presented as educational context only. Real-world interpretation requires qualified review.",
+    safetyNote: "Educational review only. This is not diagnosis or treatment advice, and qualified review is required for any real decision.",
+    structuredPrompt: `[SYSTEM: EDUCATIONAL IMAGE REVIEW]
 CASE ID: 304-B
-SUBJECT: Stuck-on hyperkeratotic lesion of flank.
+SUBJECT: Educational review of a textured lesion image.
 FINDINGS:
 - Texture: Verrucous, stuck-on waxy feel.
 - Structures: Keratin plugs, comedo-like openings.
@@ -112,7 +112,7 @@ FINDINGS:
 DIFFERENTIALS:
 1. Benign Seborrheic Keratosis (96.8% Confidence)
 2. Pigmented Basal Cell Carcinoma (Rule Out mimicry)
-REQUEST: Review the benign diagnostic features under polarized dermoscopy.
+REQUEST: Review image features for education only. Do not provide diagnosis, treatment advice, triage, or clinical validation.
 `,
   },
 };

@@ -43,9 +43,9 @@ export default function TopNavBar({ onNavigateHome, onNavigateWorkbench, activeT
                   ? 'text-brand-accent border-b-2 border-brand-accent pb-1' 
                   : 'text-gray-500 hover:text-brand-primary'
               }`}
-              id="nav-ai-workbench"
-            >
-              AI Workbench
+            id="nav-ai-workbench"
+          >
+              AI Learning Lab
             </button>
             <button 
               className="text-gray-500 hover:text-brand-primary text-sm font-semibold tracking-wider transition-colors cursor-pointer"
@@ -73,7 +73,7 @@ export default function TopNavBar({ onNavigateHome, onNavigateWorkbench, activeT
             className="bg-brand-primary text-white text-xs font-semibold tracking-wider uppercase px-6 py-2 rounded-lg hover:bg-opacity-90 transition-all active:scale-95 cursor-pointer shadow-sm"
             id="btn-start-analysis"
           >
-            Start Analysis
+            Start Review
           </button>
         </div>
       </div>

@@ -16,7 +16,7 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
           <img 
             className="w-full h-32 object-cover grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-500" 
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuBrxVpvTcgWNUaBKkYhofIj_TgAxA-EGeH02aZY5IPiEbLytykM7mHq_ITbW5JnVJVTQjZfNJs7BiDBS2qJSdbgm6vA3fS8kbji58V5bbqu-WZUJVZFurGfW0hxqYd-dqNSxpAPJnwu-d6QLpYzM8yH_nmnUKIeJtr0ndfc2xK8sopz-Yoj73mGrYeRC4JI5H7-r3hJrGTodKlP22QGthlleKdXdLEcXV6E6Zdc7Yy0PlTvPUTSlEumghOAmqzljSM_7DQe03ex5O8" 
-            alt="Dermatoscopic clinical tool" 
+            alt="Dermatoscopic learning image" 
           />
         </div>
       )
@@ -24,7 +24,7 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
     {
       num: 2,
       title: "Add Context",
-      desc: "Upload your patient case and provide essential clinical history and physical examination findings.",
+      desc: "Upload an image and add non-identifying context for an educational review workflow.",
       visual: (
         <div className="mt-auto flex flex-col gap-2">
           <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
@@ -38,8 +38,8 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
     },
     {
       num: 3,
-      title: "Analyze Case",
-      desc: "Leverage deep learning models to generate heatmaps and potential diagnostic considerations.",
+      title: "Review Case",
+      desc: "Generate educational model output for guided reflection, not diagnosis or treatment advice.",
       visual: (
         <div className="mt-auto h-32 flex items-center justify-center bg-brand-primary rounded-lg relative overflow-hidden">
           <div className="absolute inset-0 opacity-45 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-accent via-transparent to-transparent"></div>
@@ -50,16 +50,16 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
     {
       num: 4,
       title: "Review Output",
-      desc: "Compare educational model outputs with gold-standard histopathology and expert consensus.",
+      desc: "Compare educational model output with the provided learning case context and safety notes.",
       visual: (
         <div className="mt-auto space-y-2">
           <div className="flex justify-between items-center bg-brand-secondary p-2 rounded border border-gray-100">
-            <span className="font-sans text-[11px] font-bold text-gray-400 uppercase">Accuracy</span>
-            <span className="text-brand-accent font-bold text-sm">94%</span>
+            <span className="font-sans text-[11px] font-bold text-gray-400 uppercase">Output Type</span>
+            <span className="text-brand-accent font-bold text-sm">Mock</span>
           </div>
           <div className="flex justify-between items-center bg-brand-secondary p-2 rounded border border-gray-100">
-            <span className="font-sans text-[11px] font-bold text-gray-400 uppercase">Consensus</span>
-            <span className="text-brand-accent font-bold text-sm">High</span>
+            <span className="font-sans text-[11px] font-bold text-gray-400 uppercase">Use</span>
+            <span className="text-brand-accent font-bold text-sm">Learning</span>
           </div>
         </div>
       )
@@ -90,7 +90,7 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
           transition={{ delay: 0.3, duration: 0.8 }}
           id="landing-subheading"
         >
-          Bridging clinical excellence and cutting-edge artificial intelligence for the next generation of dermatologists.
+          A prototype space for educational review of dermatology image workflows and model-output literacy.
         </motion.p>
         
         <motion.div 

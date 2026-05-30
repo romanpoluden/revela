@@ -28,14 +28,14 @@ export default function DiagnosticWorkbench() {
     5: "The color has changed"
   });
 
-  // Backend / AI states
+  // Frontend mock review states
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AIAnalysisResult | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false);
-  const [diagnosticMode, setDiagnosticMode] = useState<string>("educational-simulation");
+  const [reviewMode, setReviewMode] = useState<string>("educational-simulation");
 
   // Drag and Drop Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -65,12 +65,12 @@ export default function DiagnosticWorkbench() {
         setSelectedCase({
           id: "custom-uploaded",
           name: "Custom Case (Uploaded)",
-          shortDescription: "A personalized clinical specimen uploaded for educational feedback.",
-          clinicalHistory: `Specimen titled "${file.name}" with a size of ${(file.size / (1024 * 1024)).toFixed(2)} MB uploaded for interactive simulation.`,
+          shortDescription: "An uploaded image added for educational feedback.",
+          clinicalHistory: `Uploaded image titled "${file.name}" with a size of ${(file.size / (1024 * 1024)).toFixed(2)} MB added for interactive simulation.`,
           clinicalPhoto: reader.result as string,
           dermoscopicPhoto: reader.result as string,
           location: "Not specified",
-          ageGender: "Adult patient",
+          ageGender: "Adult learner case",
           duration: "1-4 weeks",
           evolution: "The color has changed",
           groundTruthPathology: "Pending review",
@@ -96,12 +96,12 @@ export default function DiagnosticWorkbench() {
         setSelectedCase({
           id: "custom-uploaded",
           name: "Custom Case (Uploaded)",
-          shortDescription: "A personalized clinical specimen uploaded for educational feedback.",
-          clinicalHistory: `Specimen titled "${file.name}" dropped for analysis simulation.`,
+          shortDescription: "An uploaded image added for educational feedback.",
+          clinicalHistory: `Uploaded image titled "${file.name}" dropped for review simulation.`,
           clinicalPhoto: reader.result as string,
           dermoscopicPhoto: reader.result as string,
           location: "Not specified",
-          ageGender: "Adult patient",
+          ageGender: "Adult learner case",
           duration: "1-4 weeks",
           evolution: "The color has changed",
           groundTruthPathology: "Pending review",
@@ -126,7 +126,7 @@ export default function DiagnosticWorkbench() {
     if (currentQuizIndex < QUIZ_QUESTIONS.length - 1) {
       setCurrentQuizIndex(prev => prev + 1);
     } else {
-      // Trigger AI Analysis
+      // Trigger educational model output
       handleInitiateAnalysis();
     }
   };
@@ -152,26 +152,26 @@ export default function DiagnosticWorkbench() {
       });
 
       setAnalysisResult(data.analysis);
-      setDiagnosticMode(data.mode);
+      setReviewMode(data.mode);
     } catch (e) {
       console.error("Frontend mock analysis failed. Falling back to static client synthesis.", e);
-      // Construct fallback values in case server route breaks
+      // Construct fallback values in case the local mock route breaks
       setAnalysisResult({
         topFindings: [
           {
-            diagnosis: selectedCase.id === "case-304" ? "Seborrheic Keratosis" : "Dysplastic Nevus",
+            label: selectedCase.id === "case-304" ? "Seborrheic Keratosis" : "Dysplastic Nevus",
             probability: 89.5,
-            description: "Polarized cellular pattern exhibiting benign to mildly atypical parameters. Ideal for standard pedagogical correlation.",
+            description: "Example educational pattern language for standard pedagogical correlation.",
             category: selectedCase.id === "case-304" ? "Benign" : "Premalignant"
           }
         ],
         confidenceScore: 89.5,
-        confidenceTier: "Moderate Certainty",
-        timelineInsight: "Steady timeline parameters aligned with common cutaneous cell updates.",
-        clinicalAction: "Routine excisional follow-up or diagnostic tracking as needed.",
-        structuredPrompt: `[OFFLINE CLIENT PIPELINE]\nFallback activated. Diagnostic simulation ready for case.`
+        confidenceTier: "Moderate Model Confidence",
+        timelineInsight: "Steady timeline parameters for educational discussion only.",
+        safetyNote: "Educational review only. Qualified review is required for any real-world decision.",
+        structuredPrompt: `[OFFLINE CLIENT PIPELINE]\nFallback activated. Educational review simulation ready for case.`
       });
-      setDiagnosticMode("offline-safety-fallback");
+      setReviewMode("offline-safety-fallback");
     } finally {
       setIsAnalyzing(false);
       setSessionState('results');
@@ -226,7 +226,7 @@ export default function DiagnosticWorkbench() {
           </div>
           <div>
             <h2 className="text-white font-semibold text-sm tracking-wide leading-tight">Resident Portal</h2>
-            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Dermatology AI Suite</p>
+            <p className="text-[10px] text-gray-400 uppercase tracking-widest font-bold">Educational AI Suite</p>
           </div>
         </div>
 
@@ -252,7 +252,7 @@ export default function DiagnosticWorkbench() {
             }`}
           >
             <FileText className="w-4 h-4" />
-            Clinical History
+            Case Context
           </button>
 
           <button 
@@ -260,7 +260,7 @@ export default function DiagnosticWorkbench() {
             className="w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-wider rounded-lg opacity-50 cursor-not-allowed"
           >
             <Brain className="w-4 h-4" />
-            AI Analysis
+            Model Review
           </button>
 
           <button 
@@ -273,7 +273,7 @@ export default function DiagnosticWorkbench() {
             }`}
           >
             <Award className="w-4 h-4" />
-            Results Synthesis
+            Output Summary
           </button>
         </nav>
 
@@ -284,7 +284,7 @@ export default function DiagnosticWorkbench() {
             className="w-full bg-white text-brand-primary text-xs font-bold uppercase py-3.5 px-4 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-100 transition-all active:scale-95 cursor-pointer shadow-sm"
           >
             <Plus className="w-4 h-4" />
-            New Case
+            New Review
           </button>
           
           <a href="#" className="flex items-center gap-3 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 hover:text-white transition-colors">
@@ -318,15 +318,15 @@ export default function DiagnosticWorkbench() {
                 >
                   {/* Page Intro */}
                   <header>
-                    <h2 className="font-serif text-3xl font-bold tracking-tight text-brand-primary mb-1">Analysis Workflow</h2>
-                    <p className="text-sm text-gray-500 max-w-2xl">Progressive diagnostic pipeline. Choose a curated clinical case module or upload a custom dermoscopic specimen to begin.</p>
+                    <h2 className="font-serif text-3xl font-bold tracking-tight text-brand-primary mb-1">Educational Review Workflow</h2>
+                    <p className="text-sm text-gray-500 max-w-2xl">Prototype image workflow for educational review only. Choose a curated learning case or upload an image to begin. This is not diagnosis or treatment advice.</p>
                   </header>
 
                   {/* Step 1: Modality Selection */}
                   <section className="space-y-5">
                     <div className="flex items-center gap-3">
                       <span className="w-7 h-7 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-xs">1</span>
-                      <h3 className="font-serif text-xl font-bold text-brand-primary">Case Selection / Modality</h3>
+                      <h3 className="font-serif text-xl font-bold text-brand-primary">Case Selection / Image Type</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -363,11 +363,11 @@ export default function DiagnosticWorkbench() {
                     </div>
                   </section>
 
-                  {/* Step 2: Specimen Upload */}
+                  {/* Step 2: Image Upload */}
                   <section className="space-y-5">
                     <div className="flex items-center gap-3">
                       <span className="w-7 h-7 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-xs">2</span>
-                      <h3 className="font-serif text-xl font-bold text-brand-primary">Specimen Upload & Preview</h3>
+                      <h3 className="font-serif text-xl font-bold text-brand-primary">Uploaded Image & Preview</h3>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -390,8 +390,8 @@ export default function DiagnosticWorkbench() {
                         >
                           <Upload className="w-6 h-6 text-brand-primary" />
                         </div>
-                        <p className="text-sm font-bold text-brand-primary">Drag and drop high-res specimen</p>
-                        <p className="text-xs text-gray-400 mt-2">Supports DICOM, JPEG, TIFF (Max 50MB)</p>
+                        <p className="text-sm font-bold text-brand-primary">Drag and drop an image</p>
+                        <p className="text-xs text-gray-400 mt-2">Supports JPEG, PNG, TIFF (Max 50MB)</p>
                         <button 
                           onClick={() => fileInputRef.current?.click()}
                           className="mt-5 px-6 py-2 border border-brand-primary text-brand-primary text-xs font-bold uppercase rounded-lg hover:bg-brand-primary hover:text-white transition-all shadow-sm"
@@ -434,7 +434,7 @@ export default function DiagnosticWorkbench() {
                 </motion.div>
               )}
 
-              {/* VIEW 2: Clinical History Questionnaire */}
+              {/* VIEW 2: Case Context Questionnaire */}
               {sessionState === 'questionnaire' && (
                 <motion.div 
                   key="questionnaire"
@@ -447,38 +447,38 @@ export default function DiagnosticWorkbench() {
                   {/* Breadcrumbs and headers */}
                   <header>
                     <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-widest text-brand-accent">
-                      <span>Diagnostic Pathway</span>
+                      <span>Educational Review Pathway</span>
                       <ChevronRight className="w-3 h-3 text-gray-400" />
-                      <span className="text-brand-primary">Step 3: Clinical History</span>
+                      <span className="text-brand-primary">Step 3: Case Context</span>
                     </div>
                     <h2 className="font-serif text-3xl font-bold tracking-tight text-brand-primary">Revela AI Learning Lab</h2>
                   </header>
 
                   <div className="grid grid-cols-12 gap-6 items-start">
                     
-                    {/* Patient / Case Sidebar Visual Context */}
+                    {/* Learning case sidebar visual context */}
                     <div className="col-span-12 lg:col-span-4 space-y-6">
                       <div className="bg-white rounded-xl overflow-hidden border border-gray-200/60 shadow-sm">
                         <div className="aspect-square w-full relative">
-                          <img className="w-full h-full object-cover" src={selectedCase.clinicalPhoto} alt="Patient case skin presentation" />
+                          <img className="w-full h-full object-cover" src={selectedCase.clinicalPhoto} alt="Learning case skin image" />
                           <div className="absolute top-4 left-4 bg-brand-primary/85 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest text-white border border-gray-700">
-                            Current Specimen: {selectedCase.id.toUpperCase()}
+                            Current Image: {selectedCase.id.toUpperCase()}
                           </div>
                         </div>
                         <div className="p-6">
-                          <h3 className="font-serif text-lg font-bold text-brand-primary mb-2">Patient Presentation</h3>
+                          <h3 className="font-serif text-lg font-bold text-brand-primary mb-2">Learning Case Context</h3>
                           <p className="text-xs text-gray-600 leading-relaxed">{selectedCase.clinicalHistory}</p>
                         </div>
                       </div>
 
-                      {/* Diagnostic Insight card */}
+                      {/* Educational insight card */}
                       <div className="bg-brand-primary text-gray-200 p-6 rounded-xl border border-gray-800 shadow-sm space-y-3">
                         <div className="flex items-center gap-2.5 text-indigo-400 font-bold uppercase tracking-widest text-[10px]">
                           <Info className="w-4 h-4 shrink-0" />
-                          Clinical Insight
+                          Educational Insight
                         </div>
                         <p className="text-xs italic text-gray-300 leading-relaxed">
-                          "Rapid temporal changes in size, symmetry, or coloration represent our most reliable pointers of clinical concern. Advanced AI models examine vascular network irregularity to assess high-confidence mutations."
+                          "Image changes in size, symmetry, or coloration can be useful learning cues. Qualified review is required before any real-world decision."
                         </p>
                       </div>
                     </div>
@@ -559,7 +559,7 @@ export default function DiagnosticWorkbench() {
                           >
                             {currentQuizIndex === QUIZ_QUESTIONS.length - 1 ? (
                               <>
-                                See what this might be
+                                Review model output
                                 <Brain className="w-4 h-4" />
                               </>
                             ) : (
@@ -594,10 +594,10 @@ export default function DiagnosticWorkbench() {
                     </div>
                   </div>
                   <div>
-                    <h3 className="font-serif text-2xl font-bold text-brand-primary mb-2">Synthesizing clinical observations...</h3>
-                    <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
-                      Leveraged Vision-Language AI is generating neural heatmaps, probability models, and structuring prompt metadata.
-                    </p>
+                  <h3 className="font-serif text-2xl font-bold text-brand-primary mb-2">Preparing educational model output...</h3>
+                  <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
+                      The local mock is generating example model confidence, output labels, and structured prompt metadata for learning only.
+                  </p>
                   </div>
                   <div className="max-w-xs w-full bg-indigo-50 h-1 rounded-full overflow-hidden">
                     <div className="bg-brand-primary h-full w-2/3 rounded-full animate-pulse"></div>
@@ -605,7 +605,7 @@ export default function DiagnosticWorkbench() {
                 </motion.div>
               )}
 
-              {/* VIEW 4: Diagnostic Outputs & Structured Propmt Results */}
+              {/* VIEW 4: Educational Outputs & Structured Prompt Results */}
               {sessionState === 'results' && analysisResult && (
                 <motion.div 
                   key="results"
@@ -619,11 +619,11 @@ export default function DiagnosticWorkbench() {
                   <header className="space-y-2">
                     <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full w-fit shadow-xs">
                       <CheckCircle className="w-4 h-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Case Process Completed</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Educational Review Completed</span>
                     </div>
                     <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-primary">Continue this learning case</h1>
                     <p className="text-sm text-gray-500 max-w-3xl leading-relaxed">
-                      Your diagnostic analysis is now finalized based on histological indicators. Review model findings below, export the structured prompt to your local file system, or share to your educational profile.
+                      This is educational model output from a prototype mock workflow. It is not diagnosis, not treatment advice, and not clinical validation. Qualified review is required for real decisions.
                     </p>
                   </header>
 
@@ -680,13 +680,13 @@ export default function DiagnosticWorkbench() {
                         </div>
                       </div>
 
-                      {/* AI Diagnoses probabilities container */}
+                      {/* Educational model output container */}
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-8 space-y-6">
-                        <h3 className="font-serif text-xl font-bold text-brand-primary">Differential Outputs</h3>
+                        <h3 className="font-serif text-xl font-bold text-brand-primary">Educational Model Output</h3>
                         <div className="space-y-4">
                           {analysisResult.topFindings?.map((finding, idx) => (
                             <div 
-                              key={finding.diagnosis} 
+                              key={finding.label} 
                               className={`p-5 rounded-lg border flex flex-col md:flex-row justify-between md:items-center gap-4 ${
                                 idx === 0 
                                   ? 'bg-amber-50/20 border-amber-200 border-l-4 border-l-brand-accent' 
@@ -695,7 +695,7 @@ export default function DiagnosticWorkbench() {
                             >
                               <div className="space-y-1 max-w-xl">
                                 <div className="flex items-center gap-3">
-                                  <span className="font-serif text-base font-bold text-brand-primary">{finding.diagnosis}</span>
+                                  <span className="font-serif text-base font-bold text-brand-primary">{finding.label}</span>
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
                                     finding.category === 'Malignant' ? 'bg-red-50 text-red-700' : finding.category === 'Premalignant' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
                                   }`}>
@@ -717,19 +717,19 @@ export default function DiagnosticWorkbench() {
                     {/* Right sidebar: Visual anchors */}
                     <div className="col-span-12 lg:col-span-4 space-y-6">
                       
-                      {/* Pathology specimen preview card */}
+                      {/* Uploaded image preview card */}
                       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden p-5 flex flex-col gap-4">
                         <div className="rounded-lg overflow-hidden aspect-square border border-gray-100 relative group">
-                          <img className="w-full h-full object-cover grayscale-0 group-hover:grayscale-[0.1] transition-all duration-500" src={selectedCase.clinicalPhoto} alt="Dermoscopic visual output link" />
+                          <img className="w-full h-full object-cover grayscale-0 group-hover:grayscale-[0.1] transition-all duration-500" src={selectedCase.clinicalPhoto} alt="Learning case visual output link" />
                           <div className="absolute bottom-4 left-4 font-sans text-xs font-bold text-white bg-brand-primary/85 px-3 py-1 rounded-full backdrop-blur-sm border border-gray-800">
-                            Specimen: {selectedCase.id.toUpperCase()}
+                            Image: {selectedCase.id.toUpperCase()}
                           </div>
                         </div>
 
                         {/* Model Confidence Meter */}
                         <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 space-y-3">
                           <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                            <span>AI Confidence</span>
+                            <span>Model Confidence</span>
                             <span className="text-brand-primary">{analysisResult.confidenceTier}</span>
                           </div>
                           <div className="h-2 w-full bg-indigo-50 rounded-full overflow-hidden">
@@ -739,28 +739,28 @@ export default function DiagnosticWorkbench() {
                             ></div>
                           </div>
                           <div className="flex justify-between items-center text-xs font-bold font-serif text-brand-primary text-sm">
-                            <span>{analysisResult.confidenceScore}% Certainty</span>
+                            <span>{analysisResult.confidenceScore}% Model Confidence</span>
                           </div>
                         </div>
                       </div>
 
                       {/* Timeline insights */}
                       <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-6 space-y-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Timeline Progression</h4>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Timeline Notes</h4>
                         <p className="text-xs text-gray-600 leading-relaxed">{analysisResult.timelineInsight}</p>
                       </div>
 
                       {/* Recommended details catalog */}
                       <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-6 space-y-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Clinical recommendation</h4>
-                        <p className="text-xs text-gray-600 leading-relaxed text-slate-800">{analysisResult.clinicalAction}</p>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Safety Note</h4>
+                        <p className="text-xs text-gray-600 leading-relaxed text-slate-800">{analysisResult.safetyNote}</p>
                         
                         <div className="pt-2 flex gap-3 border-t border-gray-100">
                           <button className="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-brand-primary text-xs font-bold rounded transition-colors uppercase">
-                            Order Biopsy
+                            Save Learning Note
                           </button>
                           <button className="flex-1 py-2 bg-brand-primary text-white text-xs font-bold rounded hover:opacity-90 transition-opacity uppercase">
-                            Contact Specialist
+                            Qualified Review Required
                           </button>
                         </div>
                       </div>
@@ -780,7 +780,7 @@ export default function DiagnosticWorkbench() {
                             <Info className="w-4 h-4" />
                             <h4 className="font-bold uppercase tracking-wider">Overview</h4>
                           </div>
-                          <p>Revela is a pedagogical tool designed for dermatology residents to bridge the gap between visual pathology and structured AI-assisted diagnostics.</p>
+                          <p>Revela is a pedagogical prototype for exploring dermatology image workflows and structured AI model output.</p>
                         </div>
 
                         <div className="space-y-2 leading-relaxed">
@@ -788,7 +788,7 @@ export default function DiagnosticWorkbench() {
                             <Eye className="w-4 h-4" />
                             <h4 className="font-bold uppercase tracking-wider">Model Transparency</h4>
                           </div>
-                          <p>Utilizes a fine-tuned Vision-Language Model (VLM) trained on over 450,000 biopsy-verified dermatoscopic images for high-precision morphology detection.</p>
+                          <p>This frontend currently uses local educational mock output while a future Hugging Face backend client is planned separately.</p>
                         </div>
 
                         <div className="space-y-2 leading-relaxed">
@@ -796,7 +796,7 @@ export default function DiagnosticWorkbench() {
                             <BarChart2 className="w-4 h-4" />
                             <h4 className="font-bold uppercase tracking-wider">Evaluation Metrics</h4>
                           </div>
-                          <p>Current iteration scores 0.89 AUC for malignant classification, with a sensitivity threshold set to 96.5% for educational safety.</p>
+                          <p>No clinical validation or performance claim is made by this prototype frontend.</p>
                         </div>
 
                         <div className="space-y-2 leading-relaxed">
@@ -804,7 +804,7 @@ export default function DiagnosticWorkbench() {
                             <ShieldAlert className="w-4 h-4" />
                             <h4 className="font-bold uppercase tracking-wider">Limitations</h4>
                           </div>
-                          <p>Prototype intended for educational simulation only. AI analysis must be validated by a board-certified dermatologist before clinical action.</p>
+                          <p>Prototype intended for educational review only. It is not diagnosis, not treatment advice, and not a substitute for qualified review.</p>
                         </div>
 
                       </div>
@@ -815,7 +815,7 @@ export default function DiagnosticWorkbench() {
                   <section className="bg-brand-accent-light/10 border border-brand-accent/10 rounded-2xl p-8 md:p-12 text-center space-y-6" id="waitlist-card">
                     <h3 className="font-serif text-2xl font-bold text-brand-primary">Master the future of Dermatology</h3>
                     <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
-                      Join our private beta group for dermatology fellows and get early access to new AI curriculum modules, dermoscopic quizzes, and clinical case studies.
+                      Join our private beta group for dermatology learners and get early access to new AI curriculum modules, dermoscopic quizzes, and educational case studies.
                     </p>
                     
                     {waitlistSuccess ? (
@@ -863,7 +863,7 @@ export default function DiagnosticWorkbench() {
         <footer className="bg-white border-t border-gray-100 px-6 md:px-10 py-6 w-full flex flex-col sm:flex-row justify-between items-center text-[11px] text-gray-400 gap-4 shrink-0 mt-auto">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-gray-400" />
-            <p>© 2024 Revela Clinical Intelligence. For educational use only. Not for clinical diagnosis.</p>
+            <p>© 2024 Revela. Educational review only. Not diagnosis, not treatment advice, and not clinical validation.</p>
           </div>
           <div className="flex gap-6">
             <a href="#" className="hover:text-brand-primary transition-colors underline font-medium">Safety Disclaimer</a>

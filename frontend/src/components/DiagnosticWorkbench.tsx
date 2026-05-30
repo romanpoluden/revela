@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { 
   FileText, Layers, Upload, Brain, Microscope, HelpCircle, Settings, Plus,
   ChevronRight, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle, Terminal, 
   Copy, Check, Info, ShieldAlert, Award, Eye, BarChart2, Mail, Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { PRESET_CASES, QUIZ_QUESTIONS, PresetCase, AIAnalysisResult } from "../types";
+import { IMAGE_WORKFLOWS, QUIZ_QUESTIONS, ImageWorkflow, AIAnalysisResult } from "../types";
 import { analyzeCase } from "../lib/inferenceClient";
 
 export default function DiagnosticWorkbench() {
@@ -13,10 +13,10 @@ export default function DiagnosticWorkbench() {
   // 'selection' | 'questionnaire' | 'analyzing' | 'results'
   const [sessionState, setSessionState] = useState<'selection' | 'questionnaire' | 'analyzing' | 'results'>('selection');
   
-  // Selected Case or Uploaded state
-  const [selectedCase, setSelectedCase] = useState<PresetCase>(PRESET_CASES[0]);
-  const [modality, setModality] = useState<'clinical' | 'dermoscopic'>('dermoscopic');
+  // Selected image workflow and uploaded image state
+  const [selectedWorkflow, setSelectedWorkflow] = useState<ImageWorkflow>(IMAGE_WORKFLOWS[0]);
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [uploadedImageName, setUploadedImageName] = useState<string | null>(null);
   
   // Multi-step quiz state
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
@@ -40,18 +40,9 @@ export default function DiagnosticWorkbench() {
   // Drag and Drop Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Set default questionnaire choices automatically when a preset case is loaded
-  const handleCaseSelect = (item: PresetCase) => {
-    setSelectedCase(item);
-    setCustomImage(null);
-    // Align quiz answers with known preset characteristics for realistic outputs
-    setQuizAnswers({
-      1: item.duration,
-      2: item.location.includes("thorax") ? "Posterior thorax / Back" : item.location.includes("hand") ? "Dorsal hand / Extremities" : "Trunk / Abdomen",
-      3: item.id === "case-882-d" ? "Asymptomatic (No symptoms)" : item.id === "case-8214" ? "Mild pruritus / Itching" : "Asymptomatic (No symptoms)",
-      4: item.id === "case-8214" ? "Yes (Family history only)" : "No history of skin cancer",
-      5: item.evolution
-    });
+  const handleWorkflowSelect = (workflow: ImageWorkflow) => {
+    setSelectedWorkflow(workflow);
+    setAnalysisResult(null);
     setCurrentQuizIndex(0);
   };
 
@@ -62,20 +53,7 @@ export default function DiagnosticWorkbench() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
-        setSelectedCase({
-          id: "custom-uploaded",
-          name: "Custom Case (Uploaded)",
-          shortDescription: "An uploaded image added for educational feedback.",
-          clinicalHistory: `Uploaded image titled "${file.name}" with a size of ${(file.size / (1024 * 1024)).toFixed(2)} MB added for interactive simulation.`,
-          clinicalPhoto: reader.result as string,
-          dermoscopicPhoto: reader.result as string,
-          location: "Not specified",
-          ageGender: "Adult learner case",
-          duration: "1-4 weeks",
-          evolution: "The color has changed",
-          groundTruthPathology: "Pending review",
-          severity: "moderate"
-        });
+        setUploadedImageName(file.name);
         setCurrentQuizIndex(0);
       };
       reader.readAsDataURL(file);
@@ -93,20 +71,7 @@ export default function DiagnosticWorkbench() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
-        setSelectedCase({
-          id: "custom-uploaded",
-          name: "Custom Case (Uploaded)",
-          shortDescription: "An uploaded image added for educational feedback.",
-          clinicalHistory: `Uploaded image titled "${file.name}" dropped for review simulation.`,
-          clinicalPhoto: reader.result as string,
-          dermoscopicPhoto: reader.result as string,
-          location: "Not specified",
-          ageGender: "Adult learner case",
-          duration: "1-4 weeks",
-          evolution: "The color has changed",
-          groundTruthPathology: "Pending review",
-          severity: "moderate"
-        });
+        setUploadedImageName(file.name);
         setCurrentQuizIndex(0);
       };
       reader.readAsDataURL(file);
@@ -146,7 +111,7 @@ export default function DiagnosticWorkbench() {
     
     try {
       const data = await analyzeCase({
-        caseId: selectedCase.id,
+        workflow: selectedWorkflow,
         answers: quizAnswers,
         customImage,
       });
@@ -159,10 +124,10 @@ export default function DiagnosticWorkbench() {
       setAnalysisResult({
         topFindings: [
           {
-            label: selectedCase.id === "case-304" ? "Seborrheic Keratosis" : "Dysplastic Nevus",
+            label: selectedWorkflow.input_type === "clinical" ? "Clinical image pattern" : "Dermoscopic lesion-pattern output",
             probability: 89.5,
             description: "Example educational pattern language for standard pedagogical correlation.",
-            category: selectedCase.id === "case-304" ? "Benign" : "Premalignant"
+            category: selectedWorkflow.input_type === "clinical" ? "Benign" : "Premalignant"
           }
         ],
         confidenceScore: 89.5,
@@ -203,9 +168,11 @@ export default function DiagnosticWorkbench() {
   // Restart learning workflow
   const handleResetWorkflow = () => {
     setCustomImage(null);
-    setSelectedCase(PRESET_CASES[0]);
+    setUploadedImageName(null);
+    setSelectedWorkflow(IMAGE_WORKFLOWS[0]);
+    setAnalysisResult(null);
     setQuizAnswers({
-      1: PRESET_CASES[0].duration,
+      1: "1–4 weeks",
       2: "Posterior thorax / Back",
       3: "Asymptomatic (No symptoms)",
       4: "No history of skin cancer",
@@ -319,46 +286,50 @@ export default function DiagnosticWorkbench() {
                   {/* Page Intro */}
                   <header>
                     <h2 className="font-serif text-3xl font-bold tracking-tight text-brand-primary mb-1">Educational Review Workflow</h2>
-                    <p className="text-sm text-gray-500 max-w-2xl">Prototype image workflow for educational review only. Choose a curated learning case or upload an image to begin. This is not diagnosis or treatment advice.</p>
+                    <p className="text-sm text-gray-500 max-w-2xl">Prototype image workflow for educational review only. Select the uploaded image mode before upload. This is not diagnosis or treatment advice.</p>
                   </header>
 
-                  {/* Step 1: Modality Selection */}
+                  {/* Step 1: Image Workflow Selection */}
                   <section className="space-y-5">
                     <div className="flex items-center gap-3">
                       <span className="w-7 h-7 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-xs">1</span>
-                      <h3 className="font-serif text-xl font-bold text-brand-primary">Case Selection / Image Type</h3>
+                      <h3 className="font-serif text-xl font-bold text-brand-primary">Image Workflow</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {PRESET_CASES.map((item) => (
-                        <div 
-                          key={item.id}
-                          onClick={() => handleCaseSelect(item)}
-                          className={`relative overflow-hidden bg-white rounded-xl border p-6 transition-all cursor-pointer group ${
-                            selectedCase.id === item.id && !customImage
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {IMAGE_WORKFLOWS.map((workflow) => (
+                        <button
+                          type="button"
+                          key={workflow.id}
+                          onClick={() => handleWorkflowSelect(workflow)}
+                          className={`relative overflow-hidden bg-white rounded-xl border p-6 text-left transition-all cursor-pointer group ${
+                            selectedWorkflow.id === workflow.id
                               ? 'border-brand-primary ring-2 ring-brand-primary/5 shadow-md' 
                               : 'border-gray-200/60 hover:shadow-md'
                           }`}
                         >
-                          <div className="h-36 mb-5 rounded-lg overflow-hidden relative">
-                            <img className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-102" src={item.clinicalPhoto} alt={item.name} />
-                            <div className="absolute inset-0 bg-brand-primary/10 group-hover:bg-transparent transition-colors"></div>
-                          </div>
-                          
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-serif text-base font-bold text-brand-primary leading-snug">{item.name}</h4>
-                            {selectedCase.id === item.id && !customImage && (
+                            <h4 className="font-serif text-xl font-bold text-brand-primary leading-snug">{workflow.title}</h4>
+                            {selectedWorkflow.id === workflow.id && (
                               <CheckCircle className="w-5 h-5 text-brand-primary shrink-0" />
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 leading-relaxed mb-4">{item.shortDescription}</p>
-                          <div className="mt-auto pt-3 border-t border-gray-100 flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                            <span>Loc: {item.location.split("(")[0]}</span>
-                            <span className={`px-2 py-0.5 rounded ${
-                              item.severity === 'high' ? 'bg-red-50 text-red-700' : item.severity === 'moderate' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
-                            }`}>{item.severity}</span>
+                          <p className="text-sm text-gray-500 leading-relaxed mb-6">{workflow.description}</p>
+                          <div className="space-y-2 pt-4 border-t border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            <div className="flex justify-between gap-3">
+                              <span>model_id</span>
+                              <span className="text-brand-primary normal-case tracking-normal text-right">{workflow.model_id}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span>top_k</span>
+                              <span className="text-brand-primary">{workflow.top_k}</span>
+                            </div>
+                            <div className="flex justify-between gap-3">
+                              <span>input_type</span>
+                              <span className="text-brand-primary">{workflow.input_type}</span>
+                            </div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </section>
@@ -407,14 +378,12 @@ export default function DiagnosticWorkbench() {
                           {customImage ? (
                             <img className="w-full h-full object-cover" src={customImage} alt="User upload preview" />
                           ) : (
-                            <>
-                              <img className="w-full h-full object-cover opacity-35 grayscale" src={selectedCase.clinicalPhoto} alt="Case preview placeholder" />
-                              <div className="absolute inset-0 flex items-center justify-center backdrop-blur-[1px]">
-                                <span className="text-xs text-slate-800 font-semibold bg-white/90 px-4 py-2 rounded-full border border-gray-100">
-                                  Default: {selectedCase.name.split(" ")[2] || "Case chosen"}
-                                </span>
-                              </div>
-                            </>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-4">
+                              <Upload className="w-8 h-8 text-gray-300" />
+                              <span className="text-xs text-slate-800 font-semibold bg-white/90 px-4 py-2 rounded-full border border-gray-100">
+                                {selectedWorkflow.input_type} image workflow selected
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -460,14 +429,26 @@ export default function DiagnosticWorkbench() {
                     <div className="col-span-12 lg:col-span-4 space-y-6">
                       <div className="bg-white rounded-xl overflow-hidden border border-gray-200/60 shadow-sm">
                         <div className="aspect-square w-full relative">
-                          <img className="w-full h-full object-cover" src={selectedCase.clinicalPhoto} alt="Learning case skin image" />
+                          {customImage ? (
+                            <img className="w-full h-full object-cover" src={customImage} alt="Uploaded image preview" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-3 text-center p-6">
+                              <Upload className="w-10 h-10 text-gray-300" />
+                              <p className="text-xs text-gray-500 leading-relaxed">Upload an image for this educational review workflow.</p>
+                            </div>
+                          )}
                           <div className="absolute top-4 left-4 bg-brand-primary/85 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest text-white border border-gray-700">
-                            Current Image: {selectedCase.id.toUpperCase()}
+                            {selectedWorkflow.input_type}
                           </div>
                         </div>
                         <div className="p-6">
-                          <h3 className="font-serif text-lg font-bold text-brand-primary mb-2">Learning Case Context</h3>
-                          <p className="text-xs text-gray-600 leading-relaxed">{selectedCase.clinicalHistory}</p>
+                          <h3 className="font-serif text-lg font-bold text-brand-primary mb-2">{selectedWorkflow.title}</h3>
+                          <p className="text-xs text-gray-600 leading-relaxed">{selectedWorkflow.description}</p>
+                          {uploadedImageName && (
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-4">
+                              Uploaded image: {uploadedImageName}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -621,7 +602,7 @@ export default function DiagnosticWorkbench() {
                       <CheckCircle className="w-4 h-4" />
                       <span className="text-[10px] font-bold uppercase tracking-widest">Educational Review Completed</span>
                     </div>
-                    <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-primary">Continue this learning case</h1>
+                    <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-primary">Continue this image workflow</h1>
                     <p className="text-sm text-gray-500 max-w-3xl leading-relaxed">
                       This is educational model output from a prototype mock workflow. It is not diagnosis, not treatment advice, and not clinical validation. Qualified review is required for real decisions.
                     </p>
@@ -675,7 +656,7 @@ export default function DiagnosticWorkbench() {
                             onClick={handleResetWorkflow}
                             className="flex items-center justify-center gap-2 text-brand-primary bg-white border border-brand-primary text-xs font-bold uppercase px-6 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
                           >
-                            Start Another Case
+                            Start Another Review
                           </button>
                         </div>
                       </div>
@@ -720,9 +701,16 @@ export default function DiagnosticWorkbench() {
                       {/* Uploaded image preview card */}
                       <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden p-5 flex flex-col gap-4">
                         <div className="rounded-lg overflow-hidden aspect-square border border-gray-100 relative group">
-                          <img className="w-full h-full object-cover grayscale-0 group-hover:grayscale-[0.1] transition-all duration-500" src={selectedCase.clinicalPhoto} alt="Learning case visual output link" />
+                          {customImage ? (
+                            <img className="w-full h-full object-cover grayscale-0 group-hover:grayscale-[0.1] transition-all duration-500" src={customImage} alt="Uploaded image visual output link" />
+                          ) : (
+                            <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-3 text-center p-6">
+                              <Upload className="w-10 h-10 text-gray-300" />
+                              <p className="text-xs text-gray-500 leading-relaxed">No uploaded image preview available.</p>
+                            </div>
+                          )}
                           <div className="absolute bottom-4 left-4 font-sans text-xs font-bold text-white bg-brand-primary/85 px-3 py-1 rounded-full backdrop-blur-sm border border-gray-800">
-                            Image: {selectedCase.id.toUpperCase()}
+                            {selectedWorkflow.title}
                           </div>
                         </div>
 

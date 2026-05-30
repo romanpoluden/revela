@@ -10,7 +10,7 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
     {
       num: 1,
       title: "Choose Image",
-      desc: "Select from macro, dermoscopic, or histopathologic samples to begin your learning session.",
+      desc: "Select clinical / macroscopic photo or dermoscopic / magnified lesion image before upload.",
       visual: (
         <div className="mt-auto overflow-hidden rounded-lg">
           <img 

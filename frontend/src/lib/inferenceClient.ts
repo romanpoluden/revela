@@ -12,11 +12,13 @@ export interface AnalyzeCaseInput {
   workflow: ImageWorkflow;
   answers: Record<number, string>;
   customImage: string | null;
+  imageFile: File | null;
+  forceMock?: boolean;
 }
 
 export interface AnalyzeCaseResult {
   analysis: AIAnalysisResult;
-  mode: "frontend-educational-mock";
+  mode: "frontend-educational-mock" | "live-hf-inference";
 }
 
 export interface RunHfInferenceInput {
@@ -38,6 +40,7 @@ export class InferenceClientError extends Error {
 }
 
 const BACKEND_URL_ENV_KEY = "VITE_REVELA_INFERENCE_BACKEND_URL";
+const LIVE_INFERENCE_ENV_KEY = "VITE_REVELA_ENABLE_LIVE_INFERENCE";
 
 export async function checkInferenceBackendHealth(): Promise<InferenceBackendHealth> {
   const response = await requestInferenceBackend("/health", {
@@ -82,8 +85,26 @@ export async function runHfInference({
 }
 
 export async function analyzeCase(input: AnalyzeCaseInput): Promise<AnalyzeCaseResult> {
-  // Future production inference should call the Revela Hugging Face backend API client here.
-  // Until that API client exists, keep demo behavior local and explicit.
+  if (!input.forceMock && shouldUseLiveInference() && hasInferenceBackendBaseUrl()) {
+    if (!input.imageFile) {
+      throw new InferenceClientError(
+        "missing_image",
+        "Upload an image before requesting live educational model output.",
+      );
+    }
+
+    const backendResult = await runHfInference({
+      image: input.imageFile,
+      modelId: input.workflow.model_id,
+      topK: input.workflow.top_k,
+    });
+
+    return {
+      analysis: adaptInferenceResultToAnalysis(backendResult),
+      mode: "live-hf-inference",
+    };
+  }
+
   const analysis = await runMockEducationalAnalysis(input);
 
   return {
@@ -93,8 +114,7 @@ export async function analyzeCase(input: AnalyzeCaseInput): Promise<AnalyzeCaseR
 }
 
 function getInferenceBackendBaseUrl(): string {
-  const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
-  const rawUrl = env?.[BACKEND_URL_ENV_KEY]?.trim();
+  const rawUrl = readEnv(BACKEND_URL_ENV_KEY);
 
   if (!rawUrl) {
     throw new InferenceClientError(
@@ -104,6 +124,86 @@ function getInferenceBackendBaseUrl(): string {
   }
 
   return rawUrl.replace(/\/+$/, "");
+}
+
+function hasInferenceBackendBaseUrl(): boolean {
+  return Boolean(readEnv(BACKEND_URL_ENV_KEY));
+}
+
+function shouldUseLiveInference(): boolean {
+  return readEnv(LIVE_INFERENCE_ENV_KEY) === "true";
+}
+
+function readEnv(key: string): string | undefined {
+  const env = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
+  return env?.[key]?.trim();
+}
+
+function adaptInferenceResultToAnalysis(result: InferenceResult): AIAnalysisResult {
+  const topConfidence = result.top_prediction?.confidence ?? result.uncertainty.confidence ?? 0;
+  const confidenceScore = toPercent(topConfidence, result.top_prediction?.confidence_percent);
+
+  return {
+    topFindings: result.predictions.map((prediction) => {
+      const probability = toPercent(prediction.confidence ?? prediction.probability ?? 0, prediction.confidence_percent);
+      return {
+        label: prediction.label,
+        probability,
+        description: `Educational model output from ${result.model_id}. Model confidence is not clinical certainty.`,
+      };
+    }),
+    confidenceScore,
+    confidenceTier: confidenceTierFromScore(confidenceScore),
+    timelineInsight: result.low_certainty_message ?? result.uncertainty.explanation ?? "Model uncertainty metadata was returned by the inference backend.",
+    safetyNote: [result.safety_note, ...result.model_limitations, result.recommended_next_step].filter(Boolean).join(" "),
+    structuredPrompt: buildStructuredPromptFromInference(result),
+    backendResult: result,
+  };
+}
+
+function toPercent(confidence: number, confidencePercent?: number): number {
+  if (typeof confidencePercent === "number") {
+    return confidencePercent;
+  }
+  return Math.round(confidence * 10000) / 100;
+}
+
+function confidenceTierFromScore(score: number): AIAnalysisResult["confidenceTier"] {
+  if (score >= 70) {
+    return "High Model Confidence";
+  }
+  if (score >= 40) {
+    return "Moderate Model Confidence";
+  }
+  return "Low Model Confidence";
+}
+
+function buildStructuredPromptFromInference(result: InferenceResult): string {
+  const predictions = result.predictions
+    .map((prediction) => {
+      const confidence = toPercent(prediction.confidence ?? prediction.probability ?? 0, prediction.confidence_percent);
+      return `- ${prediction.label}: ${confidence}% model confidence`;
+    })
+    .join("\n");
+
+  return `[HF INFERENCE OUTPUT]
+MODEL ID: ${result.model_id}
+INPUT TYPE: ${result.input_type}
+ARCHITECTURE: ${result.architecture}
+IMAGE SIZE: ${result.image_size}
+LOW CERTAINTY: ${result.low_certainty}
+
+PREDICTIONS:
+${predictions}
+
+SAFETY NOTE:
+${result.safety_note}
+
+LIMITATIONS:
+${result.model_limitations.map((limitation) => `- ${limitation}`).join("\n")}
+
+NEXT STEP:
+${result.recommended_next_step}`;
 }
 
 async function requestInferenceBackend(path: string, init: RequestInit): Promise<Response> {

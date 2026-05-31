@@ -6,16 +6,17 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { IMAGE_WORKFLOWS, QUIZ_QUESTIONS, ImageWorkflow, AIAnalysisResult } from "../types";
-import { analyzeCase } from "../lib/inferenceClient";
+import { analyzeCase, InferenceClientError } from "../lib/inferenceClient";
 
 export default function DiagnosticWorkbench() {
   // Navigation / View states
-  // 'selection' | 'questionnaire' | 'analyzing' | 'results'
-  const [sessionState, setSessionState] = useState<'selection' | 'questionnaire' | 'analyzing' | 'results'>('selection');
+  // 'selection' | 'questionnaire' | 'analyzing' | 'results' | 'error'
+  const [sessionState, setSessionState] = useState<'selection' | 'questionnaire' | 'analyzing' | 'results' | 'error'>('selection');
   
   // Selected image workflow and uploaded image state
   const [selectedWorkflow, setSelectedWorkflow] = useState<ImageWorkflow>(IMAGE_WORKFLOWS[0]);
   const [customImage, setCustomImage] = useState<string | null>(null);
+  const [customImageFile, setCustomImageFile] = useState<File | null>(null);
   const [uploadedImageName, setUploadedImageName] = useState<string | null>(null);
   
   // Multi-step quiz state
@@ -36,6 +37,7 @@ export default function DiagnosticWorkbench() {
   const [waitlistSuccess, setWaitlistSuccess] = useState(false);
   const [isSubmittingWaitlist, setIsSubmittingWaitlist] = useState(false);
   const [reviewMode, setReviewMode] = useState<string>("educational-simulation");
+  const [inferenceError, setInferenceError] = useState<string | null>(null);
 
   // Drag and Drop Ref
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +45,7 @@ export default function DiagnosticWorkbench() {
   const handleWorkflowSelect = (workflow: ImageWorkflow) => {
     setSelectedWorkflow(workflow);
     setAnalysisResult(null);
+    setInferenceError(null);
     setCurrentQuizIndex(0);
   };
 
@@ -53,7 +56,9 @@ export default function DiagnosticWorkbench() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
+        setCustomImageFile(file);
         setUploadedImageName(file.name);
+        setInferenceError(null);
         setCurrentQuizIndex(0);
       };
       reader.readAsDataURL(file);
@@ -71,7 +76,9 @@ export default function DiagnosticWorkbench() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomImage(reader.result as string);
+        setCustomImageFile(file);
         setUploadedImageName(file.name);
+        setInferenceError(null);
         setCurrentQuizIndex(0);
       };
       reader.readAsDataURL(file);
@@ -105,42 +112,42 @@ export default function DiagnosticWorkbench() {
   };
 
   // Frontend-only analysis handler. Production inference will use the HF backend API client.
-  const handleInitiateAnalysis = async () => {
+  const handleInitiateAnalysis = async (forceMock = false) => {
     setSessionState('analyzing');
     setIsAnalyzing(true);
+    setInferenceError(null);
     
     try {
       const data = await analyzeCase({
         workflow: selectedWorkflow,
         answers: quizAnswers,
         customImage,
+        imageFile: customImageFile,
+        forceMock,
       });
 
       setAnalysisResult(data.analysis);
       setReviewMode(data.mode);
     } catch (e) {
-      console.error("Frontend mock analysis failed. Falling back to static client synthesis.", e);
-      // Construct fallback values in case the local mock route breaks
-      setAnalysisResult({
-        topFindings: [
-          {
-            label: selectedWorkflow.input_type === "clinical" ? "Clinical image pattern" : "Dermoscopic lesion-pattern output",
-            probability: 89.5,
-            description: "Example educational pattern language for standard pedagogical correlation.",
-            category: selectedWorkflow.input_type === "clinical" ? "Benign" : "Premalignant"
-          }
-        ],
-        confidenceScore: 89.5,
-        confidenceTier: "Moderate Model Confidence",
-        timelineInsight: "Steady timeline parameters for educational discussion only.",
-        safetyNote: "Educational review only. Qualified review is required for any real-world decision.",
-        structuredPrompt: `[OFFLINE CLIENT PIPELINE]\nFallback activated. Educational review simulation ready for case.`
-      });
-      setReviewMode("offline-safety-fallback");
+      console.error("Inference request failed.", e);
+      if (e instanceof InferenceClientError) {
+        setInferenceError(
+          e.code === "missing_image"
+            ? "Upload an image before requesting live educational model output, or continue with demo mode."
+            : "Live model output is currently unavailable. You can continue with demo mode or try again later.",
+        );
+        setSessionState('error');
+        return;
+      }
+
+      setInferenceError("Educational model output is currently unavailable. You can continue with demo mode or try again later.");
+      setSessionState('error');
+      return;
     } finally {
       setIsAnalyzing(false);
-      setSessionState('results');
     }
+
+    setSessionState('results');
   };
 
   // Clipboard copy helper
@@ -168,9 +175,11 @@ export default function DiagnosticWorkbench() {
   // Restart learning workflow
   const handleResetWorkflow = () => {
     setCustomImage(null);
+    setCustomImageFile(null);
     setUploadedImageName(null);
     setSelectedWorkflow(IMAGE_WORKFLOWS[0]);
     setAnalysisResult(null);
+    setInferenceError(null);
     setQuizAnswers({
       1: "1–4 weeks",
       2: "Posterior thorax / Back",
@@ -577,11 +586,47 @@ export default function DiagnosticWorkbench() {
                   <div>
                   <h3 className="font-serif text-2xl font-bold text-brand-primary mb-2">Preparing educational model output...</h3>
                   <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
-                      The local mock is generating example model confidence, output labels, and structured prompt metadata for learning only.
+                      Revela is preparing model confidence, output labels, and structured prompt metadata for learning only.
                   </p>
                   </div>
                   <div className="max-w-xs w-full bg-indigo-50 h-1 rounded-full overflow-hidden">
                     <div className="bg-brand-primary h-full w-2/3 rounded-full animate-pulse"></div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* VIEW 3b: Safe inference error state */}
+              {sessionState === 'error' && (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.4 }}
+                  className="min-h-[500px] flex flex-col items-center justify-center text-center space-y-6"
+                >
+                  <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100">
+                    <AlertTriangle className="w-7 h-7 text-amber-600" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-serif text-2xl font-bold text-brand-primary">Live model output unavailable</h3>
+                    <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
+                      {inferenceError ?? "Live model output is currently unavailable. You can continue with demo mode or try again later."}
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => handleInitiateAnalysis(true)}
+                      className="bg-brand-primary text-white px-6 py-3 rounded-lg text-xs font-bold uppercase hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                    >
+                      Continue with demo mode
+                    </button>
+                    <button
+                      onClick={() => setSessionState('questionnaire')}
+                      className="bg-white text-brand-primary border border-brand-primary px-6 py-3 rounded-lg text-xs font-bold uppercase hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
+                    >
+                      Back to image workflow
+                    </button>
                   </div>
                 </motion.div>
               )}
@@ -604,7 +649,7 @@ export default function DiagnosticWorkbench() {
                     </div>
                     <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-primary">Continue this image workflow</h1>
                     <p className="text-sm text-gray-500 max-w-3xl leading-relaxed">
-                      This is educational model output from a prototype mock workflow. It is not diagnosis, not treatment advice, and not clinical validation. Qualified review is required for real decisions.
+                      This is educational model output from {reviewMode === "live-hf-inference" ? "the configured inference backend" : "demo mode"}. It is not diagnosis, not treatment advice, and not clinical validation. Qualified review is required for real decisions.
                     </p>
                   </header>
 
@@ -677,11 +722,13 @@ export default function DiagnosticWorkbench() {
                               <div className="space-y-1 max-w-xl">
                                 <div className="flex items-center gap-3">
                                   <span className="font-serif text-base font-bold text-brand-primary">{finding.label}</span>
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                    finding.category === 'Malignant' ? 'bg-red-50 text-red-700' : finding.category === 'Premalignant' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
-                                  }`}>
-                                    {finding.category}
-                                  </span>
+                                  {finding.category && (
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                      finding.category === 'Malignant' ? 'bg-red-50 text-red-700' : finding.category === 'Premalignant' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+                                    }`}>
+                                      {finding.category}
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-xs text-gray-500 leading-relaxed">{finding.description}</p>
                               </div>

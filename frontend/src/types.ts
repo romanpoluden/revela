@@ -19,13 +19,14 @@ export interface AIAnalysisResult {
     label: string;
     probability: number;
     description: string;
-    category: 'Malignant' | 'Benign' | 'Premalignant';
+    category?: 'Malignant' | 'Benign' | 'Premalignant';
   }[];
   confidenceScore: number;
   confidenceTier: 'High Model Confidence' | 'Moderate Model Confidence' | 'Low Model Confidence';
   timelineInsight: string;
   safetyNote: string;
   structuredPrompt: string;
+  backendResult?: InferenceResult;
 }
 
 export interface InferenceBackendHealth {
@@ -74,6 +75,7 @@ export interface InferenceResult {
 
 export type InferenceClientErrorCode =
   | "missing_backend_url"
+  | "missing_image"
   | "network_failure"
   | "http_error"
   | "invalid_response";

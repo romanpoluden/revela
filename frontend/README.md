@@ -20,4 +20,10 @@ This directory contains the isolated Vite React frontend for Revela.
 
 The frontend currently uses an isolated local educational mock for case analysis. It does not require Express, Gemini, or any API secrets for normal local use.
 
-Future production inference should be wired through a Revela Hugging Face backend API client.
+The typed Hugging Face inference client contract is available for future integration, but the app does not call live inference yet.
+
+Optional local configuration for future work:
+
+`VITE_REVELA_INFERENCE_BACKEND_URL="https://example-hf-space.hf.space"`
+
+`VITE_REVELA_ENABLE_LIVE_INFERENCE="true"`

@@ -28,6 +28,56 @@ export interface AIAnalysisResult {
   structuredPrompt: string;
 }
 
+export interface InferenceBackendHealth {
+  status: string;
+  version: string;
+  device: string;
+  supported_model_ids: string[];
+  loaded_model_ids: string[];
+}
+
+export interface InferencePredictionItem {
+  rank?: number;
+  class_index?: number;
+  label: string;
+  probability?: number;
+  confidence?: number;
+  confidence_percent?: number;
+}
+
+export interface InferenceUncertainty {
+  bucket?: string;
+  confidence?: number;
+  confidence_percent?: number;
+  label?: string;
+  explanation?: string;
+}
+
+export interface InferenceResult {
+  model_id: string;
+  model_name?: string | null;
+  input_type: ImageWorkflow["input_type"] | string;
+  architecture: string;
+  image_size: number;
+  predictions: InferencePredictionItem[];
+  top_prediction: InferencePredictionItem | null;
+  uncertainty: InferenceUncertainty;
+  low_certainty: boolean;
+  low_certainty_reason: string | null;
+  low_certainty_message: string | null;
+  low_certainty_rule?: string;
+  low_certainty_threshold?: number;
+  safety_note: string;
+  model_limitations: string[];
+  recommended_next_step: string;
+}
+
+export type InferenceClientErrorCode =
+  | "missing_backend_url"
+  | "network_failure"
+  | "http_error"
+  | "invalid_response";
+
 export const IMAGE_WORKFLOWS: ImageWorkflow[] = [
   {
     id: "clinical",

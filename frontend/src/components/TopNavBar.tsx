@@ -1,4 +1,5 @@
 import { Bell, UserCircle } from "lucide-react";
+import revelaLogo from "../assets/revela-logo.svg";
 
 interface TopNavBarProps {
   onNavigateHome: () => void;
@@ -11,13 +12,23 @@ export default function TopNavBar({ onNavigateHome, onNavigateWorkbench, activeT
     <nav className="bg-white border-b border-gray-200 fixed top-0 w-full z-50 shadow-sm transition-colors duration-200">
       <div className="flex justify-between items-center px-6 md:px-10 py-4 w-full max-w-[1440px] mx-auto">
         <div className="flex items-center gap-8">
-          <span 
-            className="font-serif text-2xl font-bold text-brand-primary cursor-pointer hover:opacity-85 select-none"
+          <button
+            type="button"
+            className="flex items-center gap-3 cursor-pointer hover:opacity-85 select-none transition-opacity"
             onClick={onNavigateHome}
             id="brand-logo"
+            aria-label="Go to Revela overview"
           >
-            Revela
-          </span>
+            <img
+              src={revelaLogo}
+              alt=""
+              className="h-9 w-9 rounded-xl shadow-sm"
+              aria-hidden="true"
+            />
+            <span className="font-serif text-2xl font-bold text-brand-primary">
+              Revela
+            </span>
+          </button>
           <div className="hidden md:flex space-x-6">
             <button 
               onClick={onNavigateHome}
@@ -43,8 +54,8 @@ export default function TopNavBar({ onNavigateHome, onNavigateWorkbench, activeT
                   ? 'text-brand-accent border-b-2 border-brand-accent pb-1' 
                   : 'text-gray-500 hover:text-brand-primary'
               }`}
-            id="nav-ai-workbench"
-          >
+              id="nav-ai-workbench"
+            >
               AI Learning Lab
             </button>
             <button 

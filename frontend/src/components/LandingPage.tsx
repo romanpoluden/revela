@@ -1,5 +1,6 @@
-import { AlertTriangle, ArrowRight, Brain, ShieldAlert } from "lucide-react";
+import { AlertTriangle, ArrowRight, Brain } from "lucide-react";
 import { motion } from "motion/react";
+import revelaLogo from "../assets/revela-logo.svg";
 
 interface LandingPageProps {
   onBegin: () => void;
@@ -74,6 +75,15 @@ export default function LandingPage({ onBegin }: LandingPageProps) {
 
       {/* Hero Headline & Subtitle */}
       <div className="text-center mb-16 relative z-10 max-w-3xl">
+        <motion.div
+          className="mx-auto mb-7 flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-lg shadow-brand-accent-light/40 ring-1 ring-gray-200/70"
+          initial={{ opacity: 0, y: -12, scale: 0.94 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.6 }}
+          id="landing-logo-mark"
+        >
+          <img src={revelaLogo} alt="Revela" className="h-14 w-14 rounded-2xl" />
+        </motion.div>
         <motion.h1 
           className="font-serif text-4xl md:text-5xl lg:text-6xl text-brand-primary font-bold tracking-tight mb-6"
           initial={{ opacity: 0, y: -20 }}

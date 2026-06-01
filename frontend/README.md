@@ -16,6 +16,18 @@ This directory contains the isolated Vite React frontend for Revela.
 
 3. Open `http://127.0.0.1:3000`.
 
+## Quality Checks
+
+Run these from this `frontend` directory before shipping frontend copy changes:
+
+`npm run lint`
+
+`npm run build`
+
+`npm run qa:safety-copy`
+
+The safety-copy check scans React/TypeScript frontend source for restricted medical or patient-care wording while allowing documented negative safety framing such as "not diagnosis" and "not treatment advice."
+
 ## Inference
 
 The frontend uses the local educational mock by default. It does not require Express, Gemini, Hugging Face, or any API secrets for normal local use.

@@ -128,6 +128,17 @@ Interpretation:
 
 This is a valid first clinical-image CNN baseline. Validation macro-F1 improved from 0.6071 to 0.6738 across five epochs. Validation loss started increasing slightly after epoch 3, while macro-F1 continued improving, so the next step should be formal test-set evaluation rather than more training immediately.
 
+## Checkpoint Version History
+
+The `clinical_skin_condition_v1` checkpoint has two known versions across team machines:
+
+| Version | SHA256 (first 16 chars) | Machine | Branch | Approx. date |
+|---|---|---|---|---|
+| v1-roman | `5a1bdc05e3d13b61...` | Roman's machine | main @ 8b47a49 | May 12 2026 |
+| v1-rehma (canonical) | `eba9a581505c60ce...` | Rehma's machine | v2.22-metrics-to-main @ c0181c4 | May 24 2026 |
+
+The canonical version is `v1-rehma`. It matches the artifact hosted on Hugging Face (`RevelaCap/clinical-skin-condition-v1`) and is the version used by all inference paths. Roman's local artifact (`5a1bdc05...`) is an earlier training run and does not match HF. Confirmed via SHA256 three-way comparison in D8.5 (#195).
+
 Important limitation:
 
 These are validation metrics only. Final model quality should be assessed on the held-out test split with class-wise metrics, source-specific metrics for `google_scin` and `fitzpatrick17k`, and a confusion matrix.

@@ -1,4 +1,9 @@
-import { AIAnalysisResult, ImageWorkflow } from "../types";
+import { AIAnalysisResult, ImageWorkflow, InferenceResult } from "../types";
+import {
+  buildLearnerContextFromAnswers,
+  buildLlmTransferPrompt,
+  getCaseTypeFromInputType,
+} from "./promptBuilder";
 
 const STATIC_MOCK_ANALYSES: Record<ImageWorkflow["input_type"], AIAnalysisResult> = {
   clinical: {
@@ -26,12 +31,7 @@ const STATIC_MOCK_ANALYSES: Record<ImageWorkflow["input_type"], AIAnalysisResult
     confidenceTier: "Moderate Model Confidence",
     timelineInsight: "Recent visible change is treated here as an educational discussion cue only. Real-world interpretation requires qualified review.",
     safetyNote: "Educational review only. This is not diagnosis or treatment advice, and qualified review is required for any real decision.",
-    structuredPrompt: `[SYSTEM: EDUCATIONAL IMAGE REVIEW]
-IMAGE WORKFLOW: clinical / macroscopic photo
-MODEL ID: clinical_skin_condition_v1
-TOP K: 3
-REQUEST: Provide an educational comparison of these labels. Do not provide diagnosis, treatment advice, triage, or clinical validation.
-`,
+    structuredPrompt: "",
   },
   dermoscopic: {
     topFindings: [
@@ -64,12 +64,7 @@ REQUEST: Provide an educational comparison of these labels. Do not provide diagn
     confidenceTier: "High Model Confidence",
     timelineInsight: "A longer, unchanged timeline is presented as educational context only. Real-world interpretation requires qualified review.",
     safetyNote: "Educational review only. This is not diagnosis or treatment advice, and qualified review is required for any real decision.",
-    structuredPrompt: `[SYSTEM: EDUCATIONAL IMAGE REVIEW]
-IMAGE WORKFLOW: dermoscopic / magnified lesion image
-MODEL ID: dermoscopic_cancer_risk_bcn_mnh_v1
-TOP K: 4
-REQUEST: Review image features for education only. Do not provide diagnosis, treatment advice, triage, or clinical validation.
-`,
+    structuredPrompt: "",
   },
 };
 
@@ -92,5 +87,53 @@ export async function runMockEducationalAnalysis({
     result.confidenceScore = result.topFindings[0].probability;
   }
 
+  const mockInferenceResult = buildMockInferenceResult(workflow, result);
+
+  result.structuredPrompt = buildLlmTransferPrompt({
+    caseType: getCaseTypeFromInputType(workflow.input_type),
+    clinicalResponse: workflow.input_type === "clinical" ? mockInferenceResult : null,
+    dermoscopicResponse: workflow.input_type === "dermoscopic" ? mockInferenceResult : null,
+    learnerContext: buildLearnerContextFromAnswers(answers),
+  });
+  result.backendResult = mockInferenceResult;
+
   return result;
+}
+
+function buildMockInferenceResult(workflow: ImageWorkflow, analysis: AIAnalysisResult): InferenceResult {
+  const predictions = analysis.topFindings.map((finding, index) => ({
+    rank: index + 1,
+    class_index: index,
+    label: finding.label,
+    probability: finding.probability / 100,
+    confidence: finding.probability / 100,
+    confidence_percent: finding.probability,
+  }));
+
+  return {
+    model_id: workflow.model_id,
+    model_name: "Frontend educational mock output",
+    input_type: workflow.input_type,
+    architecture: "frontend_mock",
+    image_size: 0,
+    predictions,
+    top_prediction: predictions[0] ?? null,
+    uncertainty: {
+      bucket: analysis.confidenceScore >= 70 ? "higher_confidence" : "moderate_confidence",
+      confidence: analysis.confidenceScore / 100,
+      confidence_percent: analysis.confidenceScore,
+      label: analysis.confidenceTier,
+      explanation: "Frontend mock output for demo continuity. Model confidence is not clinical certainty.",
+    },
+    low_certainty: analysis.confidenceScore < 40,
+    low_certainty_reason: analysis.confidenceScore < 40 ? "Mock confidence below demo low-certainty threshold." : null,
+    low_certainty_message: analysis.confidenceScore < 40 ? "The model output is uncertain. Use for educational review only." : null,
+    safety_note: analysis.safetyNote,
+    model_limitations: [
+      "This is frontend mock output for educational demonstration only.",
+      "It is not clinical validation and must not be used for real-world decisions.",
+      "Image quality, dataset coverage, and taxonomy scope limit interpretation.",
+    ],
+    recommended_next_step: "Use this output only for educational model-output review. Qualified review is required for real decisions.",
+  };
 }

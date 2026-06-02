@@ -48,11 +48,11 @@ main section:first-of-type .grid > button::after {
 }
 
 main section:first-of-type .grid > button:nth-child(1)::after {
-  background-image: url('/examples/clinical-example.svg');
+  background-image: url('/examples/clinical-example.jpeg');
 }
 
 main section:first-of-type .grid > button:nth-child(2)::after {
-  background-image: url('/examples/dermoscopic-example.svg');
+  background-image: url('/examples/dermoscopic-example.jpeg');
 }
 
 @media (max-width: 768px) {

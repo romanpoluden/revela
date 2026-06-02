@@ -7,6 +7,11 @@ import {
   InferenceResult,
 } from "../types";
 import { runMockEducationalAnalysis } from "./mockAnalysis";
+import {
+  buildLearnerContextFromAnswers,
+  buildLlmTransferPrompt,
+  getCaseTypeFromInputType,
+} from "./promptBuilder";
 
 export interface AnalyzeCaseInput {
   workflow: ImageWorkflow;
@@ -100,7 +105,7 @@ export async function analyzeCase(input: AnalyzeCaseInput): Promise<AnalyzeCaseR
     });
 
     return {
-      analysis: adaptInferenceResultToAnalysis(backendResult),
+      analysis: adaptInferenceResultToAnalysis(backendResult, input.workflow, input.answers),
       mode: "live-hf-inference",
     };
   }
@@ -139,9 +144,19 @@ function readEnv(key: string): string | undefined {
   return env?.[key]?.trim();
 }
 
-function adaptInferenceResultToAnalysis(result: InferenceResult): AIAnalysisResult {
+function adaptInferenceResultToAnalysis(
+  result: InferenceResult,
+  workflow: ImageWorkflow,
+  answers: Record<number, string>,
+): AIAnalysisResult {
   const topConfidence = result.top_prediction?.confidence ?? result.uncertainty.confidence ?? 0;
   const confidenceScore = toPercent(topConfidence, result.top_prediction?.confidence_percent);
+  const structuredPrompt = buildLlmTransferPrompt({
+    caseType: getCaseTypeFromInputType(workflow.input_type),
+    clinicalResponse: workflow.input_type === "clinical" ? result : null,
+    dermoscopicResponse: workflow.input_type === "dermoscopic" ? result : null,
+    learnerContext: buildLearnerContextFromAnswers(answers),
+  });
 
   return {
     topFindings: result.predictions.map((prediction) => {
@@ -156,7 +171,7 @@ function adaptInferenceResultToAnalysis(result: InferenceResult): AIAnalysisResu
     confidenceTier: confidenceTierFromScore(confidenceScore),
     timelineInsight: result.low_certainty_message ?? result.uncertainty.explanation ?? "Model uncertainty metadata was returned by the inference backend.",
     safetyNote: [result.safety_note, ...result.model_limitations, result.recommended_next_step].filter(Boolean).join(" "),
-    structuredPrompt: buildStructuredPromptFromInference(result),
+    structuredPrompt,
     backendResult: result,
   };
 }
@@ -176,34 +191,6 @@ function confidenceTierFromScore(score: number): AIAnalysisResult["confidenceTie
     return "Moderate Model Confidence";
   }
   return "Low Model Confidence";
-}
-
-function buildStructuredPromptFromInference(result: InferenceResult): string {
-  const predictions = result.predictions
-    .map((prediction) => {
-      const confidence = toPercent(prediction.confidence ?? prediction.probability ?? 0, prediction.confidence_percent);
-      return `- ${prediction.label}: ${confidence}% model confidence`;
-    })
-    .join("\n");
-
-  return `[HF INFERENCE OUTPUT]
-MODEL ID: ${result.model_id}
-INPUT TYPE: ${result.input_type}
-ARCHITECTURE: ${result.architecture}
-IMAGE SIZE: ${result.image_size}
-LOW CERTAINTY: ${result.low_certainty}
-
-PREDICTIONS:
-${predictions}
-
-SAFETY NOTE:
-${result.safety_note}
-
-LIMITATIONS:
-${result.model_limitations.map((limitation) => `- ${limitation}`).join("\n")}
-
-NEXT STEP:
-${result.recommended_next_step}`;
 }
 
 async function requestInferenceBackend(path: string, init: RequestInit): Promise<Response> {

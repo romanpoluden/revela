@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { 
-  FileText, Layers, Upload, Brain, Microscope, HelpCircle, Settings, Plus,
+  FileText, Layers, Upload, Microscope, HelpCircle, Settings, Plus,
   ChevronRight, ArrowLeft, ArrowRight, CheckCircle, AlertTriangle, Terminal, 
   Copy, Check, Info, ShieldAlert, Award, Eye, BarChart2, Mail, Loader2
 } from "lucide-react";
@@ -232,14 +232,6 @@ export default function DiagnosticWorkbench() {
           </button>
 
           <button 
-            disabled 
-            className="w-full flex items-center gap-3 px-4 py-3 text-xs font-semibold uppercase tracking-wider rounded-lg opacity-50 cursor-not-allowed"
-          >
-            <Brain className="w-4 h-4" />
-            Model Review
-          </button>
-
-          <button 
             onClick={() => {
               if (analysisResult) setSessionState('results');
             }}
@@ -298,616 +290,276 @@ export default function DiagnosticWorkbench() {
                     <p className="text-sm text-gray-500 max-w-2xl">Prototype image workflow for educational review only. Select the uploaded image mode before upload. This is not diagnosis or treatment advice.</p>
                   </header>
 
-                  {/* Step 1: Image Workflow Selection */}
-                  <section className="space-y-5">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-xs">1</span>
-                      <h3 className="font-serif text-xl font-bold text-brand-primary">Image Workflow</h3>
+                  {/* Workflow Selection */}
+                  <section>
+                    <div className="flex items-center justify-between mb-5">
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400">1. Select image workflow</h3>
                     </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {IMAGE_WORKFLOWS.map((workflow) => (
-                        <button
-                          type="button"
-                          key={workflow.id}
-                          onClick={() => handleWorkflowSelect(workflow)}
-                          className={`relative overflow-hidden bg-white rounded-xl border p-6 text-left transition-all cursor-pointer group ${
-                            selectedWorkflow.id === workflow.id
-                              ? 'border-brand-primary ring-2 ring-brand-primary/5 shadow-md' 
-                              : 'border-gray-200/60 hover:shadow-md'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <h4 className="font-serif text-xl font-bold text-brand-primary leading-snug">{workflow.title}</h4>
-                            {selectedWorkflow.id === workflow.id && (
-                              <CheckCircle className="w-5 h-5 text-brand-primary shrink-0" />
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-500 leading-relaxed mb-6">{workflow.description}</p>
-                          <div className="space-y-2 pt-4 border-t border-gray-100 text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                            <div className="flex justify-between gap-3">
-                              <span>model_id</span>
-                              <span className="text-brand-primary normal-case tracking-normal text-right">{workflow.model_id}</span>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {IMAGE_WORKFLOWS.map((workflow) => {
+                        const isSelected = selectedWorkflow.id === workflow.id;
+                        return (
+                          <button
+                            key={workflow.id}
+                            onClick={() => handleWorkflowSelect(workflow)}
+                            className={`text-left p-5 rounded-xl border transition-all cursor-pointer hover:-translate-y-0.5 ${
+                              isSelected
+                                ? "border-brand-primary bg-white shadow-lg ring-2 ring-brand-accent-light"
+                                : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-md"
+                            }`}
+                          >
+                            <div className="flex items-start gap-4">
+                              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isSelected ? "bg-brand-primary text-white" : "bg-surface-low text-brand-primary"}`}>
+                                <Microscope className="w-6 h-6" />
+                              </div>
+                              <div>
+                                <p className="font-serif text-xl font-bold text-brand-primary mb-1">{workflow.label}</p>
+                                <p className="text-sm text-gray-500 leading-relaxed">{workflow.description}</p>
+                                <p className="mt-3 text-[11px] uppercase tracking-widest text-brand-accent font-bold">{workflow.model_id}</p>
+                              </div>
                             </div>
-                            <div className="flex justify-between gap-3">
-                              <span>top_k</span>
-                              <span className="text-brand-primary">{workflow.top_k}</span>
-                            </div>
-                            <div className="flex justify-between gap-3">
-                              <span>input_type</span>
-                              <span className="text-brand-primary">{workflow.input_type}</span>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   </section>
 
-                  {/* Step 2: Image Upload */}
-                  <section className="space-y-5">
-                    <div className="flex items-center gap-3">
-                      <span className="w-7 h-7 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold text-xs">2</span>
-                      <h3 className="font-serif text-xl font-bold text-brand-primary">Uploaded Image & Preview</h3>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                      {/* Drag & Drop zone */}
-                      <div 
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        className="lg:col-span-2 border-2 border-dashed border-gray-300 rounded-xl p-10 flex flex-col items-center justify-center text-center bg-white hover:bg-gray-50/60 transition-all cursor-pointer group shadow-sm"
-                      >
-                        <input 
-                          type="file" 
-                          ref={fileInputRef} 
-                          onChange={handleFileUpload} 
-                          accept="image/*" 
-                          className="hidden" 
-                        />
-                        <div 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform border border-gray-200"
-                        >
-                          <Upload className="w-6 h-6 text-brand-primary" />
-                        </div>
-                        <p className="text-sm font-bold text-brand-primary">Drag and drop an image</p>
-                        <p className="text-xs text-gray-400 mt-2">Supports JPEG, PNG, TIFF (Max 50MB)</p>
-                        <button 
-                          onClick={() => fileInputRef.current?.click()}
-                          className="mt-5 px-6 py-2 border border-brand-primary text-brand-primary text-xs font-bold uppercase rounded-lg hover:bg-brand-primary hover:text-white transition-all shadow-sm"
-                        >
-                          Browse Files
-                        </button>
-                      </div>
-
-                      {/* Preview Box */}
-                      <div className="bg-white border border-gray-200 rounded-xl p-5 flex flex-col shadow-sm">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Live Preview</span>
-                        <div className="flex-1 min-h-[160px] bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 relative overflow-hidden">
-                          {customImage ? (
-                            <img className="w-full h-full object-cover" src={customImage} alt="User upload preview" />
-                          ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center px-4">
-                              <Upload className="w-8 h-8 text-gray-300" />
-                              <span className="text-xs text-slate-800 font-semibold bg-white/90 px-4 py-2 rounded-full border border-gray-100">
-                                {selectedWorkflow.input_type} image workflow selected
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* Primary navigation */}
-                  <div className="flex justify-center pt-6">
-                    <button 
-                      onClick={() => setSessionState('questionnaire')}
-                      className="bg-brand-primary text-white px-10 py-4 rounded-xl font-bold text-sm hover:opacity-95 shadow-lg active:scale-95 transition-all flex items-center gap-3 cursor-pointer select-none"
+                  {/* Upload Area */}
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">2. Upload image</h3>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      onDragOver={handleDragOver}
+                      onDrop={handleDrop}
+                      className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center cursor-pointer hover:border-brand-accent hover:bg-brand-secondary transition-colors"
                     >
-                      Continue with Selection
-                      <ArrowRight className="w-4 h-4" />
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                      {customImage ? (
+                        <div className="space-y-4">
+                          <img src={customImage} alt="Uploaded preview" className="max-h-72 mx-auto rounded-xl shadow-md object-contain" />
+                          <div>
+                            <p className="font-bold text-brand-primary">{uploadedImageName || "Uploaded image"}</p>
+                            <p className="text-xs text-gray-500 mt-1">Click or drag another image to replace.</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="py-8">
+                          <Upload className="w-12 h-12 mx-auto text-gray-300 mb-4" />
+                          <p className="font-serif text-2xl font-bold text-brand-primary mb-2">Upload an educational demo image</p>
+                          <p className="text-sm text-gray-500">PNG, JPG, JPEG, or WEBP. Image is used only for this prototype review flow.</p>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setSessionState('questionnaire')}
+                      className="bg-brand-primary text-white text-xs font-bold uppercase tracking-wider px-8 py-3.5 rounded-lg hover:bg-opacity-95 transition-all active:scale-95 cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!customImageFile && !customImage}
+                    >
+                      Continue to context
+                      <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* VIEW 2: Case Context Questionnaire */}
+              {/* VIEW 2: Questionnaire */}
               {sessionState === 'questionnaire' && (
-                <motion.div 
+                <motion.div
                   key="questionnaire"
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.4 }}
-                  className="space-y-8"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="h-[calc(100vh-4rem)] flex flex-col"
                 >
-                  {/* Breadcrumbs and headers */}
-                  <header>
-                    <div className="flex items-center gap-2 mb-2 text-xs font-bold uppercase tracking-widest text-brand-accent">
-                      <span>Educational Review Pathway</span>
-                      <ChevronRight className="w-3 h-3 text-gray-400" />
-                      <span className="text-brand-primary">Step 3: Case Context</span>
-                    </div>
-                    <h2 className="font-serif text-3xl font-bold tracking-tight text-brand-primary">Revela AI Learning Lab</h2>
-                  </header>
-
-                  <div className="grid grid-cols-12 gap-6 items-start">
-                    
-                    {/* Learning case sidebar visual context */}
-                    <div className="col-span-12 lg:col-span-4 space-y-6">
-                      <div className="bg-white rounded-xl overflow-hidden border border-gray-200/60 shadow-sm">
-                        <div className="aspect-square w-full relative">
-                          {customImage ? (
-                            <img className="w-full h-full object-cover" src={customImage} alt="Uploaded image preview" />
-                          ) : (
-                            <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-3 text-center p-6">
-                              <Upload className="w-10 h-10 text-gray-300" />
-                              <p className="text-xs text-gray-500 leading-relaxed">Upload an image for this educational review workflow.</p>
-                            </div>
-                          )}
-                          <div className="absolute top-4 left-4 bg-brand-primary/85 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest text-white border border-gray-700">
-                            {selectedWorkflow.input_type}
-                          </div>
-                        </div>
-                        <div className="p-6">
-                          <h3 className="font-serif text-lg font-bold text-brand-primary mb-2">{selectedWorkflow.title}</h3>
-                          <p className="text-xs text-gray-600 leading-relaxed">{selectedWorkflow.description}</p>
-                          {uploadedImageName && (
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-4">
-                              Uploaded image: {uploadedImageName}
-                            </p>
-                          )}
-                        </div>
+                  <div className="bg-white rounded-xl border border-gray-200 shadow-md overflow-hidden flex flex-col flex-1">
+                    <div className="p-8 border-b border-gray-100 shrink-0">
+                      <div className="flex justify-between items-center mb-4">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Question {currentQuizIndex + 1} of {QUIZ_QUESTIONS.length}</span>
+                        <span className="text-xs font-bold uppercase tracking-widest text-brand-accent">{Math.round(((currentQuizIndex + 1) / QUIZ_QUESTIONS.length) * 100)}% Complete</span>
                       </div>
-
-                      {/* Educational insight card */}
-                      <div className="bg-brand-primary text-gray-200 p-6 rounded-xl border border-gray-800 shadow-sm space-y-3">
-                        <div className="flex items-center gap-2.5 text-indigo-400 font-bold uppercase tracking-widest text-[10px]">
-                          <Info className="w-4 h-4 shrink-0" />
-                          Educational Insight
-                        </div>
-                        <p className="text-xs italic text-gray-300 leading-relaxed">
-                          "Image changes in size, symmetry, or coloration can be useful learning cues. Qualified review is required before any real-world decision."
-                        </p>
+                      <div className="h-2 bg-indigo-50 rounded-full overflow-hidden">
+                        <div className="h-full bg-brand-primary transition-all duration-500" style={{ width: `${((currentQuizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%` }}></div>
                       </div>
                     </div>
 
-                    {/* Dynamic Question Card */}
-                    <div className="col-span-12 lg:col-span-8">
-                      <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden relative">
-                        
-                        {/* Progress Tracker Header */}
-                        <div className="p-8 pb-4 border-b border-gray-100">
-                          <div className="flex justify-between items-center mb-3">
-                            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                              Question {currentQuizIndex + 1} of {QUIZ_QUESTIONS.length}
-                            </span>
-                            <span className="text-xs font-bold uppercase tracking-widest text-brand-accent">
-                              {Math.round(((currentQuizIndex + 1) / QUIZ_QUESTIONS.length) * 100)}% Complete
-                            </span>
-                          </div>
-                          <div className="w-full h-2 bg-indigo-50 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-brand-primary rounded-full transition-all duration-500 ease-out" 
-                              style={{ width: `${((currentQuizIndex + 1) / QUIZ_QUESTIONS.length) * 100}%` }}
-                            ></div>
-                          </div>
-                        </div>
-
-                        {/* Question Content */}
-                        <div className="p-8 min-h-[300px] flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-serif text-2xl font-bold text-brand-primary mb-2">
-                              {QUIZ_QUESTIONS[currentQuizIndex].questionText}
-                            </h3>
-                            {QUIZ_QUESTIONS[currentQuizIndex].description && (
-                              <p className="text-xs text-gray-400 leading-relaxed mb-6">
-                                {QUIZ_QUESTIONS[currentQuizIndex].description}
-                              </p>
-                            )}
-
-                            <div className="space-y-3">
-                              {QUIZ_QUESTIONS[currentQuizIndex].options.map((option) => {
-                                const isSelected = quizAnswers[QUIZ_QUESTIONS[currentQuizIndex].id] === option;
-                                return (
-                                  <label 
-                                    key={option}
-                                    onClick={() => handleQuizOptionSelect(option)}
-                                    className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer select-none transition-all duration-200 ${
-                                      isSelected 
-                                        ? 'border-brand-primary bg-indigo-50/25 border-2 shadow-sm' 
-                                        : 'border-gray-200 hover:bg-gray-50/60'
-                                    }`}
-                                  >
-                                    <span className={`text-sm tracking-wide ${isSelected ? 'text-brand-primary font-bold' : 'text-gray-600'}`}>
-                                      {option}
-                                    </span>
-                                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${isSelected ? 'border-brand-primary' : 'border-gray-300'}`}>
-                                      {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-brand-primary"></div>}
-                                    </div>
-                                  </label>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Card Lower Actions */}
-                        <div className="px-8 py-5 bg-gray-50 border-t border-gray-100 flex justify-between items-center">
-                          <button 
-                            onClick={handleQuizBack}
-                            className="px-5 py-2.5 border border-gray-300 bg-white text-xs font-bold uppercase text-gray-500 hover:bg-gray-100 rounded-lg flex items-center gap-2 transition-all cursor-pointer"
+                    <div className="p-8 flex-1 overflow-y-auto custom-scroll">
+                      <h2 className="font-serif text-4xl font-bold text-brand-primary mb-4">{QUIZ_QUESTIONS[currentQuizIndex].question}</h2>
+                      <p className="text-gray-400 text-sm mb-8">{QUIZ_QUESTIONS[currentQuizIndex].subtitle}</p>
+                      
+                      <div className="space-y-3">
+                        {QUIZ_QUESTIONS[currentQuizIndex].options.map((option) => (
+                          <button
+                            key={option}
+                            onClick={() => handleQuizOptionSelect(option)}
+                            className={`w-full text-left p-4 rounded-lg border flex items-center justify-between transition-all cursor-pointer ${
+                              quizAnswers[QUIZ_QUESTIONS[currentQuizIndex].id] === option
+                                ? "border-brand-primary ring-2 ring-brand-primary bg-surface-low"
+                                : "border-gray-200 bg-white hover:border-brand-accent"
+                            }`}
                           >
-                            <ArrowLeft className="w-3.5 h-3.5" />
-                            Back
+                            <span className="text-sm font-medium text-gray-700">{option}</span>
+                            <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${quizAnswers[QUIZ_QUESTIONS[currentQuizIndex].id] === option ? "border-brand-primary" : "border-gray-300"}`}>
+                              {quizAnswers[QUIZ_QUESTIONS[currentQuizIndex].id] === option && <span className="w-2.5 h-2.5 rounded-full bg-brand-primary"></span>}
+                            </span>
                           </button>
-                          
-                          <button 
-                            onClick={handleQuizNext}
-                            className="px-6 py-2.5 bg-brand-primary text-white text-xs font-bold uppercase rounded-lg shadow hover:opacity-90 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-                          >
-                            {currentQuizIndex === QUIZ_QUESTIONS.length - 1 ? (
-                              <>
-                                Review model output
-                                <Brain className="w-4 h-4" />
-                              </>
-                            ) : (
-                              <>
-                                Continue
-                                <ArrowRight className="w-3.5 h-3.5" />
-                              </>
-                            )}
-                          </button>
-                        </div>
-
+                        ))}
                       </div>
                     </div>
 
+                    <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-between items-center shrink-0">
+                      <button
+                        onClick={handleQuizBack}
+                        className="px-6 py-3 rounded-lg border border-gray-300 text-gray-500 text-xs font-bold uppercase tracking-wider hover:bg-white transition-colors cursor-pointer flex items-center gap-2"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back
+                      </button>
+                      <button
+                        onClick={handleQuizNext}
+                        className="px-8 py-3 rounded-lg bg-brand-primary text-white text-xs font-bold uppercase tracking-wider hover:bg-opacity-95 transition-all cursor-pointer flex items-center gap-2"
+                      >
+                        {currentQuizIndex === QUIZ_QUESTIONS.length - 1 ? "Review Model Output" : "Continue"}
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}
 
-              {/* VIEW 3: Processing/Analyzing state */}
+              {/* VIEW 3: Analyzing */}
               {sessionState === 'analyzing' && (
-                <motion.div 
+                <motion.div
                   key="analyzing"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="min-h-[500px] flex flex-col items-center justify-center text-center space-y-6"
+                  className="min-h-[70vh] flex items-center justify-center"
                 >
-                  <div className="relative">
-                    <div className="w-24 h-24 rounded-full border-4 border-indigo-100 border-t-brand-primary animate-spin"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Brain className="w-10 h-10 text-brand-primary animate-pulse" />
+                  <div className="text-center max-w-md">
+                    <div className="w-20 h-20 bg-brand-primary rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl">
+                      <Loader2 className="w-10 h-10 text-white animate-spin" />
                     </div>
-                  </div>
-                  <div>
-                  <h3 className="font-serif text-2xl font-bold text-brand-primary mb-2">Preparing educational model output...</h3>
-                  <p className="text-sm text-gray-400 max-w-sm mx-auto leading-relaxed">
-                      Revela is preparing model confidence, output labels, and structured prompt metadata for learning only.
-                  </p>
-                  </div>
-                  <div className="max-w-xs w-full bg-indigo-50 h-1 rounded-full overflow-hidden">
-                    <div className="bg-brand-primary h-full w-2/3 rounded-full animate-pulse"></div>
+                    <h2 className="font-serif text-3xl font-bold text-brand-primary mb-3">Generating educational model output</h2>
+                    <p className="text-gray-500 leading-relaxed">Running the selected image workflow and preparing a safety-framed review. This is not diagnosis.</p>
                   </div>
                 </motion.div>
               )}
 
-              {/* VIEW 3b: Safe inference error state */}
+              {/* VIEW 4: Error */}
               {sessionState === 'error' && (
                 <motion.div
                   key="error"
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.4 }}
-                  className="min-h-[500px] flex flex-col items-center justify-center text-center space-y-6"
+                  transition={{ duration: 0.3 }}
+                  className="min-h-[70vh] flex items-center justify-center"
                 >
-                  <div className="w-16 h-16 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100">
-                    <AlertTriangle className="w-7 h-7 text-amber-600" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="font-serif text-2xl font-bold text-brand-primary">Live model output unavailable</h3>
-                    <p className="text-sm text-gray-500 max-w-md mx-auto leading-relaxed">
-                      {inferenceError ?? "Live model output is currently unavailable. You can continue with demo mode or try again later."}
-                    </p>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <button
-                      onClick={() => handleInitiateAnalysis(true)}
-                      className="bg-brand-primary text-white px-6 py-3 rounded-lg text-xs font-bold uppercase hover:opacity-90 transition-all active:scale-95 cursor-pointer"
-                    >
-                      Continue with demo mode
-                    </button>
-                    <button
-                      onClick={() => setSessionState('questionnaire')}
-                      className="bg-white text-brand-primary border border-brand-primary px-6 py-3 rounded-lg text-xs font-bold uppercase hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
-                    >
-                      Back to image workflow
-                    </button>
+                  <div className="max-w-xl bg-white border border-red-100 rounded-2xl shadow-lg p-8 text-center">
+                    <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto mb-5">
+                      <AlertTriangle className="w-7 h-7 text-red-600" />
+                    </div>
+                    <h2 className="font-serif text-3xl font-bold text-brand-primary mb-3">Live model output unavailable</h2>
+                    <p className="text-gray-500 leading-relaxed mb-6">{inferenceError}</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <button
+                        onClick={() => setSessionState('selection')}
+                        className="px-6 py-3 rounded-lg border border-gray-300 text-gray-600 text-xs font-bold uppercase tracking-wider hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        Back to upload
+                      </button>
+                      <button
+                        onClick={() => handleInitiateAnalysis(true)}
+                        className="px-6 py-3 rounded-lg bg-brand-primary text-white text-xs font-bold uppercase tracking-wider hover:bg-opacity-95 transition-colors cursor-pointer"
+                      >
+                        Continue with demo mode
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}
 
-              {/* VIEW 4: Educational Outputs & Structured Prompt Results */}
+              {/* VIEW 5: Results */}
               {sessionState === 'results' && analysisResult && (
-                <motion.div 
+                <motion.div
                   key="results"
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.5 }}
-                  className="space-y-12 pb-20"
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-6"
                 >
                   {/* Results Header */}
-                  <header className="space-y-2">
-                    <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-100 px-4 py-1.5 rounded-full w-fit shadow-xs">
-                      <CheckCircle className="w-4 h-4" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Educational Review Completed</span>
+                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div>
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-50 text-green-700 text-[11px] uppercase tracking-widest font-bold mb-3">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Educational Output Ready
+                      </div>
+                      <h2 className="font-serif text-4xl font-bold text-brand-primary">Model output summary</h2>
+                      <p className="text-gray-500 mt-2">Review educational model output, uncertainty, and safety notes.</p>
                     </div>
-                    <h1 className="font-serif text-3xl md:text-4xl font-bold text-brand-primary">Continue this image workflow</h1>
-                    <p className="text-sm text-gray-500 max-w-3xl leading-relaxed">
-                      This is educational model output from {reviewMode === "live-hf-inference" ? "the configured inference backend" : "demo mode"}. It is not diagnosis, not treatment advice, and not clinical validation. Qualified review is required for real decisions.
-                    </p>
-                  </header>
-
-                  {/* Primary interactive bento grid */}
-                  <div className="grid grid-cols-12 gap-6 items-start">
-                    
-                    {/* Left: Findings and probabilities */}
-                    <div className="col-span-12 lg:col-span-8 space-y-6">
-                      
-                      {/* Structured Prompt Container Card */}
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-8 flex flex-col space-y-6">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Terminal className="w-5 h-5 text-brand-primary" />
-                            <h3 className="font-serif text-xl font-bold text-brand-primary">Structured AI Prompt</h3>
-                          </div>
-                          <div className="flex items-center gap-2 px-3 py-1 bg-brand-accent-light/35 border border-brand-accent/10 rounded-full">
-                            <span className="w-1.5 h-1.5 rounded-full bg-brand-accent animate-ping"></span>
-                            <span className="text-[9px] font-bold uppercase tracking-tight text-brand-accent">
-                              Prepared for HF backend client
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="relative group">
-                          <textarea 
-                            readOnly 
-                            value={analysisResult.structuredPrompt}
-                            className="w-full h-56 p-5 bg-gray-50 border border-gray-200 text-gray-700 font-mono text-xs rounded-lg resize-none tracking-wide focus:outline-none"
-                          />
-                          <button 
-                            onClick={handleCopyPromptText}
-                            className="absolute top-4 right-4 p-2 bg-white rounded-md shadow border border-gray-200 hover:bg-brand-primary hover:text-white transition-all cursor-pointer"
-                          >
-                            {copiedPrompt ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
-                          </button>
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row gap-4">
-                          <button 
-                            onClick={handleCopyPromptText}
-                            className="flex items-center justify-center gap-2 bg-brand-primary text-white text-xs font-bold uppercase px-8 py-3.5 rounded-lg hover:opacity-90 shadow-md transition-all active:scale-95 cursor-pointer"
-                          >
-                            <Copy className="w-4 h-4" />
-                            {copiedPrompt ? "Copied Prompt" : "Copy prompt"}
-                          </button>
-                          
-                          <button 
-                            onClick={handleResetWorkflow}
-                            className="flex items-center justify-center gap-2 text-brand-primary bg-white border border-brand-primary text-xs font-bold uppercase px-6 py-3 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
-                          >
-                            Start Another Review
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Educational model output container */}
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200/60 p-8 space-y-6">
-                        <h3 className="font-serif text-xl font-bold text-brand-primary">Educational Model Output</h3>
-                        <div className="space-y-4">
-                          {analysisResult.topFindings?.map((finding, idx) => (
-                            <div 
-                              key={finding.label} 
-                              className={`p-5 rounded-lg border flex flex-col md:flex-row justify-between md:items-center gap-4 ${
-                                idx === 0 
-                                  ? 'bg-amber-50/20 border-amber-200 border-l-4 border-l-brand-accent' 
-                                  : 'bg-white border-gray-200'
-                              }`}
-                            >
-                              <div className="space-y-1 max-w-xl">
-                                <div className="flex items-center gap-3">
-                                  <span className="font-serif text-base font-bold text-brand-primary">{finding.label}</span>
-                                  {finding.category && (
-                                    <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                                      finding.category === 'Malignant' ? 'bg-red-50 text-red-700' : finding.category === 'Premalignant' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
-                                    }`}>
-                                      {finding.category}
-                                    </span>
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 leading-relaxed">{finding.description}</p>
-                              </div>
-                              <span className="font-serif text-3xl font-bold text-brand-accent shrink-0 md:text-right">
-                                {Math.round(finding.probability)}%
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                    </div>
-
-                    {/* Right sidebar: Visual anchors */}
-                    <div className="col-span-12 lg:col-span-4 space-y-6">
-                      
-                      {/* Uploaded image preview card */}
-                      <div className="bg-white rounded-xl border border-gray-200/60 shadow-sm overflow-hidden p-5 flex flex-col gap-4">
-                        <div className="rounded-lg overflow-hidden aspect-square border border-gray-100 relative group">
-                          {customImage ? (
-                            <img className="w-full h-full object-cover grayscale-0 group-hover:grayscale-[0.1] transition-all duration-500" src={customImage} alt="Uploaded image visual output link" />
-                          ) : (
-                            <div className="w-full h-full bg-gray-50 flex flex-col items-center justify-center gap-3 text-center p-6">
-                              <Upload className="w-10 h-10 text-gray-300" />
-                              <p className="text-xs text-gray-500 leading-relaxed">No uploaded image preview available.</p>
-                            </div>
-                          )}
-                          <div className="absolute bottom-4 left-4 font-sans text-xs font-bold text-white bg-brand-primary/85 px-3 py-1 rounded-full backdrop-blur-sm border border-gray-800">
-                            {selectedWorkflow.title}
-                          </div>
-                        </div>
-
-                        {/* Model Confidence Meter */}
-                        <div className="bg-gray-50 border border-gray-100 rounded-lg p-4 space-y-3">
-                          <div className="flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                            <span>Model Confidence</span>
-                            <span className="text-brand-primary">{analysisResult.confidenceTier}</span>
-                          </div>
-                          <div className="h-2 w-full bg-indigo-50 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-brand-accent rounded-full transition-all duration-1000 ease-out" 
-                              style={{ width: `${analysisResult.confidenceScore}%` }}
-                            ></div>
-                          </div>
-                          <div className="flex justify-between items-center text-xs font-bold font-serif text-brand-primary text-sm">
-                            <span>{analysisResult.confidenceScore}% Model Confidence</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Timeline insights */}
-                      <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-6 space-y-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Timeline Notes</h4>
-                        <p className="text-xs text-gray-600 leading-relaxed">{analysisResult.timelineInsight}</p>
-                      </div>
-
-                      {/* Recommended details catalog */}
-                      <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-6 space-y-4">
-                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Safety Note</h4>
-                        <p className="text-xs text-gray-600 leading-relaxed text-slate-800">{analysisResult.safetyNote}</p>
-                        
-                        <div className="pt-2 flex gap-3 border-t border-gray-100">
-                          <button className="flex-1 py-2 bg-indigo-50 hover:bg-indigo-100 text-brand-primary text-xs font-bold rounded transition-colors uppercase">
-                            Save Learning Note
-                          </button>
-                          <button className="flex-1 py-2 bg-brand-primary text-white text-xs font-bold rounded hover:opacity-90 transition-opacity uppercase">
-                            Qualified Review Required
-                          </button>
-                        </div>
-                      </div>
-
-                    </div>
-
+                    <button
+                      onClick={handleResetWorkflow}
+                      className="bg-white border border-gray-200 text-brand-primary px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-gray-50 cursor-pointer flex items-center gap-2 shadow-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      New review
+                    </button>
                   </div>
 
-                  {/* Operational Transparency Catalog */}
-                  <section className="space-y-6 pt-5" id="dashboard-transparency">
-                    <div className="border-t border-gray-200 pt-10">
-                      <h2 className="font-serif text-2xl font-bold text-brand-primary mb-6">About this prototype</h2>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-xs text-gray-500">
-                        
-                        <div className="space-y-2 leading-relaxed">
-                          <div className="flex items-center gap-2 text-brand-accent">
-                            <Info className="w-4 h-4" />
-                            <h4 className="font-bold uppercase tracking-wider">Overview</h4>
-                          </div>
-                          <p>Revela is a pedagogical prototype for exploring dermatology image workflows and structured AI model output.</p>
+                  {/* Result Grid */}
+                  <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+                    {/* Left: Model Output */}
+                    <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                        <div>
+                          <h3 className="font-serif text-2xl font-bold text-brand-primary">Top educational output</h3>
+                          <p className="text-xs text-gray-400 mt-1 uppercase tracking-widest">{reviewMode === "hf-live" ? "Live HF Backend" : "Demo Mode"}</p>
                         </div>
-
-                        <div className="space-y-2 leading-relaxed">
-                          <div className="flex items-center gap-2 text-brand-accent">
-                            <Eye className="w-4 h-4" />
-                            <h4 className="font-bold uppercase tracking-wider">Model Transparency</h4>
-                          </div>
-                          <p>This frontend currently uses local educational mock output while a future Hugging Face backend client is planned separately.</p>
+                        <div className="w-14 h-14 rounded-2xl bg-brand-primary text-white flex items-center justify-center">
+                          <BarChart2 className="w-7 h-7" />
                         </div>
-
-                        <div className="space-y-2 leading-relaxed">
-                          <div className="flex items-center gap-2 text-brand-accent">
-                            <BarChart2 className="w-4 h-4" />
-                            <h4 className="font-bold uppercase tracking-wider">Evaluation Metrics</h4>
-                          </div>
-                          <p>No clinical validation or performance claim is made by this prototype frontend.</p>
-                        </div>
-
-                        <div className="space-y-2 leading-relaxed">
-                          <div className="flex items-center gap-2 text-brand-accent">
-                            <ShieldAlert className="w-4 h-4" />
-                            <h4 className="font-bold uppercase tracking-wider">Limitations</h4>
-                          </div>
-                          <p>Prototype intended for educational review only. It is not diagnosis, not treatment advice, and not a substitute for qualified review.</p>
-                        </div>
-
                       </div>
-                    </div>
-                  </section>
 
-                  {/* Institutional Newsletter sign-up */}
-                  <section className="bg-brand-accent-light/10 border border-brand-accent/10 rounded-2xl p-8 md:p-12 text-center space-y-6" id="waitlist-card">
-                    <h3 className="font-serif text-2xl font-bold text-brand-primary">Master the future of Dermatology</h3>
-                    <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
-                      Join our private beta group for dermatology learners and get early access to new AI curriculum modules, dermoscopic quizzes, and educational case studies.
-                    </p>
-                    
-                    {waitlistSuccess ? (
-                      <motion.div 
-                        initial={{ scale: 0.9, opacity: 0 }} 
-                        animate={{ scale: 1, opacity: 1 }} 
-                        className="bg-emerald-50 text-emerald-800 p-4 border border-emerald-100 rounded-lg max-w-md mx-auto"
-                      >
-                        <CheckCircle className="w-5 h-5 mx-auto text-emerald-600 mb-2" />
-                        <span className="font-bold text-sm">Successfully registered!</span> We will contact you at your institutional email.
-                      </motion.div>
-                    ) : (
-                      <form onSubmit={handleWaitlistSubmit} className="flex flex-col sm:flex-row gap-4 justify-center items-center max-w-md mx-auto">
-                        <input 
-                          type="email"
-                          required
-                          value={waitlistEmail}
-                          onChange={(e) => setWaitlistEmail(e.target.value)}
-                          placeholder="Institutional email" 
-                          className="w-full bg-white border border-gray-200 px-4 py-3 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none text-xs text-brand-primary tracking-wide"
-                        />
-                        <button 
-                          type="submit" 
-                          className="w-full sm:w-auto bg-brand-primary text-white text-xs font-bold tracking-wider uppercase px-8 py-3.5 rounded-lg active:scale-95 transition-all outline-none flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                        >
-                          {isSubmittingWaitlist ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              Joining...
-                            </>
-                          ) : "Join Waitlist"}
-                        </button>
-                      </form>
-                    )}
-                  </section>
+                      <div className="p-6 space-y-5">
+                        <div className="rounded-2xl bg-brand-secondary border border-gray-100 p-5">
+                          <div className="flex justify-between gap-4 items-start">
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-2">Top output</p>
+                              <h4 className="font-serif text-3xl font-bold text-brand-primary">{analysisResult.topFindings[0]?.label}</h4>
+                              <p className="text-sm text-gray-500 mt-2 max-w-2xl">{analysisResult.topFindings[0]?.description}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-4xl font-serif font-bold text-brand-accent">{analysisResult.confidenceScore.toFixed(1)}%</p>
+                              <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold mt-1">Model confidence</p>
+                            </div>
+                          </div>
+                        </div>
 
-                </motion.div>
-              )}
-            </AnimatePresence>
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Top-k outputs</h4>
+                          <div className="space-y-3">
+                            {analysisResult.topFindings.map((finding, index) => (
+                              <div key={`${finding.label}-${index}`} className="flex items-center gap-4">
+                                <div className="w-8 text-xs font-bold text-gray-400">#{index + 1}</div>
+                                <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className="h-full bg-brand-primary" style={{ width: `${Math.max(3, finding.probability)}%` }}></div>
+                                </div>
+                                <div className="w-28 text-right text-xs text-gray-500 font-semibold">{finding.probability.toFixed(1)}%</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
 
-          </div>
-        </div>
-
-        {/* Global Footer disclaimer */}
-        <footer className="bg-white border-t border-gray-100 px-6 md:px-10 py-6 w-full flex flex-col sm:flex-row justify-between items-center text-[11px] text-gray-400 gap-4 shrink-0 mt-auto">
-          <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-gray-400" />
-            <p>© 2024 Revela. Educational review only. Not diagnosis, not treatment advice, and not clinical validation.</p>
-          </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-brand-primary transition-colors underline font-medium">Safety Disclaimer</a>
-            <a href="#" className="hover:text-brand-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-brand-primary transition-colors">Institutional Terms</a>
-          </div>
-        </footer>
-
-      </main>
-    </div>
-  );
-}
+                      
